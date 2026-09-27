@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
+import { useI18n } from "@/components/i18n-provider";
+
 /**
  * 全站页面切换过渡（Aceternity 风格的「曲速穿越」）。
  *
@@ -36,13 +38,14 @@ function enabled(): boolean {
 }
 
 const DEST_LABELS: Record<string, string> = {
-  "/": "首页",
-  "/nav": "导航站",
-  "/sponsor": "赞助支持",
-  "/admin": "管理员面板",
-  "/account": "账户设置",
-  "/login": "登录",
-  "/register": "注册",
+  "/": "route.home",
+  "/nav": "route.nav",
+  "/sponsor": "route.sponsor",
+  "/admin": "route.admin",
+  "/account": "route.account",
+  "/login": "route.login",
+  "/register": "route.register",
+  "/pc": "route.pc",
 };
 
 function destLabel(path: string): string {
@@ -172,6 +175,7 @@ function WarpField() {
 /* --------------------------- 过渡遮罩 --------------------------- */
 
 export function PageTransition() {
+  const { t } = useI18n();
   const pathname = usePathname();
   const [phase, setPhase] = useState<Phase>("idle");
   const [dest, setDest] = useState("");
@@ -273,7 +277,8 @@ export function PageTransition() {
   if (!active || phase === "idle") return null;
 
   const leaving = phase === "revealing";
-  const label = destLabel(dest);
+  // 路由名现在是词典 key，运行时翻译 —— 写死的话切语言后仍是中文
+  const label = t(destLabel(dest));
 
   return (
     <div
@@ -293,7 +298,7 @@ export function PageTransition() {
         </div>
 
         <p className="pt-title">
-          <span className="pt-shimmer">正在带你飞速进入中</span>
+          <span className="pt-shimmer">{t("transition.warping")}</span>
           <span className="pt-dots" aria-hidden="true">
             <i />
             <i />

@@ -76,9 +76,11 @@ export async function checkCode(email: string, code: string): Promise<VerifyResu
     /*
      * 失败要累加次数，否则 6 位数字能被暴力枚举。
      *
-     * ⚠️ 这里用 hset 只改 attempts 再用 expire 续期 ——
-     * Store 接口没有 ttl()，读不到剩余时间，
-     * 所以不能走「读出来再整体写回」那条路（会重置或丢掉 TTL）。
+     * ⚠️ 这里整体写回并重新带上 ex，副作用是每次失败都会把有效期续满。
+     * 看起来像漏洞，其实不然：attempts 达到上限后就再也无法续期，
+     * 记录会在最后一次续期后的 30 分钟自然过期。
+     * 想只改 attempts 而不动 TTL，需要 Store 接口提供 ttl() 才能算出剩余时间，
+     * 现在的封装读不到，所以维持这个写法。
      */
     const redis = getRedis();
     const key = KEYS.emailVerify(email);

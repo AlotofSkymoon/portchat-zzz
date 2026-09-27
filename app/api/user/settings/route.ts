@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getRedis, getValue, hasRedisConfig, KEYS, storageErrorMessage } from "@/lib/redis";
 import { decryptSettings, encryptSettings } from "@/lib/user-settings-crypto";
+import { serverT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,9 +33,11 @@ function pickSyncable(input: Record<string, unknown>): Record<string, unknown> {
 }
 
 /** GET /api/user/settings —— 读取本人云端设置 */
-export async function GET() {
+export async function GET(request: Request) {
+  const t = (k: string) => serverT(request, k);
+
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: t("api.notLoggedIn") }, { status: 401 });
   if (!hasRedisConfig()) {
     return NextResponse.json({ error: storageErrorMessage() }, { status: 500 });
   }
@@ -57,8 +60,10 @@ export async function GET() {
 
 /** PUT /api/user/settings —— 保存本人云端设置 */
 export async function PUT(request: Request) {
+  const t = (k: string) => serverT(request, k);
+
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: t("api.notLoggedIn") }, { status: 401 });
   if (!hasRedisConfig()) {
     return NextResponse.json({ error: storageErrorMessage() }, { status: 500 });
   }
@@ -67,7 +72,7 @@ export async function PUT(request: Request) {
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "请求格式错误" }, { status: 400 });
+    return NextResponse.json({ error: t("api.badRequest") }, { status: 400 });
   }
 
   /**
@@ -79,21 +84,23 @@ export async function PUT(request: Request) {
   // 体积兜底：自定义供应商 + Key 再多也不该无限大
   const size = JSON.stringify(payload).length;
   if (size > 64 * 1024) {
-    return NextResponse.json({ error: "设置内容过大" }, { status: 413 });
+    return NextResponse.json({ error: t("api.settingsTooLarge") }, { status: 413 });
   }
 
   try {
     await getRedis().set(KEYS.userSettings(user.id), encryptSettings(JSON.stringify(payload)));
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "保存失败" }, { status: 500 });
+    return NextResponse.json({ error: t("api.settingsSaveFailed") }, { status: 500 });
   }
 }
 
 /** DELETE /api/user/settings —— 清除云端设置 */
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  const t = (k: string) => serverT(request, k);
+
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: t("api.notLoggedIn") }, { status: 401 });
   if (!hasRedisConfig()) {
     return NextResponse.json({ error: storageErrorMessage() }, { status: 500 });
   }

@@ -2,31 +2,31 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUser, requireAdmin } from "@/lib/auth";
 import { getRedis, hasRedisConfig,
-  storageErrorMessage, hgetAll, KEYS, listKeys } from "@/lib/redis";
+  storageErrorMessage, hgetAll, KEYS, listUserKeys, readUserRecord } from "@/lib/redis";
+import { serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function handleError(error: unknown) {
+function handleError(request: Request, error: unknown) {
   const status = (error as { status?: number }).status;
-  if (status === 401) return NextResponse.json({ error: "请先登录" }, { status: 401 });
-  if (status === 403) return NextResponse.json({ error: "仅管理员可访问" }, { status: 403 });
-  return NextResponse.json({ error: "服务器错误" }, { status: 500 });
+  if (status === 401) return NextResponse.json({ error: st(request, "err.loginFirst") }, { status: 401 });
+  if (status === 403) return NextResponse.json({ error: st(request, "err.adminOnly") }, { status: 403 });
+  return NextResponse.json({ error: st(request, "err.serverError") }, { status: 500 });
 }
 
 /** GET /api/admin/users —— 用户列表（管理员） */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await requireAdmin();
     if (!hasRedisConfig()) return NextResponse.json({ error: storageErrorMessage() }, { status: 500 });
 
     const redis = getRedis();
-    const keys = await listKeys("user:*");
-    const userKeys = keys.filter((k) => !k.startsWith("user:email:") && !k.startsWith("user:sessions:"));
+    const userKeys = await listUserKeys();
 
     const users = await Promise.all(
       userKeys.map(async (key) => {
-        const u = await hgetAll<Record<string, string>>(key);
+        const u = await readUserRecord<Record<string, string>>(key);
         if (!u?.id) return null;
         return {
           id: u.id,
@@ -43,7 +43,7 @@ export async function GET() {
 
     return NextResponse.json({ users: list });
   } catch (error) {
-    return handleError(error);
+    return handleError(request, error);
   }
 }
 
@@ -53,20 +53,20 @@ export async function PATCH(request: Request) {
     const admin = await requireAdmin();
     const { userId, role } = (await request.json()) as { userId?: string; role?: string };
     if (!userId || (role !== "admin" && role !== "user")) {
-      return NextResponse.json({ error: "参数错误" }, { status: 400 });
+      return NextResponse.json({ error: st(request, "err.badParams") }, { status: 400 });
     }
     if (userId === admin.id && role !== "admin") {
-      return NextResponse.json({ error: "不能取消自己的管理员权限" }, { status: 400 });
+      return NextResponse.json({ error: st(request, "err.cannotRemoveSelfAdmin") }, { status: 400 });
     }
 
     const redis = getRedis();
     const exists = await redis.exists(KEYS.user(userId));
-    if (!exists) return NextResponse.json({ error: "用户不存在" }, { status: 404 });
+    if (!exists) return NextResponse.json({ error: st(request, "err.userNotFound") }, { status: 404 });
 
     await redis.hset(KEYS.user(userId), { role });
     return NextResponse.json({ ok: true });
   } catch (error) {
-    return handleError(error);
+    return handleError(request, error);
   }
 }
 
@@ -75,12 +75,12 @@ export async function DELETE(request: Request) {
   try {
     const admin = await requireAdmin();
     const userId = new URL(request.url).searchParams.get("userId");
-    if (!userId) return NextResponse.json({ error: "缺少 userId" }, { status: 400 });
-    if (userId === admin.id) return NextResponse.json({ error: "不能删除自己" }, { status: 400 });
+    if (!userId) return NextResponse.json({ error: st(request, "err.missingUserId") }, { status: 400 });
+    if (userId === admin.id) return NextResponse.json({ error: st(request, "err.cannotDeleteSelf") }, { status: 400 });
 
     const redis = getRedis();
     const user = await hgetAll<{ email?: string }>(KEYS.user(userId));
-    if (!user?.email) return NextResponse.json({ error: "用户不存在" }, { status: 404 });
+    if (!user?.email) return NextResponse.json({ error: st(request, "err.userNotFound") }, { status: 404 });
 
     const pipeline = redis.pipeline();
     if (user.email) pipeline.del(KEYS.userEmail(user.email));
@@ -93,6 +93,6 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    return handleError(error);
+    return handleError(request, error);
   }
 }

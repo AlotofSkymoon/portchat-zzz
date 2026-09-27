@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, LogOut, Shield, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ interface AccountUser {
 }
 
 export function AccountClient({ user }: { user: AccountUser }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [current, setCurrent] = React.useState("");
   const [next, setNext] = React.useState("");
@@ -49,16 +51,16 @@ export function AccountClient({ user }: { user: AccountUser }) {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        toast.error(data.error ?? "修改失败");
+        toast.error(data.error ?? t("account.changeFailed"));
         return;
       }
-      toast.success("密码已修改，请重新登录");
+      toast.success(t("account.pwdChanged"));
       setCurrent("");
       setNext("");
       router.push("/login");
       router.refresh();
     } catch {
-      toast.error("网络错误，请稍后重试");
+      toast.error(t("auth.networkError"));
     } finally {
       setLoading(false);
     }
@@ -75,10 +77,10 @@ export function AccountClient({ user }: { user: AccountUser }) {
     try {
       const res = await fetch("/api/conversations", { method: "DELETE" });
       const data = (await res.json()) as { error?: string; deleted?: number };
-      if (!res.ok) toast.error(data.error ?? "清空失败");
-      else toast.success(`已清空云端记录（${data.deleted ?? 0} 条）`);
+      if (!res.ok) toast.error(data.error ?? t("account.clearFailed"));
+      else toast.success(`${t("account.cloudCleared")}（${data.deleted ?? 0} ${t("account.recordsUnit")}）`);
     } catch {
-      toast.error("网络错误");
+      toast.error(t("account.networkError"));
     } finally {
       setClearing(false);
     }
@@ -90,9 +92,9 @@ export function AccountClient({ user }: { user: AccountUser }) {
       Object.keys(localStorage)
         .filter((k) => k.startsWith("agnes:msgs:") || k === "agnes:conversations")
         .forEach((k) => localStorage.removeItem(k));
-      toast.success("已清空本地聊天记录");
+      toast.success(t("account.localCleared"));
     } catch {
-      toast.error("清空失败");
+      toast.error(t("account.clearFailed"));
     }
   }
 
@@ -105,14 +107,14 @@ export function AccountClient({ user }: { user: AccountUser }) {
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          返回聊天
+          {t("account.backToChat")}
         </Link>
 
         <Card>
           <CardHeader>
-            <CardTitle>账户设置</CardTitle>
+            <CardTitle>{t("account.title")}</CardTitle>
             <CardDescription>
-              {user.email} · {user.role === "admin" ? "管理员" : "普通用户"} · 注册于{" "}
+              {user.email} · {user.role === "admin" ? t("account.adminRole") : t("account.userRole")} · {t("account.registeredAt")}{" "}
               {new Date(user.createdAt).toLocaleString("zh-CN")}
             </CardDescription>
           </CardHeader>
@@ -123,13 +125,13 @@ export function AccountClient({ user }: { user: AccountUser }) {
                 className="inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-sm text-primary"
               >
                 <Shield className="h-4 w-4" />
-                进入管理员面板
+                {t("account.goAdmin")}
               </Link>
             ) : null}
 
             <form onSubmit={changePassword} className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="current">当前密码</Label>
+                <Label htmlFor="current">{t("account.currentPwd")}</Label>
                 <Input
                   id="current"
                   type="password"
@@ -140,7 +142,7 @@ export function AccountClient({ user }: { user: AccountUser }) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="next">新密码（至少 8 位）</Label>
+                <Label htmlFor="next">{t("account.newPwd")}</Label>
                 <Input
                   id="next"
                   type="password"
@@ -153,7 +155,7 @@ export function AccountClient({ user }: { user: AccountUser }) {
               </div>
               <Button type="submit" disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                修改密码
+                {t("account.changePwd")}
               </Button>
             </form>
 
@@ -161,8 +163,8 @@ export function AccountClient({ user }: { user: AccountUser }) {
 
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium">保存聊天记录到云端</p>
-                <p className="text-xs text-muted-foreground">默认关闭，开启后同步到 Upstash Redis</p>
+                <p className="text-sm font-medium">{t("settings.cloudSave")}</p>
+                <p className="text-xs text-muted-foreground">{t("account.cloudSaveNote")}</p>
               </div>
               <Switch checked={cloudSync} onCheckedChange={setCloudSync} />
             </div>
@@ -170,15 +172,15 @@ export function AccountClient({ user }: { user: AccountUser }) {
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={clearLocalHistory}>
                 <Trash2 className="h-4 w-4" />
-                清空本地记录
+                {t("account.clearLocal")}
               </Button>
               <Button variant="outline" onClick={clearCloudHistory} disabled={clearing}>
                 <Trash2 className="h-4 w-4" />
-                {clearing ? "清空中…" : "清空云端记录"}
+                {clearing ? t("account.clearing") : t("account.clearCloud")}
               </Button>
               <Button variant="destructive" onClick={logout}>
                 <LogOut className="h-4 w-4" />
-                登出
+                {t("account.logout")}
               </Button>
             </div>
           </CardContent>

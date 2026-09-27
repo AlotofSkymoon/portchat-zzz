@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
+import { serverT } from "@/lib/i18n/server";
   MAX_SEARCH_RESULTS,
   configuredKeyedSources,
   formatSearchContext,
@@ -19,16 +20,18 @@ export const dynamic = "force-dynamic";
  * 不需要任何 API Key：走 DuckDuckGo 的公开 HTML 端点。
  */
 export async function POST(request: Request) {
+  const t = (k: string, vars?: Record<string, string | number>) => serverT(request, k, vars);
+
   let body: { query?: string; limit?: number };
   try {
     body = (await request.json()) as { query?: string; limit?: number };
   } catch {
-    return NextResponse.json({ ok: false, error: "请求格式错误" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: t("api.badRequest") }, { status: 400 });
   }
 
   const query = (body.query ?? "").trim();
   if (!query) {
-    return NextResponse.json({ ok: false, error: "缺少搜索词" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: t("api.webSearch.queryMissing") }, { status: 400 });
   }
 
   // 条数放宽到 1~100（摘要会自动压缩，不必担心撑爆上下文）

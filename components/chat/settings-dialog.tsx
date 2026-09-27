@@ -219,7 +219,7 @@ function CustomProviderEditor({
     <div className="space-y-2.5 rounded-xl border border-border/70 bg-card/40 p-3">
       <Label className="flex items-center gap-2 text-sm font-medium">
         <Pencil className="h-4 w-4" />
-        自定义供应商
+        {t("settings.provider")}
       </Label>
 
       <div className="space-y-1">
@@ -312,7 +312,7 @@ function CustomProviderEditor({
           autoComplete="off"
         />
         <p className="text-[11px] text-muted-foreground">
-          探测不到也别卡住 —— 直接把上游给你的模型名填进来就行，比如 gpt-5.6-terra。
+          {t("settings.modelIdHint")}
         </p>
       </div>
 
@@ -649,7 +649,7 @@ export function SettingsDialog({
                   <li>{t("settings.disclaimer4")}</li>
                 </ul>
                 <p className="pt-0.5 text-[10px] text-fg-quaternary">
-                  继续填写即表示你已理解并同意上述内容。
+                  {t("settings.agreeDisclaimer")}
                 </p>
               </div>
             ) : null}
@@ -677,7 +677,7 @@ export function SettingsDialog({
                         className="inline-flex items-center gap-1 text-xs text-destructive hover:underline"
                       >
                         <XIcon className="h-3 w-3" />
-                        删除
+                        {t("common.delete")}
                       </button>
                     ) : (
                       <a
@@ -695,7 +695,9 @@ export function SettingsDialog({
                     <Input
                       type={showKey[pid] ? "text" : "password"}
                       placeholder={
-                        p.hasPreset ? "sk-...（留空则使用站点内置 Key）" : `sk-...（使用 ${p.label} 模型必填）`
+                        p.hasPreset
+                          ? t("settings.keyPresetPlaceholder")
+                          : t("settings.keyRequiredPlaceholder", { name: p.label })
                       }
                       value={form.keys[pid] ?? ""}
                       onChange={(e) =>
@@ -715,10 +717,10 @@ export function SettingsDialog({
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     {isCustom
-                      ? `发往 ${p.baseUrl}`
+                      ? t("settings.sendTo", { url: p.baseUrl })
                       : p.hasPreset
-                        ? "保存在浏览器本地，仅用于向 Agnes 发起请求。"
-                        : "DeepSeek 无内置 Key，需填你自己的；仅保存在浏览器本地。"}
+                        ? t("settings.storedLocal")
+                        : t("settings.deepseekNote")}
                   </p>
 
                   {/* 每个供应商独立的 Base URL —— 互不干扰 */}
@@ -746,7 +748,7 @@ export function SettingsDialog({
                       />
                       {form.baseUrls[pid] && isBlockedBaseUrl(form.baseUrls[pid]) ? (
                         <p className="text-[11px] text-destructive">
-                          该地址指向内网或受限地址，会被服务端拒绝。
+                          {t("settings.blockedBaseUrlHint")}
                         </p>
                       ) : null}
                     </div>
@@ -767,8 +769,9 @@ export function SettingsDialog({
 
           {/* 模型：已移到输入框左下角的小选择框 */}
           <div className="rounded-xl border border-border/70 bg-card/40 px-3 py-2.5 text-xs text-muted-foreground">
-            模型可在聊天输入框左下角的小框里切换（当前：
-            <span className="font-medium text-foreground">{form.model}</span>）。
+            {t("settings.modelComposerA")}
+            <span className="font-medium text-foreground">{form.model}</span>
+            {t("settings.modelComposerB")}
           </div>
 
           {/* 对象存储：图片 / 视频上传 —— 仅管理员可见 */}
@@ -776,10 +779,10 @@ export function SettingsDialog({
           <details className="rounded-xl border border-border/70 bg-card/40 px-3 py-2">
             <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
               <CloudUpload className="h-4 w-4" />
-              对象存储（图片 / 视频上传）
+              {t("settings.objectStorageSection")}
               {form.s3?.enabled ? (
                 <span className="ml-auto rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary">
-                  已启用
+                  {t("common.enabled")}
                 </span>
               ) : null}
             </summary>
@@ -794,12 +797,12 @@ export function SettingsDialog({
               {siteInfo?.r2Bound ? (
                 <div className="space-y-2.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5">
                   <p className="text-xs font-medium text-primary">
-                    ✓ 已通过 Worker 绑定直连 R2
+                    {t("settings.r2BoundTitle")}
                   </p>
                   <p className="text-[11px] leading-relaxed text-muted-foreground">
-                    桶是本站自己的，Worker 通过 binding 直接读写，
-                    <strong>不需要 Access Key / Secret Key，也不需要 API 令牌</strong>。
-                    Endpoint / Region / 桶名这些都由 binding 决定，所以不再显示。
+                    {t("settings.r2BoundA")}
+                    <strong>{t("settings.r2BoundStrong")}</strong>
+                    {t("settings.r2BoundB")}
                   </p>
 
                   {/*
@@ -808,29 +811,31 @@ export function SettingsDialog({
                     但填了自己的域名/CDN 后，图片直接用外网地址，速度更快。
                   */}
                   <div className="space-y-1">
-                    <Label className="text-xs">公开访问域名（可选）</Label>
+                    <Label className="text-xs">{t("settings.publicDomainLabel")}</Label>
                     <Input
                       className="h-8 text-xs"
-                      placeholder="https://pub-xxxx.r2.dev 或 https://img.yourdomain.com"
+                      placeholder={t("settings.publicDomainPlaceholder")}
                       value={form.s3?.publicBaseUrl ?? ""}
                       onChange={(e) =>
                         patchS3({ enabled: true, publicBaseUrl: e.target.value })
                       }
                     />
                     <p className="text-[11px] leading-relaxed text-muted-foreground">
-                      留空 → 图片走 <code>/api/r2/&lt;key&gt;</code> 回源，桶不必开公开读。
+                      {t("settings.publicDomainA")}
+                      <code>/api/r2/&lt;key&gt;</code>
+                      {t("settings.publicDomainB")}
                       <br />
-                      填写 → 直接用你的域名访问，建议开 CDN 加速。
+                      {t("settings.publicDomainC")}
                     </p>
                   </div>
                 </div>
               ) : siteInfo?.siteManaged ? (
                 <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
-                  <p className="text-xs font-medium text-primary">站点已配置 R2，可直接使用</p>
+                  <p className="text-xs font-medium text-primary">{t("settings.siteManagedTitle")}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    管理员已在服务端配好存储桶。点下面的按钮即可上传，
-                    <strong> 你不需要填写任何密钥</strong>。
-                    {siteInfo.bucket ? ` 桶名：${siteInfo.bucket}` : ""}
+                    {t("settings.siteManagedA")}
+                    <strong>{t("settings.siteManagedStrong")}</strong>
+                    {siteInfo.bucket ? ` ${t("settings.bucketName", { bucket: siteInfo.bucket })}` : "."}
                   </p>
                   <Button
                     type="button"
@@ -850,7 +855,9 @@ export function SettingsDialog({
                       })
                     }
                   >
-                    {form.s3?.useSiteConfig ? "✓ 正在使用站点配置" : "使用站点配置（推荐）"}
+                    {form.s3?.useSiteConfig
+                      ? t("settings.usingSiteConfig")
+                      : t("settings.useSiteConfig")}
                   </Button>
                 </div>
               ) : null}
@@ -860,10 +867,8 @@ export function SettingsDialog({
               <>
               <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2">
                 <div className="pr-3">
-                  <p className="text-sm">启用对象存储</p>
-                  <p className="text-xs text-muted-foreground">
-                    开启后图片 / 视频上传到你的存储桶，只回传链接
-                  </p>
+                  <p className="text-sm">{t("settings.enableStorage")}</p>
+                  <p className="text-xs text-muted-foreground">{t("settings.enableStorageDesc")}</p>
                 </div>
                 <Switch
                   checked={Boolean(form.s3?.enabled)}
@@ -872,7 +877,7 @@ export function SettingsDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs">服务商预设</Label>
+                <Label className="text-xs">{t("settings.presetLabel")}</Label>
                 <div className="flex flex-wrap gap-1.5">
                   {availablePresets.map((preset) => (
                     <button
@@ -899,41 +904,40 @@ export function SettingsDialog({
                   ))}
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  点击预设会填入 Endpoint 与 Region 示例，把尖括号部分换成你自己的。
+                  {t("settings.presetHint")}
                 </p>
               </div>
 
               {form.s3?.useSiteConfig ? (
                 <p className="rounded-lg border border-border/60 px-3 py-2 text-[11px] text-muted-foreground">
-                  当前使用站点托管的 R2，密钥保存在服务器，浏览器不持有。
-                  如需改用你自己的存储，关掉上面的「使用站点配置」再填写。
+                  {t("settings.siteManagedNotice")}
                 </p>
               ) : null}
 
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <Label className="text-xs">Endpoint</Label>
+                  <Label className="text-xs">{t("settings.endpoint")}</Label>
                   <Input
-                    placeholder="https://<accountid>.r2.cloudflarestorage.com"
+                    placeholder={t("settings.endpointPlaceholder")}
                     value={s3.endpoint}
                     onChange={(e) => patchS3({ endpoint: e.target.value })}
                     autoComplete="off"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Region</Label>
+                  <Label className="text-xs">{t("settings.region")}</Label>
                   <Input
-                    placeholder="auto"
+                    placeholder={t("settings.regionPlaceholder")}
                     value={s3.region}
                     onChange={(e) => patchS3({ region: e.target.value })}
                     autoComplete="off"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Bucket</Label>
+                  <Label className="text-xs">{t("settings.bucket")}</Label>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="留空自动找 agnes-chat / agnes-chat-r2"
+                      placeholder={t("settings.bucketPlaceholder")}
                       value={s3.bucket}
                       onChange={(e) => patchS3({ bucket: e.target.value })}
                       autoComplete="off"
@@ -945,20 +949,22 @@ export function SettingsDialog({
                       className="h-9 shrink-0 text-xs"
                       disabled={discovering}
                       onClick={() => void discoverBucket()}
-                      title="留空则自动匹配 agnes-chat / agnes-chat-r2"
+                      title={t("settings.bucketMatchTitle")}
                     >
                       {discovering ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
                         <Search className="h-3.5 w-3.5" />
                       )}
-                      自动寻找
+                      {t("settings.autoFind")}
                     </Button>
                   </div>
                   {discoverMsg ? (
                     <p
                       className={`text-[11px] ${
-                        discoverMsg.startsWith("已找到") ? "text-primary" : "text-destructive"
+                        discoverMsg.startsWith(t("settings.bucketFound").slice(0, 3))
+                          ? "text-primary"
+                          : "text-destructive"
                       }`}
                     >
                       {discoverMsg}
@@ -966,7 +972,7 @@ export function SettingsDialog({
                   ) : null}
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">目录前缀</Label>
+                  <Label className="text-xs">{t("settings.prefixLabel")}</Label>
                   <Input
                     placeholder="agnes-chat"
                     value={s3.prefix ?? ""}
@@ -975,20 +981,20 @@ export function SettingsDialog({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Access Key ID</Label>
+                  <Label className="text-xs">{t("settings.accessKeyIdLabel")}</Label>
                   <Input
-                    placeholder="AKIA... / R2 的 Access Key ID"
+                    placeholder={t("settings.accessKeyIdPlaceholder")}
                     value={s3.accessKeyId}
                     onChange={(e) => patchS3({ accessKeyId: e.target.value })}
                     autoComplete="off"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Secret Access Key</Label>
+                  <Label className="text-xs">{t("settings.secretKeyLabel")}</Label>
                   <div className="relative">
                     <Input
                       type={showSecret ? "text" : "password"}
-                      placeholder="Secret Access Key"
+                      placeholder={t("settings.secretKeyLabel")}
                       value={s3.secretAccessKey}
                       onChange={(e) => patchS3({ secretAccessKey: e.target.value })}
                       className="pr-10"
@@ -998,7 +1004,7 @@ export function SettingsDialog({
                       type="button"
                       onClick={() => setShowSecret((v) => !v)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-muted"
-                      aria-label="显示/隐藏 Secret"
+                      aria-label={t("settings.toggleSecret")}
                     >
                       {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -1007,39 +1013,49 @@ export function SettingsDialog({
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs">公开访问域名（可选）</Label>
+                <Label className="text-xs">{t("settings.publicDomainLabel")}</Label>
                 <Input
-                  placeholder="https://cdn.example.com（留空则用 Endpoint 拼）"
+                  placeholder={t("settings.publicDomainPlaceholder2")}
                   value={s3.publicBaseUrl ?? ""}
                   onChange={(e) => patchS3({ publicBaseUrl: e.target.value })}
                   autoComplete="off"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  填了自定义域名就用它拼外链；留空则用 Endpoint/Bucket/Key。
+                  {t("settings.publicDomainHint2")}
                 </p>
               </div>
 
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-                <p className="font-medium text-amber-600 dark:text-amber-400">两个必要设置</p>
+                <p className="font-medium text-amber-600 dark:text-amber-400">
+                  {t("settings.twoSettings")}
+                </p>
                 <p className="mt-1">
-                  1. 存储桶要允许<strong>公开读</strong>，否则模型打不开链接；
+                  {t("settings.req1A")}
+                  <strong>{t("settings.req1Strong")}</strong>
+                  {t("settings.req1B")}
                 </p>
                 <p>
-                  2. 存储桶 CORS 要允许你的站点域名做 <code className="rounded bg-muted px-1">PUT</code>
-                  ，否则浏览器直传会被拦。
+                  {t("settings.req2A")}
+                  <code className="rounded bg-muted px-1">PUT</code>
+                  {t("settings.req2B")}
                 </p>
                 <p className="mt-1">
-                  凭证只存在你的浏览器，上传链接由服务端签名，文件<strong>不经过本站服务器</strong>。
+                  {t("settings.req3A")}
+                  <strong>{t("settings.req3Strong")}</strong>
+                  {t("settings.req3B")}
                 </p>
                 {availablePresets[0]?.platform === "cloudflare" ? (
                   <p className="mt-1">
-                    当前部署在 <strong>Cloudflare Workers</strong>，仅支持 Cloudflare R2（零出站流量费）。
+                    {t("settings.onCfA")}
+                    <strong>{t("settings.onCfStrong")}</strong>
+                    {t("settings.onCfB")}
                   </p>
                 ) : null}
                 {availablePresets[0]?.platform === "vercel" ? (
                   <p className="mt-1">
-                    当前部署在 <strong>Vercel</strong>，仅支持 Backblaze B2。B2 的 S3 兼容层只覆盖部分操作，
-                    若上传报 501 请改用其原生 API 或换到 Cloudflare 部署。
+                    {t("settings.onCfA")}
+                    <strong>{t("settings.onVercelStrong")}</strong>
+                    {t("settings.onVercelB")}
                   </p>
                 ) : null}
               </div>
@@ -1053,10 +1069,8 @@ export function SettingsDialog({
           {supportsThinking(form.model) ? (
             <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card/40 px-3 py-3">
               <div className="pr-3">
-                <p className="text-sm font-medium">思考模式</p>
-                <p className="text-xs text-muted-foreground">
-                  开启后模型会先输出推理过程再作答；也可以在输入框左下角的「思考」按钮快速切换
-                </p>
+                <p className="text-sm font-medium">{t("settings.thinkingMode")}</p>
+                <p className="text-xs text-muted-foreground">{t("settings.thinkingModeDesc")}</p>
               </div>
               <Switch
                 checked={form.thinking === true}
@@ -1069,32 +1083,28 @@ export function SettingsDialog({
           {!isAdmin ? null : user ? (
             <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card/40 px-3 py-3">
               <div className="pr-3">
-                <p className="text-sm font-medium">保存聊天记录到云端</p>
-                <p className="text-xs text-muted-foreground">
-                  关闭时聊天记录只存本地；开启后会同步到服务端存储（仅本人可见）
-                </p>
+                <p className="text-sm font-medium">{t("settings.cloudSave")}</p>
+                <p className="text-xs text-muted-foreground">{t("settings.cloudSaveDesc")}</p>
               </div>
               <Switch checked={cloudSync} onCheckedChange={onCloudSyncChange} />
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-border px-3 py-3 text-xs text-muted-foreground">
-              登录后可把聊天记录保存到云端（默认关闭）。
+              {t("settings.cloudSaveLoginHint")}
             </div>
           )}
 
           {/* 普通用户提示：高级配置已移至管理员面板 */}
           {isAdmin ? null : (
             <div className="rounded-xl border border-border/70 bg-muted/40 px-3 py-2.5 text-[11px] text-fg-tertiary">
-              Base URL、对象存储、云端保存等站点级配置仅限管理员调整，详见「管理员面板」。
+              {t("settings.adminOnlyHint")}
             </div>
           )}
 
           {/* 清空 */}
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-3">
-            <p className="text-sm font-medium text-destructive">清空全部数据</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              清除本地保存的 API Key、模型选择与全部聊天记录（不可恢复）。
-            </p>
+            <p className="text-sm font-medium text-destructive">{t("settings.clearAllTitle")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t("settings.clearAllDesc")}</p>
             <Button
               type="button"
               variant="destructive"
@@ -1106,15 +1116,15 @@ export function SettingsDialog({
               }}
             >
               <Trash2 className="h-4 w-4" />
-              清空全部数据
+              {t("settings.clearAllTitle")}
             </Button>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              取消
+              {t("common.cancel")}
             </Button>
-            <Button type="submit">保存</Button>
+            <Button type="submit">{t("common.save")}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

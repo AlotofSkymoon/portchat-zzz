@@ -99,5 +99,34 @@ export async function listKeys(pattern: string): Promise<string[]> {
   return getStore().keys(pattern);
 }
 
+/**
+ * 列出「用户记录」的 key，即严格匹配 `user:<id>`（id 里不含冒号）。
+ *
+ * ⚠️ 为什么不能只排除 email / sessions：
+ * `user:*` 里还混着 `user:<id>:settings`（自带 Key 同步，存的是加密后的**字符串**）。
+ * 对它执行 HGETALL 会触发 Redis 的 WRONGTYPE 错误并抛异常 ——
+ * 结果不是"少一条数据"，而是整个用户列表接口 500，
+ * 后台表现为「共 0 位用户」+「服务器错误」，管理员完全无法管理账号。
+ */
+export async function listUserKeys(): Promise<string[]> {
+  const keys = await listKeys("user:*");
+  return keys.filter((k) => /^user:[^:]+$/.test(k));
+}
+
+/**
+ * 安全读取用户 hash。
+ *
+ * 个别脏 key（类型不对、历史遗留数据）不该让整个列表陪葬，
+ * 读不出来就跳过这一条。
+ */
+export async function readUserRecord<T>(key: string): Promise<T | null> {
+  try {
+    const u = await hgetAll<T>(key);
+    return u && (u as unknown as { id?: unknown }).id ? u : null;
+  } catch {
+    return null;
+  }
+}
+
 export { hasUpstashConfig } from "@/lib/storage";
 export type { Store, UserRecord };

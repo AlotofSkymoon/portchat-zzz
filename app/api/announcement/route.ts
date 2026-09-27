@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getRedis, hasRedisConfig,
   storageErrorMessage, KEYS, getValue } from "@/lib/redis";
+import { serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export interface Announcement {
 }
 
 /** GET /api/announcement —— 公开读取站点公告（首页展示） */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     if (hasRedisConfig()) {
       const data = await getValue<Announcement>(KEYS.announcement);
@@ -45,8 +46,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, announcement: payload });
   } catch (e) {
     const status = (e as { status?: number }).status;
-    if (status === 401) return NextResponse.json({ error: "请先登录" }, { status: 401 });
-    if (status === 403) return NextResponse.json({ error: "仅管理员可访问" }, { status: 403 });
-    return NextResponse.json({ error: "服务器错误" }, { status: 500 });
+    if (status === 401) return NextResponse.json({ error: st(request, "err.loginFirst") }, { status: 401 });
+    if (status === 403) return NextResponse.json({ error: st(request, "err.adminOnly") }, { status: 403 });
+    return NextResponse.json({ error: st(request, "err.serverError") }, { status: 500 });
   }
 }

@@ -139,7 +139,7 @@ export function ChatInput({
                 type="button"
                 onClick={() => onRemoveAttachment?.(a.id)}
                 className="ml-0.5 shrink-0 rounded p-0.5 text-fg-tertiary transition-colors hover:bg-background hover:text-destructive"
-                aria-label={`移除 ${a.name}`}
+                aria-label={t("common.removeNamed", { name: a.name })}
               >
                 <X className="h-3 w-3" />
               </button>

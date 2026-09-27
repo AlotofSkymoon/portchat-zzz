@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 
+import { useI18n } from "@/components/i18n-provider";
 import { SiteFooterBadge } from "@/components/site-footer-badge";
 import {
   AUTHOR_NAME,
@@ -40,6 +41,7 @@ const EMPTY: FooterSettings = {
 };
 
 export function SiteFooter({ className = "" }: { className?: string }) {
+  const { t } = useI18n();
   const [footer, setFooter] = React.useState<FooterSettings>(EMPTY);
 
   React.useEffect(() => {
@@ -72,8 +74,8 @@ export function SiteFooter({ className = "" }: { className?: string }) {
       className={`border-t border-border/60 px-4 py-4 text-center text-[11px] leading-relaxed text-fg-tertiary ${className}`}
     >
       <p>
-        <span className="font-medium text-fg-secondary">{SITE_NAME}</span> 免费聊天站 · 由{" "}
-        <span className="font-medium text-fg-secondary">{AUTHOR_NAME}</span> 创作
+        <span className="font-medium text-fg-secondary">{SITE_NAME}</span> {t("footer.freeSite")} · {t("footer.by")}{" "}
+        <span className="font-medium text-fg-secondary">{AUTHOR_NAME}</span> {t("footer.created")}
       </p>
       {/*
         源码 / 上游仓库链接：默认**不显示**。
@@ -84,7 +86,7 @@ export function SiteFooter({ className = "" }: { className?: string }) {
       {SHOW_SOURCE_LINKS ? (
         <>
           <p className="mt-1">
-            上游项目迁移自{" "}
+            {t("footer.upstream")}{" "}
             <Link
               href={UPSTREAM_URL}
               target="_blank"
@@ -100,11 +102,11 @@ export function SiteFooter({ className = "" }: { className?: string }) {
               rel="noreferrer noopener"
               className="underline decoration-dotted underline-offset-2 hover:text-primary"
             >
-              本项目源码
+              {t("footer.source")}
             </Link>
           </p>
           <p className="mt-1.5 text-fg-quaternary">
-            代码开源（MIT），公开部署需获作者授权 · 详见 LICENSE
+            {t("footer.license")}
           </p>
         </>
       ) : null}
@@ -122,7 +124,7 @@ export function SiteFooter({ className = "" }: { className?: string }) {
           {footer.icpText || footer.icpUrl || footer.icpIconUrl ? (
             <SiteFooterBadge
               src={footer.icpIconUrl || undefined}
-              alt={footer.icpText || "备案徽章"}
+              alt={footer.icpText || t("footer.badge")}
               href={footer.icpUrl || undefined}
             />
           ) : null}

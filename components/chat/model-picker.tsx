@@ -10,6 +10,7 @@ import {
   type CustomProviderConfig,
   type ProviderId,
 } from "@/lib/config";
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
 interface ModelPickerProps {
@@ -51,6 +52,7 @@ interface Placement {
  *   4. 打开后自动把当前选中的模型滚进视野。
  */
 export function ModelPicker({ value, onChange, className, customProviders = [] }: ModelPickerProps) {
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [placement, setPlacement] = React.useState<Placement | null>(null);
   const wrapRef = React.useRef<HTMLDivElement>(null);
@@ -71,7 +73,7 @@ export function ModelPicker({ value, onChange, className, customProviders = [] }
     const custom = customProviders.map((c) => ({
       key: c.id,
       label: c.label,
-      items: c.models.map((id) => ({ id, label: id, desc: "自定义供应商" })),
+      items: c.models.map((id) => ({ id, label: id, desc: t("model.customProvider") })),
     }));
     return [...builtin, ...custom].filter((g) => g.items.length > 0);
   }, [customProviders]);
@@ -163,7 +165,7 @@ export function ModelPicker({ value, onChange, className, customProviders = [] }
         onClick={toggle}
         aria-haspopup="listbox"
         aria-expanded={open}
-        title="切换模型"
+        title={t("model.switch")}
         style={{ fontFamily: MONTSERRAT }}
         className={cn(
           "flex max-w-full items-center gap-1 rounded-full border border-border/70 bg-background px-2.5 py-1 font-sans text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground",

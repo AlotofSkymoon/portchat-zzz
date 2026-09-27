@@ -13,6 +13,7 @@ import { detectPlatform } from "@/lib/platform";
 import { getRedis, hasRedisConfig, KEYS } from "@/lib/redis";
 import { REQUIRE_LOGIN } from "@/lib/site";
 import { configValue } from "@/lib/runtime-config";
+import { serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as ChatRequestBody;
   } catch {
-    return errorResponse(400, "BAD_REQUEST", "请求格式错误");
+    return errorResponse(400, "BAD_REQUEST", st(request, "err.badRequest"));
   }
 
   const {
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
   } = body;
 
   if (!Array.isArray(messages) || messages.length === 0) {
-    return errorResponse(400, "BAD_REQUEST", "消息不能为空");
+    return errorResponse(400, "BAD_REQUEST", st(request, "err.emptyMessage"));
   }
 
   /**
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
     if (!u) {
       return NextResponse.json(
         {
-          error: "本站已开启「必须登录才能对话」。请先登录或注册后再试。",
+          error: st(request, "err.loginRequired"),
           code: "LOGIN_REQUIRED",
         },
         { status: 401 },
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
   const custom = sanitizeCustomProviders(customProviders);
 
   if (!isAllowedModelWith(model, custom)) {
-    return errorResponse(400, "BAD_MODEL", "不支持的模型");
+    return errorResponse(400, "BAD_MODEL", st(request, "err.badModel"));
   }
 
   /**
@@ -131,15 +132,15 @@ export async function POST(request: Request) {
       413,
       "TOO_LARGE",
       oversizeIsImage
-        ? "图片内容过大。请在设置里配置对象存储（Cloudflare R2 / Backblaze B2）后重新上传，图片会以链接方式发送而非内嵌。"
-        : "单条消息内容过大，请精简文本或减少附件后再试",
+        ? st(request, "err.imageTooLarge")
+        : st(request, "err.messageTooLarge"),
     );
   }
 
   // 解析：这个模型属于哪个供应商、该打哪个地址
   const target = resolveTarget(model, custom, baseUrls);
   if (!target) {
-    return errorResponse(400, "BAD_MODEL", "找不到该模型所属的供应商");
+    return errorResponse(400, "BAD_MODEL", st(request, "err.noProvider"));
   }
 
   // Key 严格按供应商取，绝不串台
@@ -158,8 +159,8 @@ export async function POST(request: Request) {
       401,
       "NO_API_KEY",
       target.providerId === "agnes"
-        ? "未配置 Agnes API Key，请在设置中填写你的 Key"
-        : `使用 ${target.label} 需要填写你自己的 ${target.label} API Key（设置中填写）`,
+        ? st(request, "err.noAgnesKey")
+        : st(request, "err.providerKeyRequired", { name: target.label }),
     );
   }
 
@@ -173,7 +174,7 @@ export async function POST(request: Request) {
       const imgs = m.content.filter((c) => c.type === "image_url");
       const text =
         textParts.map((c) => (c as { type: "text"; text: string }).text).join("\n") +
-        (imgs.length ? `\n[已附带 ${imgs.length} 张图片，但当前模型不支持识图]` : "");
+        (imgs.length ? "\n" + st(request, "err.imagesDropped", { n: imgs.length }) : "");
       return { ...m, content: text };
     });
   }
@@ -208,7 +209,7 @@ export async function POST(request: Request) {
 
   // SSRF 防护：内置地址一定安全，只校验用户可能改写的部分
   if (target.isCustom && isBlockedBaseUrl(targetBase)) {
-    return errorResponse(400, "BLOCKED_URL", "该 Base URL 指向内网或受限地址，已被拒绝");
+    return errorResponse(400, "BLOCKED_URL", st(request, "err.blockedUrl"));
   }
 
   const upstreamUrl = `${targetBase}/chat/completions`;
@@ -265,7 +266,7 @@ export async function POST(request: Request) {
       upstream = await fetch(upstreamUrl, buildUpstreamRequest());
     }
   } catch {
-    return errorResponse(502, "NETWORK_ERROR", `无法连接 ${target.label} 服务，请检查网络与 Base URL 后重试`);
+    return errorResponse(502, "NETWORK_ERROR", st(request, "err.networkError", { name: target.label }));
   }
 
   if (!upstream.ok || !upstream.body) {
@@ -273,7 +274,7 @@ export async function POST(request: Request) {
       return errorResponse(
         401,
         "INVALID_KEY",
-        `${target.label} API Key 无效，请检查后重试`,
+        st(request, "err.invalidKey", { name: target.label }),
       );
     }
     if (upstream.status === 429) {
@@ -298,13 +299,13 @@ export async function POST(request: Request) {
       const plat = detectPlatform();
       const tip =
         plat === "cloudflare"
-          ? "本站跑在 Cloudflare Workers 上，出口 IP 由大量站点共用，上游可能按「出口 IP」而非你的用量限流。可让访客自带 API Key，或改用 Vercel 部署。"
-          : "若多个站点共用了同一个 API Key，它们会互相抢占额度，建议各站用各自的 Key。";
+          ? st(request, "err.rateLimitCf")
+          : st(request, "err.rateLimitShared");
 
       return NextResponse.json(
         {
-          error: `${target.label} 返回 429（已自动重试一次仍被限流）。${tip}`,
-          upstreamMessage: upstreamMsg || "（上游未给出具体说明）",
+          error: st(request, "err.rateLimitPrefix", { name: target.label }) + tip,
+          upstreamMessage: upstreamMsg || st(request, "err.noUpstreamMsg"),
           code: "RATE_LIMIT",
           retryAfter: wait,
           platform: plat,
@@ -315,7 +316,11 @@ export async function POST(request: Request) {
     }
     const text = await upstream.text().catch(() => "");
     console.error("[chat] 上游返回错误", upstream.status);
-    return errorResponse(upstream.status || 500, "UPSTREAM_ERROR", `上游服务错误（${upstream.status}）：${text.slice(0, 200)}`);
+    return errorResponse(
+      upstream.status || 500,
+      "UPSTREAM_ERROR",
+      st(request, "err.upstreamError", { status: upstream.status, text: text.slice(0, 200) }),
+    );
   }
 
   const user = await getCurrentUser();

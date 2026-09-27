@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getRedis, getValue, hasRedisConfig,
   storageErrorMessage, KEYS, setMembers } from "@/lib/redis";
+import { serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: st(request, "err.notLoggedIn") }, { status: 401 });
   if (!hasRedisConfig()) return NextResponse.json({ error: storageErrorMessage() }, { status: 500 });
 
   const full = new URL(request.url).searchParams.get("full") === "1";
@@ -68,9 +69,9 @@ export async function GET(request: Request) {
 }
 
 /** DELETE /api/conversations —— 清空当前用户全部云端聊天记录 */
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: st(request, "err.notLoggedIn") }, { status: 401 });
   if (!hasRedisConfig()) return NextResponse.json({ error: storageErrorMessage() }, { status: 500 });
 
   const redis = getRedis();

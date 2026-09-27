@@ -4,14 +4,17 @@ import { requireAdmin } from "@/lib/auth";
 import { hasRedisConfig, storageErrorMessage } from "@/lib/redis";
 import { readSiteSettings, writeSiteSettings } from "@/lib/site-settings-store";
 import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/types";
+import { serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** GET：管理员读取当前站点配置 */
-export async function GET() {
+export async function GET(request: Request) {
+  const t = (k: string, vars?: Record<string, string | number>) => serverT(request, k, vars);
+
   const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
+  if (!admin) return NextResponse.json({ error: st(request, "err.needAdmin") }, { status: 403 });
 
   if (!hasRedisConfig()) {
     return NextResponse.json({ settings: DEFAULT_SITE_SETTINGS, storage: false });
@@ -25,8 +28,10 @@ export async function GET() {
 
 /** POST：管理员更新站点配置（全站生效） */
 export async function POST(request: Request) {
+  const t = (k: string, vars?: Record<string, string | number>) => serverT(request, k, vars);
+
   const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
+  if (!admin) return NextResponse.json({ error: st(request, "err.needAdmin") }, { status: 403 });
 
   if (!hasRedisConfig()) {
     return NextResponse.json({ error: storageErrorMessage() }, { status: 500 });
@@ -36,7 +41,7 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as Partial<SiteSettings>;
   } catch {
-    return NextResponse.json({ error: "请求格式错误" }, { status: 400 });
+    return NextResponse.json({ error: st(request, "err.badRequest") }, { status: 400 });
   }
 
   const current = await readSiteSettings();
@@ -56,7 +61,7 @@ export async function POST(request: Request) {
 
   // Base URL 做基本校验，避免管理员手滑写坏全站
   if (next.defaultBaseUrl && !/^https?:\/\//i.test(next.defaultBaseUrl)) {
-    return NextResponse.json({ error: "Base URL 必须以 http:// 或 https:// 开头" }, { status: 400 });
+    return NextResponse.json({ error: t("api.admin.baseUrlScheme") }, { status: 400 });
   }
 
   await writeSiteSettings(next);

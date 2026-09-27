@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useI18n } from "@/components/i18n-provider";
 import { UniversalVideoPlayer } from "@/components/chat/universal-video-player";
 
 import { AgnesIcon } from "@/components/agnes-logo";
@@ -37,6 +38,7 @@ interface MessageBubbleProps {
  * 所以默认只显示前 6 条，其余折叠，点一下展开。
  */
 function SearchSources({ sources }: { sources: { title: string; url: string }[] }) {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const PREVIEW = 6;
 
@@ -47,7 +49,7 @@ function SearchSources({ sources }: { sources: { title: string; url: string }[] 
     <div className="mb-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
       <p className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-fg-tertiary">
         <Globe className="h-3 w-3" />
-        联网搜索来源（{sources.length}）
+        {t("chat.sources")}（{sources.length}）
       </p>
 
       <ol className="space-y-0.5">
@@ -72,7 +74,7 @@ function SearchSources({ sources }: { sources: { title: string; url: string }[] 
           className="mt-1.5 flex items-center gap-1 text-[11px] text-fg-tertiary transition-colors hover:text-primary"
         >
           <ChevronDown className={expanded ? "h-3 w-3 rotate-180 transition-transform" : "h-3 w-3 transition-transform"} />
-          {expanded ? "收起" : `展开其余 ${hidden} 条`}
+          {expanded ? t("chat.collapseList") : `${t("chat.expandRest")} ${hidden} ${t("chat.itemsUnit")}`}
         </button>
       ) : null}
     </div>
@@ -92,6 +94,7 @@ function ThinkingBlock({
   reasoning: string;
   streaming: boolean;
 }) {
+  const { t } = useI18n();
   // 流式时跟着展开，结束后默认收起
   const [open, setOpen] = React.useState(true);
   React.useEffect(() => {
@@ -108,7 +111,7 @@ function ThinkingBlock({
       >
         <Brain className="h-3.5 w-3.5 shrink-0 text-primary" />
         <span className="font-medium">
-          {streaming ? "思考中…" : "已完成思考"}
+          {streaming ? t("chat.thinking") : t("chat.thoughtDone")}
         </span>
         {streaming ? (
           <span className="h-1 w-1 animate-caret rounded-full bg-primary" />
@@ -157,6 +160,7 @@ function extractCodeBlocks(text: string): { lang: string; code: string }[] {
 }
 
 export function MessageBubble({ message, onRetry, isStreaming }: MessageBubbleProps) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const [preview, setPreview] = useState<{ src: string; name: string } | null>(null);
   const isUser = message.role === "user";
@@ -190,17 +194,17 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
     document.body.removeChild(a);
     // 交给浏览器完成下载后再回收
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast.success(`已保存为 ${filename}`);
+    toast.success(`${t("chat.savedAs")} ${filename}`);
   }
 
   async function copyMessage() {
     try {
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
-      toast.success("已复制");
+      toast.success(t("chat.copied"));
       setTimeout(() => setCopied(false), 1600);
     } catch {
-      toast.error("复制失败");
+      toast.error(t("chat.copyFailed"));
     }
   }
 
@@ -227,7 +231,7 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
                         type="button"
                         onClick={() => setPreview({ src: a.content!, name: a.name })}
                         className="shrink-0 rounded transition-opacity hover:opacity-80"
-                        title="点击查看原图"
+                        title={t("chat.viewOriginal")}
                       >
                         <img
                           src={a.content}
@@ -292,7 +296,7 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
             {onRetry ? (
               <Button size="sm" variant="outline" onClick={onRetry}>
                 <RotateCw className="h-4 w-4" />
-                重试
+                {t("chat.retry")}
               </Button>
             ) : null}
           </div>
@@ -304,7 +308,7 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
             ) : null}
           </>
         ) : (
-          <div className="flex items-center gap-1.5 py-2" aria-label="正在生成">
+          <div className="flex items-center gap-1.5 py-2" aria-label={t("chat.generating")}>
             <span className="h-1.5 w-1.5 animate-dot rounded-full bg-primary [animation-delay:-0.6s]" />
             <span className="h-1.5 w-1.5 animate-dot rounded-full bg-primary [animation-delay:-0.3s]" />
             <span className="h-1.5 w-1.5 animate-dot rounded-full bg-primary" />
@@ -317,7 +321,7 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
             <button
               onClick={copyMessage}
               className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title="复制"
+              title={t("chat.copy")}
             >
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             </button>
@@ -325,10 +329,10 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
               <button
                 onClick={downloadNewVersion}
                 className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                title="把 AI 生成的内容存为新版文件"
+                title={t("chat.downloadNewTip")}
               >
                 <FileDown className="h-3.5 w-3.5" />
-                下载新版
+                {t("chat.downloadNew")}
               </button>
             ) : null}
           </div>

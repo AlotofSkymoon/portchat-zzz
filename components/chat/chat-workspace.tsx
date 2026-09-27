@@ -42,6 +42,7 @@ import {
   isTextFile,
   isVideoFile,
   MAX_FILES,
+  MAX_TEXT_SIZE,
   readFileToAttachment,
   type Attachment,
   type AttachmentKind,
@@ -1015,14 +1016,14 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                 ).catch(() => ({ dataUrl: "", compressed: false }));
                 if (inline && inline.length <= INLINE_LIMIT) {
                   toast.warning(
-                    `${f.name}：存储链接无法公开访问，已压缩后内嵌发送（建议检查桶的公开读设置）`,
+                    t("upload.linkNotPublic", { name: f.name }),
                   );
                   // 用 base64 覆盖链接：AI 一定能读到内嵌内容
                   return { ...att, content: inline };
                 }
                 return {
                   ...att,
-                  note: `${f.name}：上传成功但链接无法公开访问，且压缩后仍超出内嵌上限。请在存储桶开启「公开读」，或在设置里改用自定义公开域名`,
+                  note: t("upload.linkNotPublicBig", { name: f.name }),
                 };
               }
             }
@@ -1031,7 +1032,12 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
             // ⚠️ 不能无条件回落到 base64：大文件内嵌必然触发「单条消息过大」。
             //    只有小文件才值得降级内嵌；大文件要如实告诉用户上传没成功。
             if (f.size <= INLINE_LIMIT) {
-              toast.warning(`${f.name}：上传失败，已改为本地内嵌（${err instanceof Error ? err.message : ""}）`);
+              toast.warning(
+                t("upload.fallbackLocal", {
+                  name: f.name,
+                  err: err instanceof Error ? err.message : "",
+                }),
+              );
               return readFileToAttachment(f);
             }
             return {
@@ -1040,7 +1046,10 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
               size: f.size,
               mime: f.type || "application/octet-stream",
               kind: "file" as const,
-              note: `${f.name} 上传失败：${err instanceof Error ? err.message : "未知错误"}。请检查存储桶的 CORS 与公开读设置，或在设置里重新配置对象存储`,
+              note: t("upload.failed", {
+                name: f.name,
+                err: err instanceof Error ? err.message : t("upload.unknownError"),
+              }),
             };
           }
         }
@@ -1055,7 +1064,10 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
     );
     if (oversize.length > 0) {
       toast.error(
-        `${oversize[0].name} 体积过大（${formatBytes(oversize[0].content?.length ?? 0)}），无法内嵌发送。请在设置里配置对象存储后重试`,
+        t("upload.tooBig", {
+          name: oversize[0].name,
+          size: formatBytes(oversize[0].content?.length ?? 0),
+        }),
         { duration: 6000 },
       );
       return;
@@ -1292,7 +1304,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   model={mounted ? settings.model : undefined}
                   onModelChange={changeModel}
                   customProviders={settings.customProviders}
-                  placeholder="给 Agnes 发送消息，可拖拽文件到此处"
+                  placeholder={t("input.placeholderDrop")}
                   attachments={attachments}
                   onPickFiles={storageReady ? addFiles : undefined}
                   onRemoveAttachment={removeAttachment}
@@ -1304,7 +1316,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   onWebSearchChange={toggleWebSearch}
                 />
                 <p className="mt-3 text-center text-xs text-fg-quaternary">
-                  内容由 AI 生成，仅供参考 · 仅聊天，无 Agent / 联网 / 文件上传
+                  {t("input.disclaimerHero")}
                 </p>
               </>
             ) : (
@@ -1318,7 +1330,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   model={mounted ? settings.model : undefined}
                   onModelChange={changeModel}
                   customProviders={settings.customProviders}
-                  placeholder="给 Agnes 发送消息，可拖拽文件到此处"
+                  placeholder={t("input.placeholderDrop")}
                   attachments={attachments}
                   onPickFiles={storageReady ? addFiles : undefined}
                   onRemoveAttachment={removeAttachment}
@@ -1330,7 +1342,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   onWebSearchChange={toggleWebSearch}
                 />
                 <p className="mt-2 text-center text-xs text-fg-quaternary">
-                  内容由 AI 生成，仅供参考
+                  {t("input.disclaimer")}
                 </p>
               </>
             )}
@@ -1352,9 +1364,9 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/15">
               <Upload className="h-5 w-5 text-primary" />
             </div>
-            <p className="text-sm font-medium">松手即可添加附件</p>
+            <p className="text-sm font-medium">{t("input.dropToAttach")}</p>
             <p className="text-xs text-fg-tertiary">
-              支持图片与文本 / 代码文件，单个最大 5MB，最多 5 个
+              {t("input.dropLimit", { max: Math.round(MAX_TEXT_SIZE / 1024 / 1024), count: MAX_FILES })}
             </p>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { useI18n } from "@/components/i18n-provider";
 import { SiteFooterBadge } from "@/components/site-footer-badge";
 import { useSiteIcp } from "@/lib/use-site-icp";
 
@@ -16,6 +17,7 @@ import { useSiteIcp } from "@/lib/use-site-icp";
  */
 export function ChatFooter({ className = "" }: { className?: string }) {
   const { icpText, icpUrl, icpIconUrl, footerExtra } = useSiteIcp();
+  const { t } = useI18n();
 
   const hasAny = Boolean(icpText || icpIconUrl || footerExtra);
   if (!hasAny) return null;
@@ -31,7 +33,7 @@ export function ChatFooter({ className = "" }: { className?: string }) {
       {icpText || icpUrl || icpIconUrl ? (
         <SiteFooterBadge
           src={icpIconUrl || undefined}
-          alt={icpText || "备案徽章"}
+          alt={icpText || t("footer.badge")}
           href={icpUrl || undefined}
         />
       ) : null}

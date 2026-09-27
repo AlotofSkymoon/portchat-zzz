@@ -25,7 +25,7 @@ export function LocalePicker({ className }: { className?: string }) {
       <p className="text-xs font-medium text-fg-secondary">{t("settings.language")}</p>
       <div
         role="radiogroup"
-        aria-label="界面语言"
+        aria-label={t("settings.language")}
         className="grid grid-cols-2 gap-2 sm:grid-cols-4"
       >
         {LOCALES.map((code) => {

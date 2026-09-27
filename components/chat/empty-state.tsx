@@ -1,15 +1,28 @@
 "use client";
 
+import { useI18n } from "@/components/i18n-provider";
 import { Sparkles, TextShimmer, Vortex } from "@/components/ui/aceternity";
 
-const SUGGESTIONS = [
-  { title: "帮我写一段自我介绍", sub: "简洁、有记忆点" },
-  { title: "用通俗的话解释向量数据库", sub: "并举一个例子" },
-  { title: "帮我润色这段邮件", sub: "更专业得体" },
-  { title: "写一个 Python 快速排序", sub: "带注释" },
+/**
+ * 推荐问题。
+ *
+ * ⚠️ 这里存的是词典 key 而不是现成文案 ——
+ * 语言切换后要跟着变，写死的话切到英文还是中文题。
+ */
+const SUGGESTION_KEYS = [
+  { titleKey: "empty.q1", subKey: "empty.q1s" },
+  { titleKey: "empty.q2", subKey: "empty.q2s" },
+  { titleKey: "empty.q3", subKey: "empty.q3s" },
+  { titleKey: "empty.q4", subKey: "empty.q4s" },
 ];
 
 export function EmptyState({ onPick }: { onPick: (text: string) => void }) {
+
+  const { t } = useI18n();
+  const suggestions = SUGGESTION_KEYS.map((k) => ({
+    title: t(k.titleKey),
+    sub: t(k.subKey),
+  }));
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col items-center px-5">
@@ -24,23 +37,23 @@ export function EmptyState({ onPick }: { onPick: (text: string) => void }) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/dolphin-swim.gif"
-            alt="小蓝海豚游动"
+            alt={t("chat.emptyAlt")}
             className="h-[76px] w-[130px] object-contain"
             draggable={false}
           />
         </span>
         <h1 className="ios-large-title">
-          <TextShimmer>我是 Agnes，很高兴见到你！</TextShimmer>
+          <TextShimmer>{t("chat.greeting")}</TextShimmer>
         </h1>
-        <p className="mt-2.5 text-[15px] text-fg-secondary">有什么可以帮到你？</p>
+        <p className="mt-2.5 text-[15px] text-fg-secondary">{t("chat.whatCanHelp")}</p>
         <p className="mt-3 inline-flex items-center rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-muted-foreground">
-          仅聊天，无 Agent 功能
+          {t("chat.onlyChat")}
         </p>
       </div>
 
       {/* 推荐问题 */}
       <div className="mt-10 grid w-full grid-cols-1 gap-2.5 sm:grid-cols-2">
-        {SUGGESTIONS.map((s) => (
+        {suggestions.map((s) => (
           <button
             key={s.title}
             type="button"

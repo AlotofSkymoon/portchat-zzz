@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getR2Bucket } from "@/lib/storage/binding";
+import { serverT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,23 +22,25 @@ export const dynamic = "force-dynamic";
  * 配了 S3_ACCESS_HOST 自定义域时，前端会直接用那个域名，不走这里。
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ key: string[] }> },
 ) {
+  const t = (k: string, vars?: Record<string, string | number>) => serverT(request, k, vars);
+
   // 与上传同一套获取逻辑，避免"能传不能读"或"能读不能传"
   const bucket = await getR2Bucket();
 
   if (!bucket) {
-    return NextResponse.json({ error: "当前环境没有 R2 绑定" }, { status: 503 });
+    return NextResponse.json({ error: t("api.r2.noBinding") }, { status: 503 });
   }
 
   const { key: segs } = await params;
   const key = (segs ?? []).join("/");
-  if (!key) return NextResponse.json({ error: "缺少对象 key" }, { status: 400 });
+  if (!key) return NextResponse.json({ error: t("api.r2.missingKey") }, { status: 400 });
 
   // 防目录穿越
   if (key.includes("..")) {
-    return NextResponse.json({ error: "非法路径" }, { status: 400 });
+    return NextResponse.json({ error: t("api.r2.badPath") }, { status: 400 });
   }
 
   try {
@@ -48,7 +51,7 @@ export async function GET(
     } | null;
 
     if (!obj?.body) {
-      return NextResponse.json({ error: "对象不存在" }, { status: 404 });
+      return NextResponse.json({ error: t("api.r2.notFound") }, { status: 404 });
     }
 
     return new NextResponse(obj.body as ReadableStream, {
@@ -59,7 +62,7 @@ export async function GET(
     });
   } catch (err) {
     return NextResponse.json(
-      { error: `读取失败：${err instanceof Error ? err.message : "未知错误"}` },
+      { error: t("api.r2.readFailed", { msg: err instanceof Error ? err.message : t("api.upload.unknownError") }) },
       { status: 500 },
     );
   }

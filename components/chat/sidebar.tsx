@@ -84,7 +84,7 @@ export function Sidebar({
 
   function startRename(id: string, current: string) {
     setEditingId(id);
-    setDraft(current === "新对话" ? "" : current);
+    setDraft(current === t("chat.newChat") ? "" : current);
   }
 
   function commitRename() {
@@ -138,8 +138,8 @@ export function Sidebar({
                 <button
                   onClick={onToggleCollapse}
                   className="hidden rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:block"
-                  aria-label="收起侧边栏"
-                  title="收起侧边栏"
+                  aria-label={t("sidebar.collapse")}
+                  title={t("sidebar.collapse")}
                 >
                   <PanelLeftClose className="h-4 w-4" />
                 </button>
@@ -147,7 +147,7 @@ export function Sidebar({
               <button
                 onClick={onClose}
                 className="rounded-md p-1.5 text-muted-foreground hover:bg-muted md:hidden"
-                aria-label="关闭侧边栏"
+                aria-label={t("sidebar.closeSidebar")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -165,17 +165,17 @@ export function Sidebar({
               size="sm"
             >
               <Plus className="h-4 w-4" />
-              开启新对话
+              {t("sidebar.newChat")}
             </Button>
           </div>
 
           {/* 历史对话 */}
           <div className="flex min-h-0 flex-1 flex-col px-3">
-            <p className="px-1 pb-1.5 pt-2 text-xs font-medium text-fg-tertiary">历史对话</p>
+            <p className="px-1 pb-1.5 pt-2 text-xs font-medium text-fg-tertiary">{t("sidebar.history")}</p>
             <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
               {conversations.length === 0 ? (
                 <p className="px-1 py-6 text-center text-xs text-muted-foreground">
-                  暂无对话记录
+                  {t("sidebar.emptyHistory")}
                 </p>
               ) : (
                 <div className="space-y-0.5">
@@ -205,7 +205,7 @@ export function Sidebar({
                               cancelRename();
                             }
                           }}
-                          placeholder="留空则自动命名"
+                          placeholder={t("sidebar.autoName")}
                           className="min-w-0 flex-1 rounded border border-primary/40 bg-background px-1.5 py-0.5 text-sm outline-none"
                         />
                       ) : (
@@ -224,14 +224,14 @@ export function Sidebar({
                       <button
                         onClick={() => startRename(c.id, c.title)}
                         className="shrink-0 rounded p-1 opacity-0 transition-opacity hover:bg-background group-hover:opacity-100"
-                        title="重命名对话"
+                        title={t("sidebar.renameTip")}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => onDelete(c.id)}
                         className="shrink-0 rounded p-1 opacity-0 transition-opacity hover:bg-background hover:text-destructive group-hover:opacity-100"
-                        title="删除对话"
+                        title={t("sidebar.deleteTip")}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>

@@ -4,15 +4,16 @@ import { requireAdmin } from "@/lib/auth";
 import { DEFAULT_NAV, type NavCategory } from "@/lib/nav-data";
 import { getRedis, hasRedisConfig,
   storageErrorMessage, KEYS, getValue } from "@/lib/redis";
+import { serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function err(error: unknown) {
+function err(request: Request, error: unknown) {
   const status = (error as { status?: number }).status;
-  if (status === 401) return NextResponse.json({ error: "请先登录" }, { status: 401 });
-  if (status === 403) return NextResponse.json({ error: "仅管理员可访问" }, { status: 403 });
-  return NextResponse.json({ error: "服务器错误" }, { status: 500 });
+  if (status === 401) return NextResponse.json({ error: st(request, "err.loginFirst") }, { status: 401 });
+  if (status === 403) return NextResponse.json({ error: st(request, "err.adminOnly") }, { status: 403 });
+  return NextResponse.json({ error: st(request, "err.serverError") }, { status: 500 });
 }
 
 async function readNav(): Promise<NavCategory[]> {
@@ -28,13 +29,13 @@ async function writeNav(data: NavCategory[]) {
 }
 
 /** GET：读取当前导航数据（管理员） */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await requireAdmin();
     const categories = await readNav();
     return NextResponse.json({ categories, isCustom: categories !== DEFAULT_NAV });
   } catch (e) {
-    return err(e);
+    return err(request, e);
   }
 }
 
@@ -46,29 +47,29 @@ export async function PUT(request: Request) {
 
     const body = (await request.json()) as { categories?: unknown };
     if (!Array.isArray(body.categories)) {
-      return NextResponse.json({ error: "参数错误" }, { status: 400 });
+      return NextResponse.json({ error: st(request, "err.badParams") }, { status: 400 });
     }
     const categories = body.categories as NavCategory[];
     // 基础校验
     for (const c of categories) {
       if (!c.id || !c.title || !Array.isArray(c.items)) {
-        return NextResponse.json({ error: "分类数据不完整" }, { status: 400 });
+        return NextResponse.json({ error: st(request, "err.incompleteCategory") }, { status: 400 });
       }
       for (const it of c.items) {
         if (!it.id || !it.name || !/^https?:\/\//i.test(it.url ?? "")) {
-          return NextResponse.json({ error: `链接格式错误：${it.name || it.id}` }, { status: 400 });
+          return NextResponse.json({ error: st(request, "err.badLink", { name: it.name || it.id }) }, { status: 400 });
         }
       }
     }
     await writeNav(categories);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return err(e);
+    return err(request, e);
   }
 }
 
 /** DELETE：恢复默认导航 */
-export async function DELETE() {
+export async function DELETE(request: Request) {
   try {
     await requireAdmin();
     if (!hasRedisConfig()) return NextResponse.json({ ok: true });
@@ -76,6 +77,6 @@ export async function DELETE() {
     await redis.del(KEYS.navData);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return err(e);
+    return err(request, e);
   }
 }

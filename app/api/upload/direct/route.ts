@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getR2Bucket } from "@/lib/storage/binding";
 import { r2PublicHost } from "@/lib/s3-server";
+import { serverT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +38,8 @@ function safeName(name: string): string {
 }
 
 export async function POST(request: Request) {
+  const t = (k: string, vars?: Record<string, string | number>) => serverT(request, k, vars);
+
   /**
    * 统一走 getR2Bucket() —— 它内部依次尝试：
    *   OpenNext 官方 API → 注入的 override → globalThis 扫描
@@ -48,7 +51,7 @@ export async function POST(request: Request) {
 
   if (!bucket) {
     return bad(
-      "当前环境没有 R2 绑定，无法直传。请检查 wrangler.jsonc 的 r2_buckets，或改用 S3 预签名上传。",
+      t("api.upload.noR2"),
       503,
     );
   }
@@ -57,14 +60,14 @@ export async function POST(request: Request) {
   try {
     form = await request.formData();
   } catch {
-    return bad("请求格式错误，应为 multipart/form-data");
+    return bad(t("api.upload.needMultipart"));
   }
 
   const file = form.get("file");
   const rawName = String(form.get("filename") ?? "");
   const prefix = String(form.get("prefix") ?? "agnes-chat").trim() || "agnes-chat";
 
-  if (!(file instanceof File)) return bad("缺少文件");
+  if (!(file instanceof File)) return bad(t("api.upload.noFile"));
 
   const contentType = file.type || "application/octet-stream";
   // 同一文件名会互相覆盖，加时间戳 + 随机串区分
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     return bad(
-      `写入 R2 失败：${err instanceof Error ? err.message : "未知错误"}`,
+      t("api.upload.writeFailed", { msg: err instanceof Error ? err.message : t("api.upload.unknownError") }),
       500,
     );
   }

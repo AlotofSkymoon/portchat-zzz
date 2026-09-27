@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: pageTitle("赞助"),
-  description: "支持本项目继续维护：服务器、API 额度与域名都需要成本",
+  description: "服务器、域名、API 额度用的都是免费额度，站长不担心这块 —— 赞助会直接变成他的生活经费和购物基金。",
 };
 
 export default function SponsorPage() {

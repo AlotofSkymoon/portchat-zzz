@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getCloudflareEnv, hasR2Binding } from "@/lib/storage";
 import { discoverR2Bucket, r2BucketName, r2PublicHost } from "@/lib/s3-server";
 import { credentialStatus } from "@/lib/cf-credentials";
+import { serverT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,14 +26,16 @@ export const dynamic = "force-dynamic";
  *   3. **都没有**        → 明确告诉用户走哪条路能解决
  */
 export async function POST(request: Request) {
+  const t = (k: string, vars?: Record<string, string | number>) => serverT(request, k, vars);
+
   const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
+  if (!admin) return NextResponse.json({ error: t("api.admin.forbidden") }, { status: 403 });
 
   let body: { bucket?: string };
   try {
     body = (await request.json()) as { bucket?: string };
   } catch {
-    return NextResponse.json({ error: "请求格式错误" }, { status: 400 });
+    return NextResponse.json({ error: t("api.badRequest") }, { status: 400 });
   }
 
   const wanted = body.bucket?.trim() || r2BucketName() || "";
@@ -56,7 +59,7 @@ export async function POST(request: Request) {
       mode: "binding",
       noCredentialsNeeded: true,
       message:
-        "已通过 Worker 绑定直连 R2，无需配置任何 Access Key / Secret Key。",
+        t("api.upload.r2AlreadyBound"),
     });
   }
 
@@ -84,12 +87,12 @@ export async function POST(request: Request) {
       publicBaseUrl: "",
       mode: "none",
       error:
-        "没找到 R2 绑定，也没有配置 Cloudflare API 令牌。" +
+        t("api.upload.r2NoBindingNoToken") +
         (platform === "cloudflare"
-          ? "请在 wrangler.jsonc 的 r2_buckets 里绑定桶（界面部署时 Cloudflare 会自动完成绑定），然后重新部署。"
-          : "当前不在 Cloudflare Workers 环境，R2 只能通过 S3 兼容 API 访问，请配置 R2_BUCKET_NAME 与 API 令牌。"),
+          ? t("api.upload.r2BindHint")
+          : t("api.upload.r2NotWorkers")),
       hint:
-        "最省事的做法：在 wrangler.jsonc 里写好 r2_buckets，桶由部署流程自动创建并绑定 —— 这样连 API 令牌都不需要。",
+        t("api.upload.r2Easiest"),
     },
     { status: 404 },
   );

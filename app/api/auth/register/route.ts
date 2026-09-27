@@ -12,6 +12,7 @@ import { isEmailConfigured, sendVerificationCode } from "@/lib/email";
 import { markResent, saveCode } from "@/lib/email-verify";
 import { getRedis, getValue, hasRedisConfig,
   storageErrorMessage, KEYS } from "@/lib/redis";
+import { serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,10 +31,10 @@ export async function POST(request: Request) {
     const password = body.password ?? "";
 
     if (!isValidEmail(email)) {
-      return NextResponse.json({ error: "请输入有效的邮箱地址" }, { status: 400 });
+      return NextResponse.json({ error: st(request, "err.invalidEmail") }, { status: 400 });
     }
     if (password.length < 8) {
-      return NextResponse.json({ error: "密码长度至少 8 位" }, { status: 400 });
+      return NextResponse.json({ error: st(request, "err.passwordMin8") }, { status: 400 });
     }
 
     const redis = getRedis();
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
     // 1) 邮箱唯一性检查
     const existingId = await getValue<string>(KEYS.userEmail(email));
     if (existingId) {
-      return NextResponse.json({ error: "该邮箱已注册" }, { status: 409 });
+      return NextResponse.json({ error: st(request, "err.emailTaken") }, { status: 409 });
     }
 
     /*
@@ -121,6 +122,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[register] 注册失败", error instanceof Error ? error.message : error);
-    return NextResponse.json({ error: "注册失败，请稍后重试" }, { status: 500 });
+    return NextResponse.json({ error: st(request, "err.registerFailed") }, { status: 500 });
   }
 }

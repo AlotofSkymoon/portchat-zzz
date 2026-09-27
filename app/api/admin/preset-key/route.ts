@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/auth";
 import { configValue } from "@/lib/runtime-config";
+import { serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
  * GET /api/admin/preset-key
  * 只有 role=admin 能拿到站点内置 Key 的完整值；其余情况一律 403。
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await requireAdmin();
     const key = configValue("PRESET_AGNES_API_KEY");
@@ -21,8 +22,8 @@ export async function GET() {
     });
   } catch (error) {
     const status = (error as { status?: number }).status;
-    if (status === 401) return NextResponse.json({ error: "请先登录" }, { status: 401 });
-    if (status === 403) return NextResponse.json({ error: "仅管理员可查看" }, { status: 403 });
-    return NextResponse.json({ error: "服务器错误" }, { status: 500 });
+    if (status === 401) return NextResponse.json({ error: st(request, "err.loginFirst") }, { status: 401 });
+    if (status === 403) return NextResponse.json({ error: st(request, "err.adminOnlyView") }, { status: 403 });
+    return NextResponse.json({ error: st(request, "err.serverError") }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { isBlockedBaseUrl } from "@/lib/config";
 import { isTimeoutError, timeoutSignal } from "@/lib/fetch-timeout";
+import { serverT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,22 +47,24 @@ function extractIds(data: unknown): string[] {
 }
 
 export async function POST(request: Request) {
+  const t = (k: string, vars?: Record<string, string | number>) => serverT(request, k, vars);
+
   let body: ProbeBody;
   try {
     body = (await request.json()) as ProbeBody;
   } catch {
-    return NextResponse.json({ error: "请求格式错误" }, { status: 400 });
+    return NextResponse.json({ error: t("api.badRequest") }, { status: 400 });
   }
 
   const base = (body.baseUrl ?? "").trim().replace(/\/+$/, "");
   const key = (body.apiKey ?? "").trim();
 
-  if (!base) return NextResponse.json({ error: "请先填写 Base URL" }, { status: 400 });
+  if (!base) return NextResponse.json({ error: t("api.probe.needBaseUrl") }, { status: 400 });
   if (!/^https?:\/\//i.test(base)) {
-    return NextResponse.json({ error: "Base URL 必须以 http:// 或 https:// 开头" }, { status: 400 });
+    return NextResponse.json({ error: t("api.probe.baseUrlScheme") }, { status: 400 });
   }
   if (isBlockedBaseUrl(base)) {
-    return NextResponse.json({ error: "不允许探测内网 / 本机地址" }, { status: 400 });
+    return NextResponse.json({ error: t("api.probe.noInternal") }, { status: 400 });
   }
 
   const headers: Record<string, string> = { Accept: "application/json" };
@@ -80,7 +83,7 @@ export async function POST(request: Request) {
         {
           ok: false,
           status: res.status,
-          error: `上游返回 ${res.status}。可能该服务未开放 /models 端点，或 Key 无权限 —— 可以直接手填模型 id。`,
+          error: t("api.probe.upstreamStatus", { status: res.status }),
         },
         { status: 200 },
       );
@@ -98,7 +101,7 @@ export async function POST(request: Request) {
     if (ids.length === 0) {
       return NextResponse.json({
         ok: false,
-        error: "连通了但没解析出模型列表，请手动填写模型 id。",
+        error: t("api.probe.noModels"),
         raw: raw.slice(0, 200),
       });
     }
@@ -113,8 +116,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: false,
       error: timedOut
-        ? "探测超时（10 秒）。请检查 Base URL 是否可访问，或直接手填模型 id。"
-        : `无法连接该服务：${msg}。请检查 Base URL，或直接手填模型 id。`,
+        ? t("api.probe.timeout")
+        : t("api.probe.unreachable", { msg }),
     });
   }
 }

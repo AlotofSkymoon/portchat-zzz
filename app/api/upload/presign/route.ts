@@ -5,6 +5,7 @@ import { UPLOAD_LIMITS, type S3Config } from "@/lib/s3-presets";
 import { getSiteS3Config, getSiteS3ConfigAsync } from "@/lib/s3-server";
 import { detectPlatform, platformLabel } from "@/lib/platform";
 import { getRedis, hasRedisConfig, KEYS } from "@/lib/redis";
+import { serverT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,11 +49,13 @@ function classify(contentType: string, filename: string): "image" | "video" | "o
 }
 
 export async function POST(request: Request) {
+  const t = (k: string, vars?: Record<string, string | number>) => serverT(request, k, vars);
+
   let body: PresignBody;
   try {
     body = (await request.json()) as PresignBody;
   } catch {
-    return bad("请求格式错误");
+    return bad(t("api.badRequest"));
   }
 
   const { filename = "", contentType = "application/octet-stream", size = 0, config } = body;
@@ -68,17 +71,17 @@ export async function POST(request: Request) {
   let effective: S3Config | undefined = config;
 
   if (useSite) {
-    if (!siteCfg) return bad("站点未配置对象存储，请联系管理员", 503);
+    if (!siteCfg) return bad(t("api.upload.siteNotConfigured"), 503);
     // 目录前缀沿用站点配置，其余用服务端凭证
     effective = { ...siteCfg, prefix: config?.prefix?.trim() || siteCfg.prefix };
   }
 
-  if (!effective?.enabled) return bad("未启用对象存储");
-  if (!effective.endpoint?.trim()) return bad("缺少 Endpoint");
-  if (!effective.bucket?.trim()) return bad("缺少 Bucket");
-  if (!effective.accessKeyId?.trim()) return bad("缺少 Access Key ID");
-  if (!effective.secretAccessKey?.trim()) return bad("缺少 Secret Access Key");
-  if (!effective.region?.trim()) return bad("缺少 Region");
+  if (!effective?.enabled) return bad(t("api.upload.notEnabled"));
+  if (!effective.endpoint?.trim()) return bad(t("api.upload.missingEndpoint"));
+  if (!effective.bucket?.trim()) return bad(t("api.upload.missingBucket"));
+  if (!effective.accessKeyId?.trim()) return bad(t("api.upload.missingAk"));
+  if (!effective.secretAccessKey?.trim()) return bad(t("api.upload.missingSk"));
+  if (!effective.region?.trim()) return bad(t("api.upload.missingRegion"));
 
   const cfg = effective;
 
@@ -86,7 +89,7 @@ export async function POST(request: Request) {
   let endpoint = cfg.endpoint.trim().replace(/\/+$/, "");
   if (!/^https?:\/\//.test(endpoint)) endpoint = `https://${endpoint}`;
   if (!endpoint.startsWith("https://") && !endpoint.includes("localhost")) {
-    return bad("Endpoint 必须使用 HTTPS");
+    return bad(t("api.upload.endpointHttps"));
   }
 
   // 平台锁定：Workers 只能用 R2，Vercel 只能用 B2。
@@ -95,10 +98,10 @@ export async function POST(request: Request) {
   if (platform !== "local") {
     const host = new URL(endpoint).host.toLowerCase();
     if (platform === "cloudflare" && !host.includes("r2.cloudflarestorage.com")) {
-      return bad("当前部署在 Cloudflare Workers，对象存储只能用 Cloudflare R2");
+      return bad(t("api.upload.platformR2Only"));
     }
     if (platform === "vercel" && !host.includes("backblazeb2.com")) {
-      return bad(`当前部署在 ${platformLabel(platform)}，对象存储只能用 Backblaze B2`);
+      return bad(t("api.upload.platformB2Only", { platform: platformLabel(platform) }));
     }
   }
 
@@ -106,7 +109,18 @@ export async function POST(request: Request) {
   const limit =
     kind === "image" ? UPLOAD_LIMITS.image : kind === "video" ? UPLOAD_LIMITS.video : UPLOAD_LIMITS.other;
   if (size > limit) {
-    return bad(`文件过大，${kind === "video" ? "视频" : kind === "image" ? "图片" : "文件"}最大 ${Math.round(limit / 1024 / 1024)}MB`, 413);
+    return bad(
+      t("api.upload.tooLarge", {
+        kind:
+          kind === "video"
+            ? t("api.upload.kindVideo")
+            : kind === "image"
+              ? t("api.upload.kindImage")
+              : t("api.upload.kindFile"),
+        size: Math.round(limit / 1024 / 1024),
+      }),
+      413,
+    );
   }
 
   // 简单限流：同 IP 1 分钟 30 次（有 Redis 时才生效）
@@ -120,7 +134,7 @@ export async function POST(request: Request) {
       const rlKey = KEYS.ratelimitUpload(ip);
       const hits = await redis.incr(rlKey);
       if (hits === 1) await redis.expire(rlKey, 60);
-      if (hits > 30) return bad("上传过于频繁，请稍后再试", 429);
+      if (hits > 30) return bad(t("api.upload.rateLimited"), 429);
     } catch {
       /* 限流失败不阻塞 */
     }
@@ -185,7 +199,7 @@ export async function POST(request: Request) {
       kind,
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "签名失败";
-    return bad(`生成上传链接失败：${msg}`, 500);
+    const msg = error instanceof Error ? error.message : t("api.upload.signError");
+    return bad(t("api.upload.signFailed", { msg }), 500);
   }
 }
