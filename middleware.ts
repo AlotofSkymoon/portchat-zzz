@@ -53,7 +53,8 @@ export function middleware(request: NextRequest) {
   return (async () => {
     let verdict;
     try {
-      verdict = await checkIp(ip, false);
+      // 传入 headers 才会启用零成本的请求头信号
+      verdict = await checkIp(ip, false, request.headers);
     } catch {
       // 判定逻辑自身抛错也不能影响访问
       return NextResponse.next({ headers: guardHeaders({ allowed: true, reason: "error" }) });
@@ -69,6 +70,9 @@ export function middleware(request: NextRequest) {
       behaviors: verdict.behaviors,
       usageType: verdict.usageType,
       score: verdict.score,
+      hitSignals: verdict.signals.filter((s) => s.hit).map((s) => s.name),
+      points: verdict.points,
+      threshold: verdict.threshold,
     };
 
     const isApi = pathname.startsWith("/api/");

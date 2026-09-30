@@ -24,6 +24,10 @@ export interface BlockedPageOptions {
   behaviors: string[];
   usageType: string | null;
   score: number | null;
+  /** 命中的信号名（打分制下展示"为什么被拦"） */
+  hitSignals?: string[];
+  points?: number;
+  threshold?: number;
 }
 
 export function blockedPageHtml(opts: BlockedPageOptions): string {
@@ -31,6 +35,10 @@ export function blockedPageHtml(opts: BlockedPageOptions): string {
   if (opts.behaviors.length > 0) detail.push(opts.behaviors.join("、"));
   if (opts.usageType) detail.push(opts.usageType);
   if (opts.score !== null) detail.push(`风险分 ${opts.score}`);
+  if (opts.hitSignals && opts.hitSignals.length > 0) detail.push(`命中信号 ${opts.hitSignals.join("、")}`);
+  if (opts.points !== undefined && opts.threshold !== undefined) {
+    detail.push(`得分 ${opts.points}/${opts.threshold}`);
+  }
 
   const ip = opts.ip ? escapeHtml(opts.ip) : "";
   const detailText = detail.length > 0 ? escapeHtml(detail.join(" · ")) : "";
@@ -135,5 +143,8 @@ export function blockedJson(opts: BlockedPageOptions): string {
     reason: opts.reason,
     ip: opts.ip,
     behaviors: opts.behaviors,
+    hitSignals: opts.hitSignals ?? [],
+    points: opts.points ?? 0,
+    threshold: opts.threshold ?? 0,
   });
 }

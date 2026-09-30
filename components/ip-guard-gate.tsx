@@ -25,8 +25,10 @@ interface Verdict {
   score: number | null;
   behaviors: string[];
   usageType: string | null;
-  provider: string;
-  detected: boolean;
+  points: number;
+  threshold: number;
+  /** 给出结论的信号数；0 表示检测整体没跑起来 */
+  activeSignals: number;
 }
 
 export function IpGuardGate() {
@@ -54,8 +56,8 @@ export function IpGuardGate() {
 
   // 放行、没检测出结论、或用户选择继续 —— 都不渲染
   if (!verdict || verdict.allowed || dismissed) return null;
-  // 没真正检测到（接口没配/失败）时不弹，避免误伤
-  if (!verdict.detected) return null;
+  // 一个信号都没给出结论（接口没配/失败）时不弹，避免误伤
+  if (verdict.activeSignals === 0) return null;
 
   const detail: string[] = [];
   if (verdict.behaviors.length > 0) detail.push(verdict.behaviors.join("、"));

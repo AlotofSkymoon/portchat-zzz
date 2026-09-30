@@ -1064,42 +1064,61 @@ lib/storage/
 
 行为就两条：
 
-- **检测到代理 → 服务端直接返回 403 拦截页**，不是前端提示，绕过不了
-- **检测到 iCloud Private Relay（中继）→ 放行**
+- **判定为代理 → 服务端直接返回 403 拦截页**，不是前端提示，绕过不了
+- **判定为 iCloud Private Relay（中继）→ 放行**
 
-### 数据源：付费优先，免费兜底
+### 判定方式：组合打分，不是单点判断
 
-**先说清楚：ipip.la 做不到这件事。**
-`api.myip.la` 只能查 IP 归属地，**不能判断是不是代理**。
-真正能识别代理的是 ipip.net 的「IP 风险画像」（同一家公司，付费）。
+先说结论：**没有任何方案能 100% 拦住**。
+免费情报库的覆盖率本来就追不上 VPN 服务商换 IP 的速度，
+用单一数据源"碰运气"，表现就是「有时候拦得住，有时候拦不住」。
 
-| 源 | 需要 token | 判定能力 | 默认 |
+所以这里改成**打分制**：多个信号各记 1 分，
+**总分 ≥ `IP_GUARD_BLOCK_SCORE`（默认 2）才拦截**。
+单条信号命中只记录、不拦截 —— 因为公司内网、手机 CGNAT
+都可能命中任意一条，一刀切误伤太重。
+
+| 信号 | 数据来源 | 成本 | 命中条件 |
 |---|---|---|---|
-| ipip.net 风险画像 | ✅ 付费 | 风险分 + 代理/秒拨/机房标记 | 配了就用它 |
-| ip-api.com | ❌ 免费 | `proxy` / `hosting` 布尔值 | **没配 token 时自动启用** |
+| `header` | 请求头 | 免费 | `X-Forwarded-For` 多跳 / `Via` / `Forwarded` / `Proxy-Connection` |
+| `asn-hosting` | ip-api.com `hosting` | 免费 | IP 属于机房、云厂商出口而非住宅 ISP |
+| `ipinfo` | IPinfo privacy | 免费 5 万次/月 | `vpn` / `proxy` / `tor` / `hosting` 任一为 true |
+| `tor` | Tor 官方出口名单 | 免费 | IP 在 Tor 出口节点清单内 |
+| `ipip` | ipip.net 风险画像 | 付费 | 风险分 ≥ 阈值，或命中指定行为（默认 代理/秒拨） |
 
-免费源是**默认兜底**，因为付费接口多数站长不会买 —— 不兜底的话，
-开关开了、文档看了，VPN 照样能进，因为检测从头到尾没跑过。
+**不配任何 token 也能用**：`header` + `asn-hosting` + `tor` 三个信号零成本自动生效。
+
+几个说明：
+
+- **ASN 比黑名单靠谱**：很多免费检测漏报，是因为只查"IP 在不在黑名单"，
+  没看 ASN 归属。M247、DataCamp、OVH 这类 VPN 常驻机房，看 ASN 一眼就能认出来。
+- **请求头可伪造**，高级代理还会主动 strip 掉，所以它只是辅助信号。
+  Cloudflare 自己也会加头，判定时会先排除平台自身注入的那几跳。
+- **住宅代理（residential proxy）用的是真实家庭宽带 IP，任何名单都查不出来。**
+  目标应该是提高批量盗刷的成本，而不是追求零漏网。
 
 > ⚠️ ip-api.com 免费端点**仅限非商业用途**，且约 45 次/分钟。
-> 站点商业运营或流量大时请改用付费源，或关掉它：
-> `IP_GUARD_FREE_SOURCE=false`
+> 商业运营或流量大时请关掉它改用付费源：`IP_GUARD_FREE_SOURCE=false`
 
 ### 配置
 
 ```bash
-IPIP_RISK_TOKEN=你的ipip.net风险画像token
-IP_GUARD_ALLOWLIST=1.2.3.4/32,203.0.113.0/24   # 强烈建议填
+IP_GUARD_ALLOWLIST=1.2.3.4/32,203.0.113.0/24   # 强烈建议先填这个
+IPINFO_TOKEN=你的ipinfo.io token               # 可选，免费额度
+IPIP_RISK_TOKEN=你的ipip.net风险画像token       # 可选，付费
 ```
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
-| `IPIP_RISK_TOKEN` | 空 | **不填 = 功能关闭**。填了才真正检测 |
 | `IP_GUARD_ALLOWLIST` | 空 | **建议填**。永久放行的 CIDR，逗号分隔 |
+| `IP_GUARD_BLOCK_SCORE` | `2` | 拦截阈值。改 `1` 更严但误伤明显增加 |
+| `IPINFO_TOKEN` | 空 | 不填则 `ipinfo` 信号跳过 |
+| `IPIP_RISK_TOKEN` | 空 | 不填则 `ipip` 信号跳过 |
 | `IP_GUARD_ENABLED` | `true` | 设 `false` 整体关闭 |
-| `IP_GUARD_FREE_SOURCE` | `true` | 设 `false` 关闭 ip-api.com 免费兜底 |
-| `IP_GUARD_RISK_THRESHOLD` | `90` | 风险分阈值。ipip 官方建议 90 分以上才限制 |
-| `IP_GUARD_BLOCK_BEHAVIORS` | `代理,秒拨` | 命中的风险行为即拦截。加 `机房` 更严但误伤更多 |
+| `IP_GUARD_FREE_SOURCE` | `true` | 设 `false` 关闭 ip-api.com |
+| `IP_GUARD_HEADER_XFF_MIN` | 自动 | XFF 判定多跳的跳数（有 CF 头时 3，否则 2） |
+| `IP_GUARD_RISK_THRESHOLD` | `90` | ipip 风险分阈值。官方建议 90 分以上才限制 |
+| `IP_GUARD_BLOCK_BEHAVIORS` | `代理,秒拨` | ipip 命中哪些行为记 1 分。加 `机房` 更严但误伤更多 |
 
 ### ⚠️ 一定要先填白名单
 
@@ -1124,6 +1143,17 @@ https://mask-api.icloud.com/egress-ip-ranges.csv
 
 每 24 小时刷新一次，拉取失败时保留上一份可用清单。清单里的 IP 一律放行。
 
+> 顺序很关键：**先查中继，再跑其他信号**。
+> Apple 的出口段极容易被判成机房，反过来的话放行就失效了。
+
+### 依然 fail-open
+
+任何信号源超时、报错、token 失效 —— **该信号按 0 分处理**，
+不会因为一个源抽风就把访客拦在门外。
+一个信号都没给出结论时，按 `error` 放行。
+
+想临时关掉：`IP_GUARD_ENABLED=false`。
+
 ### 实现上的两个坑
 
 **① 用的是 `middleware.ts`，不是 Next 16 的 `proxy.ts`**
@@ -1136,17 +1166,10 @@ proxy.ts 默认跑 Node.js runtime，而 OpenNext（Cloudflare 适配器）
 **② token 必须在构建时就存在**
 
 Edge bundle 里的 `process.env` 是**构建时内联**的。
-构建环境里没有 `IPIP_RISK_TOKEN`，打包出来就是 `undefined`，
+构建环境里没有 token，打包出来就是 `undefined`，
 之后在后台补配也读不到 —— 功能静默失效（不报错，但也不拦）。
 
 用 Actions 部署的话，脚本已把相关变量加入注入列表，构建时可用。
-
-### 依然 fail-open
-
-token 没配、接口超时、Apple 清单拉不到、判定逻辑自身抛错 —— **全部放行**。
-
-真拦截的代价太高，任何拿不到结论的情况都必须让站点照常可用。
-想临时关掉：`IP_GUARD_ENABLED=false`。
 
 ### 排查：开关开了，VPN 却能进
 
@@ -1161,35 +1184,47 @@ curl -I https://你的域名/
 | 看到 | 说明 |
 |---|---|
 | **没有这个头** | middleware 没运行（多半是适配器/构建问题） |
-| `allowed(error)` | 跑了，但**两个数据源都没给出结论** —— 最常是没配 token 且免费源被关 |
-| `allowed(ok)` | 数据源判定这不是代理（VPN 未被识别） |
+| `allowed(error)` | 跑了，但**没有任何信号给出结论**（多半 token 全没配） |
+| `allowed(ok)` | 信号都跑了，但总分没到阈值（VPN 未被识别） |
 | `allowed(relay)` | 判定为 iCloud Private Relay，按设计放行 |
 | `blocked(proxy)` | 已拦截 ✅ |
 
-### 自检
+### 自检：为什么没拦住
 
-`/api/ip-guard` 返回当前判定（不拦截，只报告）：
+`/api/ip-guard` 返回完整打分明细（不拦截，只报告）：
 
 ```jsonc
 {
   "allowed": true,
-  "reason": "relay",   // ok / relay / allowlist / proxy / error / no-ip / disabled
-  "detected": true,    // false = 没真检测，一切访问都会放行
-  "relay": true,
-  "provider": "relay-list",
-  "ip": "172.225.0.9",
+  "reason": "ok",        // ok / relay / allowlist / proxy / error / no-ip / disabled
+  "ip": "1.2.3.4",
+  "points": 1,           // 当前总分
+  "threshold": 2,        // 达到这个分数才拦截
+  "signals": [
+    { "name": "header", "hit": false, "points": 0, "ok": true, "detail": "XFF=1 跳" },
+    { "name": "asn-hosting", "hit": true, "points": 1, "ok": true, "detail": "hosting=true" },
+    { "name": "ipinfo", "hit": false, "points": 0, "ok": false, "note": "未配置 IPINFO_TOKEN" },
+    { "name": "tor",    "hit": false, "points": 0, "ok": true, "detail": "不在出口名单内" },
+    { "name": "ipip",   "hit": false, "points": 0, "ok": false, "note": "未配置 IPIP_RISK_TOKEN" }
+  ],
   "status": {
     "enabled": true,
-    "activeSource": "ip-api",   // ipip-risk / ip-api / none ← 关键
-    "allowlist": 2
+    "blockScore": 2,
+    "allowlist": 2,
+    "torNodes": 1234,
+    "activeSources": 3      // 实际可用的数据源数量，0 = 检测整体没跑
   }
 }
 ```
 
+对照这份清单就能看出是「信号没配」还是「信号配了但没命中」：
+`ok: false` = 该信号没跑起来（多半缺 token）；
+`ok: true` 且 `hit: false` = 跑了，但情报库没认出这个 IP。
+
 被拦时页面返回 403；`/api/*` 请求返回 JSON：
 
 ```jsonc
-{ "error": "PROXY_BLOCKED", "reason": "proxy" }
+{ "error": "PROXY_BLOCKED", "reason": "proxy", "points": 2, "threshold": 2 }
 ```
 
 ## 🔐 依赖安全说明（构建日志里的警告要不要管）

@@ -41,7 +41,7 @@ export async function serverIpVerdict(): Promise<IpVerdict | null> {
       isAdmin = false;
     }
 
-    return await checkIp(ip, isAdmin);
+    return await checkIp(ip, isAdmin, h);
   } catch {
     return null;
   }

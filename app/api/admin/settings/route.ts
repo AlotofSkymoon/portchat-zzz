@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { hasRedisConfig, storageErrorMessage } from "@/lib/redis";
 import { readSiteSettings, writeSiteSettings } from "@/lib/site-settings-store";
 import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/types";
-import { serverT as st } from "@/lib/i18n/server";
+import { serverT, serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

@@ -1,62 +1,58 @@
 import { isIcloudRelay, relayCacheInfo } from "./relay";
 import { matchesAny, parseCidr, parseIp, type Cidr } from "./cidr";
-import { timeoutSignal } from "@/lib/fetch-timeout";
+import {
+  asnSignal,
+  blockedBehaviors,
+  headerSignal,
+  ipinfoSignal,
+  ipipSignal,
+  ipinfoToken,
+  ipipToken,
+  riskThreshold,
+  torCacheInfo,
+  torSignal,
+  freeSourceEnabled,
+  type SignalResult,
+} from "./signals";
 import { configValue } from "@/lib/runtime-config";
 
 /**
  * 访问来源检测：拦代理工具，放行 iCloud Private Relay 这类系统中继。
  *
- * ⚠️ 设计上刻意采用 fail-open（出错即放行）：
+ * ⚠️ 判定方式：多信号组合打分，总分达到阈值才拦截。
+ * 单点判断的两种极端都不可接受 ——
+ *   只看免费名单：覆盖率跟不上 VPN 换 IP 的速度，漏报严重；
+ *   一条就拦：公司内网、手机 CGNAT、CDN 回源都会误伤。
+ * 打分制下，单条命中只记录不拦截，误判代价被压到最低。
+ *
+ * ⚠️ 依然保持 fail-open（出错即放行）：
  * IP 情报接口可能超时、token 可能失效、数据源可能抽风。
  * 这些情况下如果把访问者一律拦掉，等于自己把站点搞挂 ——
  * 而且挂掉的方式极具迷惑性（用户以为是自己网络有问题）。
- * 所以任何拿不到结论的情况都放行，只拦截"明确判定为代理"的。
+ * 所以任何拿不到结论的情况都放行，只拦截"明确凑够分数"的。
  */
 
 /* --------------------------- 配置 --------------------------- */
 
-/**
- * ipip 风险画像接口 token（付费接口）。
- *
- * ⚠️ 必须走 configValue 而不是裸 process.env：
- * middleware 跑在 Edge runtime，那里的 process.env 是**构建时内联**的 ——
- * 构建环境里没有这个变量，打包出来就是 undefined，
- * 之后在后台补配也读不到，功能静默失效。
- * configValue 会同时查 Worker binding，至少在 Node runtime 侧能拿到。
- */
-function token(): string {
-  return configValue("IPIP_RISK_TOKEN", "IPIP_TOKEN");
-}
-
 export function ipGuardEnabled(): boolean {
-  return (process.env.IP_GUARD_ENABLED ?? "").trim() !== "false";
-}
-
-/** 风险分阈值。ipip 官方建议 90 分以上可开启访问限制。 */
-function threshold(): number {
-  const raw = Number(process.env.IP_GUARD_RISK_THRESHOLD ?? "");
-  if (!Number.isFinite(raw) || raw <= 0) return 90;
-  return Math.min(100, Math.max(1, raw));
+  return configValue("IP_GUARD_ENABLED").trim() !== "false";
 }
 
 /**
- * 命中的风险行为即拦截。
- * 默认只拦"代理"和"秒拨" —— 这两类是明确的代理工具特征。
- * "机房"(IDC) 默认不拦：VPS 出口不一定在跑代理，一刀切误伤太重。
- * 想更严格就自己加：IP_GUARD_BLOCK_BEHAVIORS=代理,秒拨,机房
+ * 拦截分数线。默认 2 —— 单条信号命中不拦，两条及以上才拦。
+ *
+ * 想更严格（一条就拦）配 IP_GUARD_BLOCK_SCORE=1；
+ * 想更宽松配 3。注意 1 会显著抬高误伤率，不建议在没观察过的情况下使用。
  */
-function blockedBehaviors(): string[] {
-  const raw = (process.env.IP_GUARD_BLOCK_BEHAVIORS ?? "").trim();
-  if (!raw) return ["代理", "秒拨"];
-  return raw
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean);
+export function blockScore(): number {
+  const raw = Number(configValue("IP_GUARD_BLOCK_SCORE"));
+  if (!Number.isFinite(raw) || raw <= 0) return 2;
+  return Math.floor(raw);
 }
 
 /** 是否放行已登录管理员（避免站长把自己锁在门外） */
 function adminBypass(): boolean {
-  return (process.env.IP_GUARD_ADMIN_BYPASS ?? "").trim() !== "false";
+  return configValue("IP_GUARD_ADMIN_BYPASS").trim() !== "false";
 }
 
 /**
@@ -77,7 +73,7 @@ function adminBypass(): boolean {
  * CIDR 解析本身很轻，白名单条目通常只有几条，每次重新解析的开销可忽略。
  */
 function allowlist(): Cidr[] {
-  const raw = (process.env.IP_GUARD_ALLOWLIST ?? "").trim();
+  const raw = configValue("IP_GUARD_ALLOWLIST").trim();
   const out: Cidr[] = [];
   if (raw) {
     for (const part of raw.split(",")) {
@@ -126,119 +122,13 @@ export function clientIpFromHeaders(headers: Headers): string | null {
   return null;
 }
 
-/* --------------------------- ip-api.com 免费源 --------------------------- */
-
-/**
- * 是否启用免费源（默认启用）。
- *
- * ⚠️ 为什么必须有它：
- * ipip 的风险画像是**付费**接口。大多数站长不会为了一个小站去买，
- * 结果就是：开关开了、文档看了、VPN 照样能进 —— 因为检测从头到尾没跑过。
- * 免费源让这个功能在零配置下也能真正工作。
- *
- * ip-api.com 免费端点只限**非商业用途**且有速率限制（约 45 次/分钟）。
- * 站点有商业性质或流量较大时请关掉它、改用付费源：
- *   IP_GUARD_FREE_SOURCE=false
- */
-function freeSourceEnabled(): boolean {
-  const raw = configValue("IP_GUARD_FREE_SOURCE");
-  if (!raw) return true;
-  return raw.toLowerCase() !== "false";
-}
-
-interface FreeResult {
-  proxy: boolean;
-  hosting: boolean;
-  ok: boolean;
-}
-
-const EMPTY_FREE: FreeResult = { proxy: false, hosting: false, ok: false };
-
-async function queryFree(ip: string): Promise<FreeResult> {
-  if (!freeSourceEnabled()) return EMPTY_FREE;
-
-  // 免费端点不支持 https，只能 http（服务端 fetch 无混合内容问题）
-  const url = `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,proxy,hosting`;
-  try {
-    const res = await fetch(url, { signal: timeoutSignal(4000) });
-    if (!res.ok) return EMPTY_FREE;
-    const data: unknown = await res.json();
-    if (typeof data !== "object" || data === null) return EMPTY_FREE;
-
-    const d = data as { status?: unknown; proxy?: unknown; hosting?: unknown };
-    // 接口用 status 字段表示成败（HTTP 始终是 200）
-    if (d.status !== "success") return EMPTY_FREE;
-
-    return { proxy: d.proxy === true, hosting: d.hosting === true, ok: true };
-  } catch {
-    return EMPTY_FREE;
-  }
-}
-
-/* --------------------------- ipip 风险画像 --------------------------- */
-
-/** 免费但只能查归属地的接口（不能判断代理），仅用于兜底展示 */
-const MYIP_LA = "https://api.myip.la/en?json";
-
-interface RiskResult {
-  score: number | null;
-  behaviors: string[];
-  usageType: string | null;
-  ok: boolean;
-}
-
-const EMPTY_RISK: RiskResult = { score: null, behaviors: [], usageType: null, ok: false };
-
-async function queryRisk(ip: string): Promise<RiskResult> {
-  const tk = token();
-  if (!tk) return EMPTY_RISK;
-
-  const url = `https://ipapi.ipip.net/v2/risk/portrait/${encodeURIComponent(ip)}?token=${encodeURIComponent(tk)}`;
-  try {
-    const res = await fetch(url, { signal: timeoutSignal(5000) });
-    if (!res.ok) return EMPTY_RISK;
-    const data: unknown = await res.json();
-    if (typeof data !== "object" || data === null) return EMPTY_RISK;
-
-    const root = data as { ret?: unknown; data?: unknown };
-    // 接口用 ret="err" 表示失败（此时 HTTP 仍是 200），必须认这个字段
-    if (root.ret !== "ok") return EMPTY_RISK;
-
-    const d = root.data as
-      | { usage_type?: unknown; risk?: { score?: unknown; behavior?: unknown } }
-      | undefined;
-    if (!d) return EMPTY_RISK;
-
-    const behaviors: string[] = [];
-    const list = d.risk?.behavior;
-    if (Array.isArray(list)) {
-      for (const item of list) {
-        const name = (item as { name?: unknown })?.name;
-        if (typeof name === "string" && name.trim()) behaviors.push(name.trim());
-      }
-    }
-
-    const scoreRaw = d.risk?.score;
-    const score = typeof scoreRaw === "number" && Number.isFinite(scoreRaw) ? scoreRaw : null;
-
-    return {
-      score,
-      behaviors,
-      usageType: typeof d.usage_type === "string" ? d.usage_type : null,
-      ok: true,
-    };
-  } catch {
-    return EMPTY_RISK;
-  }
-}
-
 /* --------------------------- 结果缓存 --------------------------- */
 
 /**
  * 按 IP 缓存检测结果。
  *
  * ⚠️ 为什么要缓存：
- * 站点每个页面都可能触发一次检测，而 ipip 是按次计费的付费接口 ——
+ * 站点每个页面都可能触发一次检测，而 ipip / ipinfo 都按次计费 ——
  * 不缓存的话同一个人刷新几次就把额度烧光了。
  */
 const RESULT_TTL_MS = 10 * 60 * 1000;
@@ -255,20 +145,47 @@ export type IpVerdict = {
   /**
    * 判定原因：
    * ok=正常放行、relay=中继放行、allowlist=白名单放行、
-   * proxy=代理已拦截、error=检测失败放行、no-ip=取不到IP放行、disabled=功能关闭
+   * proxy=达标已拦截、error=检测失败放行、no-ip=取不到IP放行、disabled=功能关闭
    */
   reason: "ok" | "relay" | "allowlist" | "proxy" | "error" | "no-ip" | "disabled";
   ip: string | null;
   relay: boolean;
+  /** ipip 风险分（付费源独有，其他源为 null） */
   score: number | null;
   behaviors: string[];
   usageType: string | null;
-  /** 实际生效的判定来源 */
-  provider: "ipip-risk" | "ip-api" | "relay-list" | "none";
-  /** ipip 接口是否真的返回了结论（没配 token 时为 false） */
-  detected: boolean;
+  /** 各信号的命中与得分明细，排查"为什么没拦住"就看这个 */
+  signals: SignalResult[];
+  /** 累计得分 */
+  points: number;
+  /** 当前拦截分数线 */
+  threshold: number;
+  /** 实际给出结论的信号数（0 表示检测整体没跑起来） */
+  activeSignals: number;
   cached: boolean;
 };
+
+function emptyVerdict(
+  reason: IpVerdict["reason"],
+  ip: string | null,
+  extra: Partial<IpVerdict> = {},
+): IpVerdict {
+  return {
+    allowed: true,
+    reason,
+    ip,
+    relay: false,
+    score: null,
+    behaviors: [],
+    usageType: null,
+    signals: [],
+    points: 0,
+    threshold: blockScore(),
+    activeSignals: 0,
+    cached: false,
+    ...extra,
+  };
+}
 
 function evictExpired(now: number): void {
   const keys = Object.keys(resultCache);
@@ -285,42 +202,34 @@ function evictExpired(now: number): void {
 
 /**
  * 判定一个 IP 是否允许访问。
- * isAdmin 为 true 时直接放行（管理员不该被自己的规则锁在外面）。
+ *
+ * @param isAdmin 为 true 时直接放行（管理员不该被自己的规则锁在外面）
+ * @param headers 请求头。传入才会启用"请求头信号"（零成本，建议传）。
  */
-export async function checkIp(ip: string | null, isAdmin = false): Promise<IpVerdict> {
+export async function checkIp(
+  ip: string | null,
+  isAdmin = false,
+  headers?: Headers,
+): Promise<IpVerdict> {
+  const threshold = blockScore();
+
   if (!ipGuardEnabled()) {
-    return {
-      allowed: true, reason: "disabled", ip, relay: false,
-      score: null, behaviors: [], usageType: null,
-      provider: "none", detected: false, cached: false,
-    };
+    return emptyVerdict("disabled", ip, { threshold });
   }
 
   if (isAdmin && adminBypass()) {
-    return {
-      allowed: true, reason: "ok", ip, relay: false,
-      score: null, behaviors: [], usageType: null,
-      provider: "none", detected: false, cached: false,
-    };
+    return emptyVerdict("ok", ip, { threshold });
   }
 
   if (!ip) {
     // 拿不到 IP 就放行 —— 宁可漏过也不能把全站拦死
-    return {
-      allowed: true, reason: "no-ip", ip: null, relay: false,
-      score: null, behaviors: [], usageType: null,
-      provider: "none", detected: false, cached: false,
-    };
+    return emptyVerdict("no-ip", null, { threshold });
   }
 
   // 白名单优先于一切判定：它是误判时的逃生通道
   const parsed = parseIp(ip);
   if (parsed && allowlist().length > 0 && matchesAny(allowlist(), parsed)) {
-    return {
-      allowed: true, reason: "allowlist", ip, relay: false,
-      score: null, behaviors: [], usageType: null,
-      provider: "none", detected: false, cached: false,
-    };
+    return emptyVerdict("allowlist", ip, { threshold });
   }
 
   const now = Date.now();
@@ -343,99 +252,122 @@ export async function checkIp(ip: string | null, isAdmin = false): Promise<IpVer
   }
 
   if (relay) {
-    const verdict: IpVerdict = {
-      allowed: true, reason: "relay", ip, relay: true,
-      score: null, behaviors: [], usageType: null,
-      provider: "relay-list", detected: true, cached: false,
-    };
+    const verdict = emptyVerdict("relay", ip, { relay: true, threshold });
     resultCache[ip] = { at: now, verdict };
     return verdict;
   }
 
-  const risk = await queryRisk(ip);
+  /**
+   * 四个外部信号并发跑。
+   *
+   * ⚠️ 每个信号内部都自带超时与 try/catch，失败时按 0 分返回（ok:false），
+   * 所以这里不需要再包一层 —— 任何一个源抽风都不会影响其他源，也不会拦人。
+   */
+  const [ipip, ipinfo, asn, tor] = await Promise.all([
+    ipipSignal(ip),
+    ipinfoSignal(ip),
+    asnSignal(ip),
+    torSignal(ip),
+  ]);
 
-  let behaviors = risk.behaviors;
-  let score = risk.score;
-  let usageType = risk.usageType;
-  let provider: IpVerdict["provider"] = "ipip-risk";
-  let detected = risk.ok;
+  const signals: SignalResult[] = [ipip, ipinfo, asn, tor];
+  if (headers) signals.unshift(headerSignal(headers));
 
-  // ipip 没给结论（没配 token / 超时 / 报错）→ 回落到免费源
-  if (!risk.ok) {
-    const free = await queryFree(ip);
-    if (free.ok) {
-      behaviors = [];
-      if (free.proxy) behaviors.push("代理");
-      if (free.hosting) behaviors.push("机房");
-      usageType = free.hosting ? "机房" : "住宅";
-      provider = "ip-api";
-      detected = true;
-    }
-  }
+  const points = signals.reduce((sum, s) => sum + s.points, 0);
+  const activeSignals = signals.filter((s) => s.ok).length;
 
-  // 两个源都没拿到结论 → fail-open 放行
-  if (!detected) {
-    const verdict: IpVerdict = {
-      allowed: true, reason: "error", ip, relay: false,
-      score: null, behaviors: [], usageType,
-      provider: "none", detected: false, cached: false,
-    };
+  const behaviors = ipip.behaviors;
+  const usageType = ipip.usageType ?? (asn.hit ? "机房" : null);
+
+  /**
+   * 一个信号都没给出结论 → 检测整体没跑起来 → fail-open 放行。
+   * 这是"开关开了 VPN 却能进"最常见的原因，必须显式暴露，
+   * 否则看起来跟"检测过、判定为正常"完全一样。
+   */
+  if (activeSignals === 0) {
+    const verdict = emptyVerdict("error", ip, {
+      signals,
+      points: 0,
+      threshold,
+      activeSignals: 0,
+      usageType,
+      score: ipip.score,
+      behaviors,
+    });
     // 失败结果也缓存，但时间短一些，避免接口恢复后迟迟不生效
     resultCache[ip] = { at: now, verdict };
     return verdict;
   }
 
-  const blockList = blockedBehaviors();
-  const hitBehavior = behaviors.filter((b) => blockList.some((x) => b.includes(x)));
-  const overScore = score !== null && score >= threshold();
-  const blocked = hitBehavior.length > 0 || overScore;
+  const blocked = points >= threshold;
 
   const verdict: IpVerdict = {
     allowed: !blocked,
     reason: blocked ? "proxy" : "ok",
     ip,
     relay: false,
-    score,
+    score: ipip.score,
     behaviors,
     usageType,
-    provider,
-    detected: true,
+    signals,
+    points,
+    threshold,
+    activeSignals,
     cached: false,
   };
   resultCache[ip] = { at: now, verdict };
   return verdict;
 }
 
-/** 自检用：让 /api/health 能看出这套检测到底有没有在工作 */
+/** 自检用：让 /api/ip-guard 与 /api/health 看出这套检测到底有没有在工作 */
 export function ipGuardStatus(): {
   enabled: boolean;
-  configured: boolean;
-  freeSource: boolean;
-  /**
-   * 实际能用的数据源。
-   * ⚠️ 这是排查"开关开了却拦不住"的关键字段：
-   * 两个源都不可用时，检测从头到尾没跑过，一切访问都会被放行。
-   */
-  activeSource: "ipip-risk" | "ip-api" | "none";
-  threshold: number;
+  /** 各信号源是否已配置（未配置的信号会被跳过，按 0 分处理） */
+  sources: {
+    ipip: boolean;
+    ipinfo: boolean;
+    asnHosting: boolean;
+    tor: boolean;
+    header: boolean;
+  };
+  /** 实际参与打分的信号源数量 */
+  activeSources: number;
+  blockScore: number;
+  riskThreshold: number;
   blockBehaviors: string[];
   allowlist: number;
   relayRanges: number;
   relayFetchedAt: number | null;
+  torNodes: number;
+  torFetchedAt: number | null;
 } {
-  const hasToken = token().length > 0;
-  const free = freeSourceEnabled();
+  const sources = {
+    ipip: ipipToken().length > 0,
+    ipinfo: ipinfoToken().length > 0,
+    asnHosting: freeSourceEnabled(),
+    // Tor 名单与请求头信号零配置即可用，恒为 true
+    tor: true,
+    header: true,
+  };
+  const relay = relayCacheInfo();
+  const tor = torCacheInfo();
+
   return {
     enabled: ipGuardEnabled(),
-    configured: hasToken,
-    freeSource: free,
-    activeSource: hasToken ? "ipip-risk" : free ? "ip-api" : "none",
-    threshold: threshold(),
+    sources,
+    activeSources: Object.values(sources).filter(Boolean).length,
+    blockScore: blockScore(),
+    riskThreshold: riskThreshold(),
     blockBehaviors: blockedBehaviors(),
     allowlist: allowlistSize(),
-    relayRanges: relayCacheInfo().count,
-    relayFetchedAt: relayCacheInfo().fetchedAt,
+    relayRanges: relay.count,
+    relayFetchedAt: relay.fetchedAt,
+    torNodes: tor.count,
+    torFetchedAt: tor.fetchedAt,
   };
 }
 
-export { MYIP_LA };
+export { riskThreshold } from "./signals";
+
+/** 免费但只能查归属地的接口（不能判断代理），仅供排查时对照 */
+export const MYIP_LA = "https://api.myip.la/en?json";

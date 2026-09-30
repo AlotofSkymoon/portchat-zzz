@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import {
 import { serverT } from "@/lib/i18n/server";
+import {
   MAX_SEARCH_RESULTS,
   configuredKeyedSources,
   formatSearchContext,
