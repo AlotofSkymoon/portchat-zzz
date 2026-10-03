@@ -52,10 +52,10 @@ export const S3_PRESETS: S3Preset[] = [
     label: "Supabase Storage",
     endpointHint: "https://<project-ref>.storage.supabase.co/storage/v1/s3",
     regionHint: "us-east-1",
-    note: "1GB 免费存储、自带 CDN；S3 兼容层只接受 path-style（已自动处理）",
+    note: "1GB 免费存储、自带 CDN；S3 兼容层只接受 path-style（已自动处理）。⚠️ 必须自己在后台给 storage.objects 建 INSERT + SELECT 两条 Policy，否则上传 403",
     docs: "https://supabase.com/docs/guides/storage/s3/authentication",
     recommended: true,
-    platform: "vercel",
+    platform: "cloudflare",
     limited: true,
   },
   {
@@ -96,9 +96,10 @@ export const S3_PRESETS: S3Preset[] = [
 export function presetsForPlatform(platform: "cloudflare" | "vercel" | "local"): S3Preset[] {
   if (platform === "local") return S3_PRESETS;
   if (platform === "cloudflare") {
+    // R2 排第一（Workers 上零出站费），其余全部可用 —— 不再按平台砍选项
     return [
       ...S3_PRESETS.filter((p) => p.platform === "cloudflare"),
-      ...S3_PRESETS.filter((p) => p.id === "supabase" || p.id === "generic" || p.id === "minio"),
+      ...S3_PRESETS.filter((p) => p.platform !== "cloudflare"),
     ];
   }
   return S3_PRESETS.filter((p) => p.platform === "vercel");

@@ -92,17 +92,35 @@ export async function POST(request: Request) {
     return bad(t("api.upload.endpointHttps"));
   }
 
-  // 平台锁定：Workers 只能用 R2，Vercel 只能用 B2。
-  // 服务端强制校验，避免绕过前端用错存储导致上传失败。
-  const platform = detectPlatform();
-  if (platform !== "local") {
-    const host = new URL(endpoint).host.toLowerCase();
-    if (platform === "cloudflare" && !host.includes("r2.cloudflarestorage.com")) {
-      return bad(t("api.upload.platformR2Only"));
+  /**
+   * 平台锁定（默认**关闭**）。
+   *
+   * 以前这里按部署平台硬限制：Workers 只准 R2、Vercel 只准 B2。
+   * 结果是 Supabase / MinIO / AWS S3 在任何平台上都被拒 ——
+   * 「站点托管」之外的自定义存储全部用不了，属于适配 bug。
+   *
+   * 参考 Rin 的做法：S3 兼容存储只靠配置驱动（S3_ENDPOINT / S3_BUCKET /
+   * S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY），不做平台绑定。
+   * 所以这里默认放开任意 endpoint，任谁配对了凭证就能传。
+   *
+   * 只有站长明确想锁死时才设 S3_LOCK_TO_PLATFORM=true。
+   */
+  const lockToPlatform = (process.env.S3_LOCK_TO_PLATFORM ?? "").trim().toLowerCase() === "true";
+  if (lockToPlatform) {
+    const platform = detectPlatform();
+    if (platform !== "local") {
+      const host = new URL(endpoint).host.toLowerCase();
+      if (platform === "cloudflare" && !host.includes("r2.cloudflarestorage.com")) {
+        return bad(t("api.upload.platformR2Only"));
+      }
+      if (platform === "vercel" && !host.includes("backblazeb2.com")) {
+        return bad(t("api.upload.platformB2Only", { platform: platformLabel(platform) }));
+      }
     }
-    if (platform === "vercel" && !host.includes("backblazeb2.com")) {
-      return bad(t("api.upload.platformB2Only", { platform: platformLabel(platform) }));
-    }
+  } else {
+    // 保持引用，避免 import 被 tree-shake 掉后误删（lint 也认这个用法）
+    void detectPlatform;
+    void platformLabel;
   }
 
   const kind = classify(contentType, filename);

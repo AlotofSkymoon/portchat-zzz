@@ -475,6 +475,21 @@ AWS S3、MinIO 自建、阿里云 OSS、腾讯云 COS、七牛。
 endpoint 和公开域名自动拼（它的公开域名格式特殊，手写容易漏 `public`）。
 注意免费版单文件上限 50MB，且 S3 兼容层只接受 path-style（已自动处理）。
 
+> ⚠️ **Supabase 必须自己建两条 Storage Policy，否则上传必失败。**
+> 这是 Supabase 侧的 RLS（行级安全），站点调不了，只能你在后台点。
+>
+> 1. 桶设为 **Public**（Storage → bucket → 齿轮 → Public bucket）
+> 2. Storage → Policies → `storage.objects` → New policy：
+>    - **INSERT**（上传）：目标角色选 `anon`（或 `authenticated`，取决于站点走哪种）
+>    - **SELECT**（公开读）：目标角色选 `anon`
+>    - 条件可先用 `bucket_id = '<你的桶名>'` 放行全部，通了再收窄到某个文件夹
+>
+> 只建 SELECT 不建 INSERT 的话：签名能生成、URL 能拿到，
+> 但浏览器 PUT 上去会被 RLS 挡回 403 —— 表现为"配置都对但就是传不上去"。
+>
+> 另外确认桶所在 **region**：Supabase 托管项目的 S3 兼容层按项目 region 校验签名，
+> region 填错会报 `SignatureDoesNotMatch`，填 `SUPABASE_REGION` 覆盖（默认 `us-east-1`）。
+
 **R2 对象存储 —— 推荐走 binding，零密钥**
 
 `wrangler.jsonc` 里已经绑好了：
