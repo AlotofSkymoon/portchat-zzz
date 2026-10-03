@@ -39,6 +39,9 @@ interface ChatInputProps {
   thinkingSupported?: boolean;
   thinking?: boolean;
   onThinkingChange?: (on: boolean) => void;
+  /** 思考强度（OpenAI 标准 reasoning_effort；Agnes 服务端会忽略） */
+  effort?: "low" | "medium" | "high";
+  onEffortChange?: (v: "low" | "medium" | "high") => void;
   /* ---- 联网搜索 ---- */
   /** 站点是否开放联网搜索（站长可关） */
   webSearchSupported?: boolean;
@@ -63,6 +66,8 @@ export function ChatInput({
   thinkingSupported = false,
   thinking = false,
   onThinkingChange,
+  effort = "medium",
+  onEffortChange,
   webSearchSupported = false,
   webSearch = false,
   onWebSearchChange,
@@ -188,6 +193,26 @@ export function ChatInput({
               <Brain className="h-3.5 w-3.5" />
               {t("input.think")}
             </button>
+          ) : null}
+          {thinking && thinkingSupported && onEffortChange ? (
+            <div className="flex h-7 shrink-0 items-center rounded-full border border-border px-0.5 text-[11px]">
+              {(["low", "medium", "high"] as const).map((lv) => (
+                <button
+                  key={lv}
+                  type="button"
+                  onClick={() => onEffortChange(lv)}
+                  title={t(`input.effort${lv[0].toUpperCase()}${lv.slice(1)}` as never)}
+                  aria-pressed={effort === lv}
+                  className={
+                    effort === lv
+                      ? "h-6 rounded-full bg-primary/12 px-2 font-medium text-primary transition-colors"
+                      : "h-6 rounded-full px-2 text-fg-tertiary transition-colors hover:text-foreground"
+                  }
+                >
+                  {t(`input.effort${lv[0].toUpperCase()}${lv.slice(1)}` as never)}
+                </button>
+              ))}
+            </div>
           ) : null}
           {webSearchSupported && onWebSearchChange ? (
             <button

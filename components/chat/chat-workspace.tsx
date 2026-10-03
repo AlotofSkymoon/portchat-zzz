@@ -181,6 +181,10 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
       };
       setSettings(saved);
       setWebSearch(localStorage.getItem(LS_KEYS.webSearch) === "true");
+    const rawEffort = localStorage.getItem(LS_KEYS.effort);
+    setEffort(
+      rawEffort === "low" || rawEffort === "high" ? rawEffort : "medium",
+    );
       setCloudSync(localStorage.getItem(LS_KEYS.cloudSync) === "true");
       setSidebarCollapsed(localStorage.getItem(LS_KEYS.sidebarCollapsed) === "1");
     } catch {
@@ -598,6 +602,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
         conversationTitle:
           conversations.find((c) => c.id === conversationId)?.title ?? "",
         thinking: thinkingRef.current,
+        effort,
       };
       const bodyBytes = new TextEncoder().encode(JSON.stringify(bodyObj)).length;
       const PLATFORM_BODY_LIMIT =
@@ -845,6 +850,8 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
   /** 联网搜索开关（同样用 ref，理由同上：避免重建 useCallback） */
   const webSearchRef = React.useRef(false);
   const [webSearch, setWebSearch] = React.useState(false);
+  /** 思考强度：low / medium / high */
+  const [effort, setEffort] = React.useState<"low" | "medium" | "high">("medium");
 
   React.useEffect(() => {
     webSearchRef.current = webSearch;
@@ -1342,6 +1349,11 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   thinkingSupported={supportsThinking(mounted ? settings.model : DEFAULT_MODEL)}
                   thinking={settings.thinking === true}
                   onThinkingChange={toggleThinking}
+                  effort={effort}
+                  onEffortChange={(v) => {
+                    setEffort(v);
+                    localStorage.setItem(LS_KEYS.effort, v);
+                  }}
                   webSearchSupported={ALLOW_WEB_SEARCH}
                   webSearch={webSearch}
                   onWebSearchChange={toggleWebSearch}
@@ -1368,6 +1380,11 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   thinkingSupported={supportsThinking(mounted ? settings.model : DEFAULT_MODEL)}
                   thinking={settings.thinking === true}
                   onThinkingChange={toggleThinking}
+                  effort={effort}
+                  onEffortChange={(v) => {
+                    setEffort(v);
+                    localStorage.setItem(LS_KEYS.effort, v);
+                  }}
                   webSearchSupported={ALLOW_WEB_SEARCH}
                   webSearch={webSearch}
                   onWebSearchChange={toggleWebSearch}

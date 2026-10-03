@@ -69,24 +69,26 @@ export const CHAT_MODELS: ModelOption[] = [
     // 官方主打 Agent 执行链路（工具编排、长任务上下文、可信交付），当前全免费。
     // 纯聊天同样可用，故设为默认。
     id: "agnes-3.0-flash",
-    label: "agnes-3.0-flash",
-    desc: "最新一代 · Agent 执行强，支持识图",
+    // 面向用户的名字只保留品牌 + 档位：访客不需要知道背后的模型代号，
+    // 也能一眼看出三个档位的高低顺序。
+    label: "Portchat Max",
+    desc: "最强档 · 支持识图与思考",
     provider: "agnes",
     vision: true,
     thinking: true,
   },
   {
     id: "agnes-2.5-flash",
-    label: "agnes-2.5-flash",
-    desc: "编码 / 推理见长，支持识图",
+    label: "Portchat Medium",
+    desc: "均衡档 · 支持识图与思考",
     provider: "agnes",
     vision: true,
     thinking: true,
   },
   {
     id: "agnes-2.0-flash",
-    label: "agnes-2.0-flash",
-    desc: "稳定版，支持识图",
+    label: "Portchat Low",
+    desc: "轻量档 · 支持识图",
     provider: "agnes",
     vision: true,
     thinking: true,
@@ -465,6 +467,8 @@ export const LS_KEYS = {
   s3: "agnes:s3",
   /** 思考模式开关 */
   thinking: "agnes:thinking",
+  /** 思考强度：low / medium / high（对应 OpenAI 的 reasoning_effort） */
+  effort: "agnes:effort",
   /** 联网搜索开关 */
   webSearch: "agnes:webSearch",
 } as const;

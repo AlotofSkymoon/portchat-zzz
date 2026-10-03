@@ -14,6 +14,14 @@ import { getRedis, hasRedisConfig, KEYS } from "@/lib/redis";
 import { REQUIRE_LOGIN } from "@/lib/site";
 import { configValue } from "@/lib/runtime-config";
 import { serverT as st } from "@/lib/i18n/server";
+import {
+  CREDITS_ANONYMOUS,
+  CREDITS_ENABLED,
+  LOW_CREDIT_MODEL,
+  costOfModel,
+  readCredits,
+  spendCredits,
+} from "@/lib/credits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,6 +53,15 @@ interface ChatRequestBody {
   customProviders?: unknown;
   /** 思考模式：让模型先输出推理过程，再给答案 */
   thinking?: boolean;
+  /**
+   * 思考强度：low / medium / high。
+   *
+   * 走 OpenAI 标准字段 `reasoning_effort` 透传给上游。
+   * 支持强度调节的模型（DeepSeek R1 系、GLM 5.3 等）会真的变深/变浅；
+   * 不支持的（Agnes 是 llama.cpp 服务端，只有布尔开关）会忽略这个字段，
+   * 退回由 enable_thinking 决定开不开 —— 不会报错。
+   */
+  effort?: "low" | "medium" | "high";
   /** 云端保存开关打开时才传 */
   conversationId?: string;
   saveToCloud?: boolean;
@@ -106,6 +123,7 @@ export async function POST(request: Request) {
     saveToCloud,
     conversationTitle,
     thinking,
+    effort,
   } = body;
 
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -175,9 +193,13 @@ export async function POST(request: Request) {
   // - agnes：用户 Key 优先，回落服务端预设
   // - deepseek / 自定义：必须用用户自己的 Key
   let finalKey = "";
+  /** 用户是否填了自己的 Key（用于判断这次请求花的是谁的钱） */
+  let finalKeyOwnerSupplied = false;
   if (target.providerId === "agnes") {
     const presetKey = configValue("PRESET_AGNES_API_KEY");
-    finalKey = (keys?.agnes ?? apiKey ?? "").trim() || presetKey;
+    const own = (keys?.agnes ?? apiKey ?? "").trim();
+    finalKeyOwnerSupplied = own.length > 0;
+    finalKey = own || presetKey;
   } else {
     finalKey = (keys?.[target.providerId] ?? "").trim();
   }
@@ -190,6 +212,65 @@ export async function POST(request: Request) {
         ? st(request, "err.noAgnesKey")
         : st(request, "err.providerKeyRequired", { name: target.label }),
     );
+  }
+
+  /* ------------------------------ 积分闸门 ------------------------------ */
+  /**
+   * 按模型计费，每次对话前扣。
+   *
+   * 规则对所有人一致（不区分是否自带 Key）：统一计价才好解释，
+   * 否则用户会问"我明明填了自己的 Key 为什么还扣分"。
+   */
+  const chatUser = CREDITS_ENABLED ? await getCurrentUser() : null;
+
+  if (CREDITS_ENABLED) {
+    if (!chatUser && CREDITS_ANONYMOUS === "block") {
+      return NextResponse.json(
+        { error: st(request, "err.loginRequired"), code: "LOGIN_REQUIRED" },
+        { status: 401 },
+      );
+    }
+
+    if (chatUser) {
+      const cost = costOfModel(model, target.providerId);
+      const acc = await readCredits(chatUser.id);
+
+      if (acc.available < cost) {
+        /**
+         * 余额不足时的降级：
+         *   · 书生 / 第三方（10 分档）直接拒绝 —— 成本太高，不能白送
+         *   · Portchat Low 作为保底档位始终放行（哪怕余额 0），
+         *     否则新用户注册完一分没有就完全用不了，等于劝退
+         */
+        const canFallback = target.providerId === "agnes" && acc.available >= Math.min(cost, 1);
+        if (!canFallback) {
+          return NextResponse.json(
+            {
+              error: st(request, "credits.insufficient"),
+              code: "INSUFFICIENT_CREDITS",
+              cost,
+              available: acc.available,
+              fallbackModel: LOW_CREDIT_MODEL,
+            },
+            { status: 402 },
+          );
+        }
+      }
+
+      const spent = await spendCredits(chatUser.id, cost);
+      if (!spent) {
+        return NextResponse.json(
+          {
+            error: st(request, "credits.insufficient"),
+            code: "INSUFFICIENT_CREDITS",
+            cost,
+            available: acc.available,
+            fallbackModel: LOW_CREDIT_MODEL,
+          },
+          { status: 402 },
+        );
+      }
+    }
   }
 
   // 不支持识图的模型：把图片片段降级为占位文字，避免上游报错
@@ -282,6 +363,17 @@ export async function POST(request: Request) {
        * （DeepSeek R1 也用它），所以前端按同一字段解析即可。
        */
       ...(thinkingOn ? { chat_template_kwargs: { enable_thinking: true } } : {}),
+      /**
+       * 思考强度：OpenAI 标准字段。
+       *
+       * 只在真的开了思考时才发 —— 没开思考却带强度字段，
+       * 部分上游会直接 400。
+       *
+       * Agnes（llama.cpp 服务端）不认这个字段，会忽略，
+       * 强度对它就只是 UI 上的选择而不生效 —— 可接受，
+       * 总比给不支持的服务带字段导致报错好。
+       */
+      ...(thinkingOn && effort ? { reasoning_effort: effort } : {}),
     }),
     signal: request.signal,
   });

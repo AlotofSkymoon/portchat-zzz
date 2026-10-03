@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/i18n-provider";
 import { LocalePicker } from "@/components/locale-picker";
+import { CreditsCard } from "@/components/chat/credits-card";
 import {
   Dialog,
   DialogContent,
@@ -605,8 +606,12 @@ export function SettingsDialog({
           {/* 界面语言：简体 → 繁体 → 英文 → 法文 */}
           <div className="rounded-xl border border-border/70 bg-card/40 p-3">
             <LocalePicker />
+
+            <CreditsCard user={user} />
           </div>
 
+          {/* 以下全部为站点级配置，普通用户不可见 */}
+          {isAdmin ? (
           {/* API Keys（按服务商）—— 站长可锁死为「仅用内置 Key」 */}
           <div className="space-y-4">
             <Label className="flex items-center gap-2">
@@ -1101,6 +1106,8 @@ export function SettingsDialog({
               {t("settings.adminOnlyHint")}
             </div>
           )}
+
+          ) : null}
 
           {/* 清空 */}
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-3">
