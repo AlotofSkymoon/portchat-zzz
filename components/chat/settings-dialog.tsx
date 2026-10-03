@@ -611,8 +611,8 @@ export function SettingsDialog({
           </div>
 
           {/* 以下全部为站点级配置，普通用户不可见 */}
-          {isAdmin ? (
           {/* API Keys（按服务商）—— 站长可锁死为「仅用内置 Key」 */}
+          {isAdmin ? (
           <div className="space-y-4">
             <Label className="flex items-center gap-2">
               <KeyRound className="h-4 w-4" />
