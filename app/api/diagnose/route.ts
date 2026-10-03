@@ -144,7 +144,7 @@ export async function GET() {
 
 /** 把状态码翻译成人能看懂的判断 */
 function interpret(platform: string, status: number, body: string): string {
-  if (status === 200) return "上游正常，本站到 Agnes 的链路没问题。";
+  if (status === 200) return "上游正常，本站到模型服务的链路没问题。";
 
   if (status === 429) {
     const sharedIp =
@@ -153,7 +153,7 @@ function interpret(platform: string, status: number, body: string): string {
         : "请确认是否多个站点共用了同一个 Key。";
     return `上游按额度拒绝了请求（429）。${sharedIp} 上游原始说明：${body.slice(0, 200)}`;
   }
-  if (status === 401) return "Key 无效或已失效，去 Agnes 后台重新生成。";
+  if (status === 401) return "Key 无效或已失效，去服务商后台重新生成。";
   if (status === 403) return "Key 无该模型权限，或账号被限制。检查模型名是否需要单独开通。";
   if (status === 404) return "Base URL 或模型名不对，上游找不到该资源。";
   if (status >= 500) return "上游服务暂时故障，稍后重试。";

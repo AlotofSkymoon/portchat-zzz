@@ -1,5 +1,5 @@
 {
-  "name": "agnes-ai-free-chat",
+  "name": "portchat",
   "version": "1.0.0",
   "private": true,
   "description": "Agnes AI 免费聊天 —— 极简纯文本聊天站（Next.js 14 App Router）",

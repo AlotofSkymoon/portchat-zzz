@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 import { useI18n } from "@/components/i18n-provider";
-import { AgnesIcon } from "@/components/agnes-logo";
+import { PortchatIcon } from "@/components/portchat-logo";
 import { BY_LINE, SITE_NAME, SPONSOR_ENABLED } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import type { Conversation } from "@/lib/use-conversations";
@@ -129,7 +129,7 @@ export function Sidebar({
           <div className="flex items-center justify-between px-3 py-3">
             <Link href="/" className="flex items-center gap-2">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#4D6BFE] p-1.5 text-white">
-                <AgnesIcon />
+                <PortchatIcon />
               </span>
               <span className="text-sm font-semibold">{SITE_NAME}</span>
             </Link>

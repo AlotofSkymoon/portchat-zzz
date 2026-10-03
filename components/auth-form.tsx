@@ -17,7 +17,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/";
+  /*
+   * 登录/注册完成后一律回 /chat —— 这站的主界面就是聊天页，
+   * 跳回落地页会让人以为"登录了怎么又回到首页"。
+   * redirect 参数只接受站内绝对路径，挡掉 //evil.com、https://evil.com 这类开放重定向。
+   */
+  const rawRedirect = searchParams.get("redirect") || "";
+  const redirectTo = /^\/[A-Za-z0-9/_?=&%-]*$/.test(rawRedirect) ? rawRedirect : "/chat";
 
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -158,8 +164,19 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         toast.success(isLogin ? t("auth.loginOk") : t("auth.registerOk"));
       }
 
-      router.push(redirectTo);
-      router.refresh();
+      /*
+       * 注册成功**不自动登录**，跳去登录页让用户自己输一遍密码。
+       * 理由：自动登录容易让人注册完就忘了密码（尤其是随手填的），
+       * 下一台设备登录时才发现想不起来。多一步输入等于一次记忆确认。
+       */
+      if (isLogin) {
+        router.push(redirectTo);
+        router.refresh();
+      } else {
+        const qs = redirectTo && redirectTo !== "/chat" ? `?redirect=${encodeURIComponent(redirectTo)}` : "";
+        router.push(`/login${qs}`);
+        router.refresh();
+      }
     } catch {
       toast.error(t("auth.networkError"));
     } finally {

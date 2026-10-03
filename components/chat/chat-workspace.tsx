@@ -82,6 +82,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
     selectConversation,
     deleteConversation,
     renameConversation,
+    autoTitleConversation,
     clearAllConversations,
     ensureConversation,
     mergeFromCloud,
@@ -718,6 +719,15 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
         ensureConversation(convId, text);
       }
 
+      /*
+       * 这是会话的第一条消息时才去自动命名。
+       * 放在请求发出之前：命名接口是独立的短请求，
+       * 不该拖慢正式对话的响应。
+       */
+      if (base.length === 0) {
+        autoTitleConversation(convId, text);
+      }
+
       const pending = attachments;
       const userMessage: ChatMessage = {
         id: createId(),
@@ -737,6 +747,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
       attachments,
       currentId,
       ensureConversation,
+      autoTitleConversation,
       newConversation,
       runCompletion,
       setMessages,

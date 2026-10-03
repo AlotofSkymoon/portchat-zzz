@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
-/** Agnes AI 官方图标（来自 agnes-ai.com / LobeHub Icons） */
-export function AgnesIcon({ className }: { className?: string }) {
+/** Portchat 品牌图标（沿用原上游图标形状，仅改品牌名与配色） */
+export function PortchatIcon({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -9,17 +9,17 @@ export function AgnesIcon({ className }: { className?: string }) {
       fillRule="evenodd"
       className={cn("h-full w-full", className)}
       xmlns="http://www.w3.org/2000/svg"
-      aria-label="Agnes AI"
+      aria-label="Portchat"
       role="img"
     >
-      <title>Agnes AI</title>
+      <title>Portchat</title>
       <path d="M12 0c6.627 0 12 5.373 12 12s-5.373 12-12 12S0 18.627 0 12 5.373 0 12 0zm5.013 8.817c-.2-.003-.4.026-.59.084-.51.153-.991.405-1.256.906-1.248 2.369-7.222 9.47-9.446 4.707H5.72c-.007.021-1.176 3.606.999 3.968 2.182.362 5.8-.672 9.798-8.227-.007.03-.496 2.381-.762 3.731a.885.885 0 01-.308.513.906.906 0 01-.567.204h-.533a.157.157 0 00-.088.287c.506.345 1.154 1.094 1.258 2.68a.487.487 0 00.239.388.503.503 0 00.459.029.824.824 0 00.38-.353c.085-.154.132-.325.136-.5l-.073-.66a.77.77 0 01.507-.79c.474-.17 1.114-.525 1.427-1.252a.11.11 0 00.009-.046.11.11 0 00-.013-.045.108.108 0 00-.03-.036.113.113 0 00-.104-.017c-.317.113-.918.299-1.443.296a.261.261 0 01-.244-.185.254.254 0 01-.007-.108l.728-5.013a.484.484 0 00-.475-.56zm-.406-3.169a1.204 1.204 0 10-.384 2.378 1.204 1.204 0 00.384-2.378z" />
     </svg>
   );
 }
 
-/** 带渐变底色的 Agnes logo（用于空状态大图标） */
-export function AgnesLogo({ className }: { className?: string }) {
+/** 带渐变底色的 Portchat logo（用于空状态大图标） */
+export function PortchatLogo({ className }: { className?: string }) {
   return (
     <span
       className={cn(
@@ -27,7 +27,7 @@ export function AgnesLogo({ className }: { className?: string }) {
         className,
       )}
     >
-      <AgnesIcon className="h-full w-full" />
+      <PortchatIcon className="h-full w-full" />
     </span>
   );
 }

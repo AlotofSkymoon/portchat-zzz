@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import type { ChatMessage } from "@/lib/types";
+import { timeoutSignal } from "@/lib/fetch-timeout";
 
 export interface Conversation {
   id: string;
@@ -332,6 +333,55 @@ export function useConversations() {
     [],
   );
 
+  /*
+   * 用模型给会话起标题。
+   *
+   * ⚠️ 只在标题还是「新对话」时才覆盖 —— 用户手动改过的话就别抢，
+   * 否则他改完一刷新又被 AI 覆盖掉，会以为改名功能坏了。
+   * 失败静默：本地已经用首条消息截断当标题了，不会显示成空白。
+   */
+  const autoTitleConversation = React.useCallback(
+    (id: string, firstUserMessage: string) => {
+      const text = firstUserMessage.trim();
+      if (!text) return;
+
+      void (async () => {
+        try {
+          const res = await fetch("/api/title", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text }),
+            signal: timeoutSignal(20_000),
+          });
+          const data = (await res.json().catch(() => ({}))) as { title?: string | null };
+          if (!data.title) return;
+
+          setConversations((prev) => {
+            const target = prev.find((c) => c.id === id);
+            /*
+             * 只有标题还是「自动值」时才覆盖：
+             * 可能是「新对话」，也可能是首条消息截断的那串（ensureConversation 会先填它）。
+             * 只要不等于这两个，就说明用户手动改过 —— 那就别抢。
+             */
+            if (!target) return prev;
+            const autoFallback = text.slice(0, 30);
+            const isAuto =
+              target.title === "新对话" ||
+              target.title === autoFallback ||
+              target.title === autoFallback.trim();
+            if (!isAuto) return prev;
+            const next = prev.map((c) => (c.id === id ? { ...c, title: data.title as string } : c));
+            safeSet(LS_CONVERSATIONS, JSON.stringify(next));
+            return next;
+          });
+        } catch {
+          /* 静默：标题生成失败不影响聊天本身 */
+        }
+      })();
+    },
+    [],
+  );
+
   return {
     conversations,
     currentId,
@@ -346,6 +396,7 @@ export function useConversations() {
     touchConversation,
     ensureConversation,
     renameConversation,
+    autoTitleConversation,
     mergeFromCloud,
   };
 }

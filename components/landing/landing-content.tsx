@@ -12,7 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { AgnesIcon } from "@/components/agnes-logo";
+import { PortchatIcon } from "@/components/portchat-logo";
 import { useI18n } from "@/components/i18n-provider";
 import { LocalePickerCompact } from "@/components/locale-picker";
 import { SiteFooter } from "@/components/site-footer";
@@ -108,7 +108,7 @@ export function LandingContent() {
       {/* ---------------- 顶栏 ---------------- */}
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
-          <AgnesIcon className="h-7 w-7" />
+          <PortchatIcon className="h-7 w-7" />
           <span className="text-[15px] font-semibold tracking-tight">{SITE_NAME}</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -174,7 +174,7 @@ export function LandingContent() {
             <div className="h-[470px] overflow-hidden rounded-[1.7rem] bg-background p-3">
               <div className="flex h-full flex-col">
                 <div className="flex items-center gap-1.5 pb-3 pt-1">
-                  <AgnesIcon className="h-4 w-4" />
+                  <PortchatIcon className="h-4 w-4" />
                   <span className="text-[11px] font-medium">{SITE_NAME}</span>
                   <span className="ml-auto text-[10px] text-fg-tertiary">
                     {SITE_TAGLINE}

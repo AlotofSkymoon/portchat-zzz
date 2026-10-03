@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Compass, LogIn, MessageSquare, Shield, User as UserIcon } from "lucide-react";
 
-import { AgnesIcon } from "@/components/agnes-logo";
+import { PortchatIcon } from "@/components/portchat-logo";
 import { useI18n } from "@/components/i18n-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,7 @@ export function NavChrome({ user }: { user?: ChromeUser | null }) {
   return (
     <header className="glass-bar relative z-10 flex items-center justify-between gap-2 px-3 py-2.5 sm:px-6">
       <Link href="/" className="flex items-center gap-2">
-        <AgnesIcon className="h-7 w-7 text-[#4D6BFE]" />
+        <PortchatIcon className="h-7 w-7 text-[#4D6BFE]" />
         <span className="text-sm font-semibold sm:text-base">{SITE_NAME}</span>
       </Link>
 

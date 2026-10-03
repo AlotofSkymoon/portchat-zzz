@@ -15,7 +15,9 @@ export interface ProviderConfig {
 export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
   agnes: {
     id: "agnes",
-    label: "Agnes AI",
+    // 面向用户的显示名。provider id 仍是 agnes（上游服务商标识，改了会打错地址），
+    // 但界面上统一叫 Portchat —— 访客不需要知道背后接的是哪家。
+    label: "Portchat",
     baseUrl: "https://apihub.agnes-ai.com/v1",
     hasPreset: true,
     keyUrl: "https://platform.agnes-ai.com/",
@@ -109,7 +111,7 @@ export const DEFAULT_MODEL = process.env.UPSTREAM_MODEL?.trim() || "agnes-3.0-fl
 export const DEFAULT_BASE_URL =
   process.env.UPSTREAM_BASE_URL?.trim() || PROVIDERS.agnes.baseUrl;
 
-export const AGENT_TIP = "仅聊天模式。需要 Agent 功能请去 AgentScope 添加 Agnes API Key。";
+export const AGENT_TIP = "仅聊天模式。需要 Agent 功能请在设置中填写对应服务商的 API Key。";
 
 export function getModel(modelId: string): ModelOption | undefined {
   return CHAT_MODELS.find((m) => m.id === modelId);

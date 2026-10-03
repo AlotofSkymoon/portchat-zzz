@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 
-import { DynamicTitle } from "@/components/dynamic-title";
 import { I18nProvider } from "@/components/i18n-provider";
 import {
   SITE_DESCRIPTION,
@@ -52,7 +51,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* I18nProvider 包在最外层：语言切换会重渲染整棵子树 */}
         <I18nProvider>
         <ThemeProvider>
-          <DynamicTitle />
           {children}
           {/*
             theme 跟随站点明暗：sonner 默认 theme="light"，

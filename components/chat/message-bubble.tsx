@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/components/i18n-provider";
 import { UniversalVideoPlayer } from "@/components/chat/universal-video-player";
 
-import { AgnesIcon } from "@/components/agnes-logo";
+import { PortchatIcon } from "@/components/portchat-logo";
 import { ImageLightbox } from "@/components/chat/image-lightbox";
 import { Markdown } from "@/components/chat/markdown";
 import { Button } from "@/components/ui/button";
@@ -271,7 +271,7 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
     <div className="msg-assistant flex animate-fade-in gap-3">
       {/* 头像 */}
       <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4D6BFE] p-1.5 text-white">
-        <AgnesIcon />
+        <PortchatIcon />
       </div>
 
       <div className="min-w-0 flex-1">
