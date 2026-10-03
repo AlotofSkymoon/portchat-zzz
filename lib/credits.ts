@@ -60,6 +60,16 @@ export const COST_DEEPSEEK = (() => {
 export const CREDITS_ANONYMOUS: "allow" | "block" =
   process.env.CREDITS_ANONYMOUS?.trim() === "block" ? "block" : "allow";
 
+/**
+ * 管理员是否免积分。默认**免**。
+ *
+ * 理由：管理员就是站点 Key 的提供者，被自己定的规则锁住没有意义；
+ * 而且要验收改动、复现用户反馈，都得能随时发消息。
+ * 想让管理员也按分计费就设 CREDITS_ADMIN_BYPASS=false。
+ */
+export const CREDITS_ADMIN_BYPASS =
+  process.env.CREDITS_ADMIN_BYPASS?.trim() !== "false";
+
 /** 充值换算：1 元 = 多少积分。后台确认时可手改，这只是默认值。 */
 export const POINTS_PER_UNIT = (() => {
   const n = Number(process.env.CREDITS_POINTS_PER_UNIT?.trim());

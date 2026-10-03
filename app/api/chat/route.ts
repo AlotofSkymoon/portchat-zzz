@@ -15,6 +15,7 @@ import { REQUIRE_LOGIN } from "@/lib/site";
 import { configValue } from "@/lib/runtime-config";
 import { serverT as st } from "@/lib/i18n/server";
 import {
+  CREDITS_ADMIN_BYPASS,
   CREDITS_ANONYMOUS,
   CREDITS_ENABLED,
   LOW_CREDIT_MODEL,
@@ -231,9 +232,13 @@ export async function POST(request: Request) {
       );
     }
 
-    if (chatUser) {
+    // 管理员免积分：站长就是额度的提供者，不该被自己定的规则挡住
+    const creditsUser =
+      chatUser && !(CREDITS_ADMIN_BYPASS && chatUser.role === "admin") ? chatUser : null;
+
+    if (creditsUser) {
       const cost = costOfModel(model, target.providerId);
-      const acc = await readCredits(chatUser.id);
+      const acc = await readCredits(creditsUser.id);
 
       if (acc.available < cost) {
         /**
@@ -257,7 +262,7 @@ export async function POST(request: Request) {
         }
       }
 
-      const spent = await spendCredits(chatUser.id, cost);
+      const spent = await spendCredits(creditsUser.id, cost);
       if (!spent) {
         return NextResponse.json(
           {
