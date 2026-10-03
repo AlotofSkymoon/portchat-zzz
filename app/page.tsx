@@ -1,16 +1,21 @@
-import { getCurrentSafeUser } from "@/lib/auth";
-import { hasRedisConfig } from "@/lib/redis";
-import { ChatWorkspace } from "@/components/chat/chat-workspace";
+import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+import { LandingContent } from "@/components/landing/landing-content";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 
-export default async function HomePage() {
-  // 未配置 Redis 时也能聊天（只是不能注册/登录）
-  const user = hasRedisConfig() ? await getCurrentSafeUser() : null;
+/**
+ * 落地页（首页）。
+ *
+ * ⚠️ 为什么聊天界面不再是首页：
+ * 直接把聊天界面放在 `/`，新访客第一眼只看到一个空输入框 ——
+ * 不知道这站能干什么、要不要注册、要不要自备 API Key。
+ * 首页先讲清楚「免费、开箱即用、能做什么、怎么联系站长」，再点进 `/chat`。
+ */
+export const metadata: Metadata = {
+  title: `${SITE_NAME} · ${SITE_TAGLINE}`,
+  description: SITE_DESCRIPTION,
+};
 
-  return (
-    <ChatWorkspace
-      user={user ? { id: user.id, email: user.email, role: user.role, createdAt: user.createdAt } : null}
-    />
-  );
+export default function HomePage() {
+  return <LandingContent />;
 }

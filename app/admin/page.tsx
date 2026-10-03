@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: pageTitle("管理员") };
 
 export default async function AdminPage() {
-  if (!hasRedisConfig()) redirect("/");
+  if (!hasRedisConfig()) redirect("/chat");
 
   // ⚠️ 服务端权限校验：前端隐藏按钮不算权限控制
   const user = await getCurrentSafeUser();

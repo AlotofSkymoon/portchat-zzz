@@ -62,7 +62,7 @@ export function VerifyForm() {
         return;
       }
       toast.success(t("auth.verifyOk"));
-      router.push("/");
+      router.push("/chat");
       router.refresh();
     } catch {
       toast.error(t("auth.networkError"));

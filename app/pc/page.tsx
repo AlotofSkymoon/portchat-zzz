@@ -140,7 +140,7 @@ export default function CloudPcPage() {
       {/* 顶栏 */}
       <header className="ios-glass absolute inset-x-3 top-3 z-[60] flex items-center justify-between rounded-[var(--radius-ios-lg)] px-4 py-2">
         <div className="flex items-center gap-3">
-          <Link href="/" className="text-sm font-medium text-primary hover:underline">
+          <Link href="/chat" className="text-sm font-medium text-primary hover:underline">
             {t("pc.back")}
           </Link>
           <span className="text-xs text-fg-tertiary">{t("pc.localNote")}</span>

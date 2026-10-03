@@ -71,7 +71,7 @@ export function SponsorContent() {
     <div className="on-sky relative mx-auto max-w-3xl px-4 py-10 sm:py-14">
       {/* 返回聊天 */}
       <Link
-        href="/"
+        href="/chat"
         className="mb-8 inline-flex items-center gap-1.5 text-sm text-white/85 transition-colors hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />

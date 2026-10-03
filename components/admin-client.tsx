@@ -152,7 +152,7 @@ export function AdminClient({ me }: { me: AdminUser }) {
       <div className="pointer-events-none absolute inset-0 aurora" />
       <div className="relative mx-auto w-full max-w-4xl space-y-6">
         <Link
-          href="/"
+          href="/chat"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />

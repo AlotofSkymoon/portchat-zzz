@@ -45,7 +45,7 @@ export function NavChrome({ user }: { user?: ChromeUser | null }) {
 
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/">
+          <Link href="/chat">
             <MessageSquare className="h-4 w-4" />
             <span className="hidden sm:inline">{t("chrome.chat")}</span>
           </Link>

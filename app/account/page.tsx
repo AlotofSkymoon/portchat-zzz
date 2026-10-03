@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: pageTitle("账户设置") };
 
 export default async function AccountPage() {
-  if (!hasRedisConfig()) redirect("/");
+  if (!hasRedisConfig()) redirect("/chat");
   const user = await getCurrentSafeUser();
   if (!user) {
     redirect("/login?redirect=/account");

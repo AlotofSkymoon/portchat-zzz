@@ -71,6 +71,19 @@ export const SITE_THEME: ThemePreset = DEFAULT_THEME;
 export const AUTHOR_NAME: string =
   process.env.NEXT_PUBLIC_AUTHOR_NAME?.trim() || "wcvjk8tnz8";
 
+/**
+ * 站长个人主页地址（落地页「联系站长」区块展示）。
+ *
+ * 默认给出站长自己的主页；不想展示就设 NEXT_PUBLIC_AUTHOR_HOMEPAGE 为空。
+ *
+ * ⚠️ 为什么单独一个变量而不是塞进「联系方式」下拉：
+ * 联系方式是即时通讯（Telegram / QQ，点一下就能聊），
+ * 个人主页是"关于我"的静态页面，两者用途不同，混在一个下拉里
+ * 会让访客分不清点了之后是打开聊天还是打开网页。
+ */
+export const AUTHOR_HOMEPAGE: string =
+  process.env.NEXT_PUBLIC_AUTHOR_HOMEPAGE?.trim() || "https://sjr.42web.io";
+
 /** 仓库地址（页脚链接） */
 export const REPO_URL: string =
   process.env.NEXT_PUBLIC_REPO_URL?.trim() || "https://github.com/AlotofSkymoon/agnes-chat";

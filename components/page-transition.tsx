@@ -39,6 +39,7 @@ function enabled(): boolean {
 
 const DEST_LABELS: Record<string, string> = {
   "/": "route.home",
+  "/chat": "route.chat",
   "/nav": "route.nav",
   "/sponsor": "route.sponsor",
   "/admin": "route.admin",

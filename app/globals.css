@@ -2852,3 +2852,28 @@ body {
 .on-sky .glare-surface {
   background-color: rgba(10, 28, 66, 0.55);
 }
+
+/* ==========================================================================
+   落地页 · 手机预览气泡浮现
+   ========================================================================== */
+
+/**
+ * 气泡依次浮现。
+ * 用 transform + opacity 而非 height，避免触发逐帧重排。
+ */
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[landing-rise_0\.6s_ease-out_both\] {
+    animation: none !important;
+  }
+}

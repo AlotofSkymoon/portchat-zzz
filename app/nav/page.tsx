@@ -30,7 +30,7 @@ export default function NavPage() {
       </div>
       <div className="pb-10 text-center">
         <Link
-          href="/"
+          href="/chat"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <MessageSquare className="h-4 w-4" />

@@ -68,7 +68,7 @@ export function AccountClient({ user }: { user: AccountUser }) {
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/");
+    router.push("/chat");
     router.refresh();
   }
 
@@ -103,7 +103,7 @@ export function AccountClient({ user }: { user: AccountUser }) {
       <div className="pointer-events-none absolute inset-0 aurora" />
       <div className="relative mx-auto w-full max-w-2xl space-y-6">
         <Link
-          href="/"
+          href="/chat"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />

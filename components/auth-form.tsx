@@ -145,7 +145,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             </Link>
           </p>
           <p className="text-center text-xs text-muted-foreground">
-            <Link href="/" className="hover:underline">
+            <Link href="/chat" className="hover:underline">
               {t("auth.backToChat")}
             </Link>
           </p>
