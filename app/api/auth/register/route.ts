@@ -9,7 +9,7 @@ import {
   toSafeUser,
 } from "@/lib/auth";
 import { isEmailConfigured, sendVerificationCode } from "@/lib/email";
-import { markResent, saveCode } from "@/lib/email-verify";
+import { checkCode, consumeCode, markResent, saveCode } from "@/lib/email-verify";
 import { getRedis, getValue, hasRedisConfig,
   storageErrorMessage, KEYS } from "@/lib/redis";
 import { serverT as st } from "@/lib/i18n/server";
@@ -26,9 +26,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = (await request.json()) as { email?: string; password?: string };
+    const body = (await request.json()) as { email?: string; password?: string; code?: string };
     const email = (body.email ?? "").trim().toLowerCase();
     const password = body.password ?? "";
+    const code = (body.code ?? "").trim();
 
     if (!isValidEmail(email)) {
       return NextResponse.json({ error: st(request, "err.invalidEmail") }, { status: 400 });
@@ -53,10 +54,33 @@ export async function POST(request: Request) {
      */
     const needVerify = isEmailConfigured();
 
+    /*
+     * 2.5) 前端已经把验证码一起提交上来时，先在这里核对通过再建号。
+     *
+     * ⚠️ 顺序很重要：先校验码，再创建账号。
+     * 反过来的话，任何人填个别人的邮箱就能把账号建出来（只是未验证），
+     * 而核对失败留下的僵尸账号要额外清理。
+     */
+    if (needVerify && code) {
+      const checked = await checkCode(email, code);
+      if (!checked.ok) {
+        const msg =
+          checked.reason === "expired"
+            ? st(request, "err.codeExpired")
+            : checked.reason === "too_many"
+              ? st(request, "err.tooManyAttempts")
+              : st(request, "err.codeIncorrect");
+        return NextResponse.json({ error: msg, reason: checked.reason }, { status: 400 });
+      }
+    }
+
     // 3) 原子自增：返回 1 说明是第一位用户 → admin
     //    ⚠️ 必须先 INCR 再判断，不能「先查数量再写」，否则并发下会出现两个管理员
     const seq = await redis.incr(KEYS.usersCount);
     const role = seq === 1 ? "admin" : "user";
+
+    /** 带码且核对通过 → 直接算已验证，不用再去 /verify 页 */
+    const verified = !needVerify || Boolean(code);
 
     const id = createUserId();
     const passwordHash = await hashPassword(password);
@@ -70,18 +94,25 @@ export async function POST(request: Request) {
       passwordHash,
       role,
       createdAt,
-      emailVerified: needVerify ? "false" : "true",
+      emailVerified: verified ? "true" : "false",
     });
     pipeline.set(KEYS.userEmail(email), id);
     await pipeline.exec();
+
+    // 码用掉就删，避免同一个码被重复使用
+    if (code) await consumeCode(email);
 
     /*
      * 5) 需要验证时**不创建 session** ——
      * 没验证邮箱就放行的话，验证环节形同虚设，随便填个别人的邮箱就能用。
      */
-    if (needVerify) {
-      const code = await saveCode(email, id);
-      const sent = await sendVerificationCode(email, code);
+    if (needVerify && !code) {
+      /*
+       * 前端没带码（旧客户端 / 直接调接口）：退回「建号 + 发码 + 去 /verify 页」的老路。
+       * 正常从注册页走不会到这里 —— 表单会先调 /api/auth/send-code。
+       */
+      const fallbackCode = await saveCode(email, id);
+      const sent = await sendVerificationCode(email, fallbackCode);
 
       if (!sent.ok) {
         /*
