@@ -270,7 +270,7 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
     /* msg-assistant：Anthropic 主题下会换成衬线体（Claude 的标志性设计） */
     <div className="msg-assistant flex animate-fade-in gap-3">
       {/* 头像：Coffing（透明底，不需要蓝色圆底衬托） */}
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center">
+      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center">
         <CoffingAvatar />
       </div>
 
