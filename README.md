@@ -771,6 +771,72 @@ NEXT_PUBLIC_SPONSOR_QR=https://你的图床/alipayhk.png
 
 ---
 
+## 🧪 书生·端砚（Intern InkStone，可选）
+
+[书生·端砚](https://discovery.intern-ai.org.cn/) 是上海 AI 实验室的科研模型平台，
+聚合了 DeepSeek / GLM / Kimi / MiniMax / Qwen / 书生 等多个系列，走**墨点**计费。
+
+项目已内置这个服务商，设置里选中后填自己的 Key 即可用。
+
+### 两步配好
+
+**1. 拿 Key**
+
+登录 [discovery.intern-ai.org.cn](https://discovery.intern-ai.org.cn/)，在个人中心创建 API Key。
+
+**2. 填进设置**
+
+站点右上 ⚙️ → **服务商 → 书生·端砚** → 粘贴 Key → 保存。
+Key 只存在浏览器本地（开了云端同步才加密上传）。
+
+Base URL 已预置为 `https://discovery-api.intern-ai.org.cn/v1`，一般不用改。
+
+> ⚠️ **别填成 `https://discovery-api.intern-ai.org.cn`（不带 `/v1`）** ——
+> 那个是平台的 **Anthropic 协议**入口，本项目走 OpenAI 兼容协议，
+> 填错的表现是所有请求 404。
+
+### 内置模型
+
+| 模型 ID | 说明 | 识图 |
+|---|---|---|
+| `intern-s2` | 书生 S2，397B 科学多模态 | ✅ |
+| `atria-dawn-preview` | Atria Dawn，512K 科学推理 | ❌ |
+| `agents-a1` | Agents A1，多模态 Agent | ✅ |
+| `deepseek-v4-flash-0731` | DeepSeek V4 Flash，1M 上下文 | ❌ |
+| `deepseek-v4-flash-vision` | DeepSeek V4 Flash，1M 上下文 | ✅ |
+| `deepseek-v4-pro-0813` | DeepSeek V4 Pro，1M 上下文 | ❌ |
+| `glm-5.3` | GLM 5.3，1M 上下文，始终深度推理 | ❌ |
+| `kimi-k2.6` | Kimi K2.6，1M 上下文 | ❌ |
+| `minimax-m3` | MiniMax M3，1M 上下文 | ❌ |
+| `qwen3.8-27b` | Qwen3.8 27B，轻量通用 | ❌ |
+
+**墨点**：每月免费额度 10 墨点（按月恢复）。`intern-s2` / `atria-dawn-preview` /
+`agents-a1` 三款限时 0 墨点；`glm-5.3`、`kimi-k2.6` 输出百万 Token 分别约 28 / 27 墨点。
+具体以平台公告为准。
+
+**限流**：约 50 次/分钟、2M Token/分钟，超限会返回 429（项目已内置一次自动重试）。
+
+### 模型 ID 对不上怎么办
+
+上表的 ID 是**小写 slug 形式**。平台偶尔会用驼峰或其他写法，
+如果选了模型却提示「模型不存在」，用设置里的**探测**按钮：
+
+设置 → 书生·端砚 → 填好 Key 后点**探测**，会从 `/v1/models` 拉回平台当前的真实 ID 列表，
+选一个填进模型名即可。
+
+> 探测不要求 Key 一定有效（部分中转站的 `/v1/models` 是公开的），
+> 但端砚这边未带 Key 会返回 403，所以**先填 Key 再探测**。
+
+### 关于思考模式
+
+GLM 5.3 这类原生推理模型会直接返回 `reasoning_content`，
+前端按同一字段渲染成可折叠的思考过程，**不需要开开关**。
+
+项目刻意**不对端砚发送** `chat_template_kwargs` 这类扩展字段 ——
+那是 Agnes 的私有扩展，端砚不一定认，多发一个字段就多一份报错风险。
+
+---
+
 ## 🔐 自带 API Key 的同步与免责
 
 ### 跨站点同步

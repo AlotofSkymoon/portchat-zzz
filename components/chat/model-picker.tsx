@@ -22,7 +22,7 @@ interface ModelPickerProps {
 }
 
 // DeepSeek 入口已移除：站点不提供 DeepSeek Key，界面不再列出
-const PROVIDER_ORDER: ProviderId[] = ["agnes"];
+const PROVIDER_ORDER: ProviderId[] = ["agnes", "inkstone"];
 
 /** 模型名全是拉丁字符，强制走 Montserrat */
 const MONTSERRAT = "Montserrat, -apple-system, BlinkMacSystemFont, system-ui, sans-serif";

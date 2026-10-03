@@ -33,7 +33,7 @@ interface ChatRequestBody {
   model?: string;
   /** 用户自己的 Key（来自 localStorage，可选） */
   apiKey?: string;
-  /** 各服务商的 Key：{ agnes?: string; deepseek?: string; "custom:x"?: string } */
+  /** 各服务商的 Key：{ agnes?: string; deepseek?: string; inkstone?: string; "custom:x"?: string } */
   keys?: Record<string, string>;
   /**
    * 各服务商「独立」的 Base URL 覆盖值。

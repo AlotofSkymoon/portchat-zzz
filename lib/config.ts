@@ -1,5 +1,5 @@
 /** 支持的模型服务商 */
-export type ProviderId = "agnes" | "deepseek";
+export type ProviderId = "agnes" | "deepseek" | "inkstone";
 
 export interface ProviderConfig {
   id: ProviderId;
@@ -28,6 +28,20 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     baseUrl: "https://api.deepseek.com/v1",
     hasPreset: false,
     keyUrl: "https://platform.deepseek.com/api_keys",
+  },
+  inkstone: {
+    id: "inkstone",
+    /**
+     * 上海 AI 实验室「书生·端砚」科研模型平台。
+     *
+     * base URL 结尾必须带 /v1 —— 这是 OpenAI 兼容协议的入口。
+     * 平台另有 Anthropic 协议入口 https://discovery-api.intern-ai.org.cn（不带 /v1），
+     * 本项目走 OpenAI 兼容协议，所以这里用带 /v1 的那个。
+     */
+    label: "书生·端砚",
+    baseUrl: "https://discovery-api.intern-ai.org.cn/v1",
+    hasPreset: false,
+    keyUrl: "https://discovery.intern-ai.org.cn/",
   },
 };
 
@@ -92,6 +106,86 @@ export const CHAT_MODELS: ModelOption[] = [
     vision: false,
     thinking: true,
     alwaysThinking: true,
+  },
+
+  /* ------------------------- 书生·端砚（Intern InkStone） ------------------------- */
+  /* 上海 AI 实验室科研模型平台，墨点计费；标注「限时免费」的三款不扣墨点。 */
+
+  {
+    id: "intern-s2",
+    label: "intern-s2",
+    desc: "书生 S2 · 397B 科学多模态，限时免费",
+    provider: "inkstone",
+    vision: true,
+  },
+  {
+    id: "atria-dawn-preview",
+    label: "atria-dawn-preview",
+    desc: "Atria Dawn · 512K 科学推理，限时免费",
+    provider: "inkstone",
+    vision: false,
+  },
+  {
+    id: "agents-a1",
+    label: "agents-a1",
+    desc: "Agents A1 · 多模态 Agent，限时免费",
+    provider: "inkstone",
+    vision: true,
+  },
+  {
+    id: "deepseek-v4-flash-0731",
+    label: "deepseek-v4-flash-0731",
+    desc: "DeepSeek V4 Flash · 1M 上下文，性价比高",
+    provider: "inkstone",
+    vision: false,
+  },
+  {
+    id: "deepseek-v4-flash-vision",
+    label: "deepseek-v4-flash-vision",
+    desc: "DeepSeek V4 Flash · 1M 上下文，支持识图",
+    provider: "inkstone",
+    vision: true,
+  },
+  {
+    id: "deepseek-v4-pro-0813",
+    label: "deepseek-v4-pro-0813",
+    desc: "DeepSeek V4 Pro · 1M 上下文，能力更强",
+    provider: "inkstone",
+    vision: false,
+  },
+  {
+    /**
+     * GLM 5.3 是原生推理模型，不论开关都返回 reasoning_content，
+     * 前端按同一字段解析即可展示思考过程。
+     * ⚠️ 这里刻意不设 thinking —— 设了会发 Agnes 扩展字段
+     *    chat_template_kwargs，端砚不一定认，多一个字段多一份风险。
+     */
+    id: "glm-5.3",
+    label: "glm-5.3",
+    desc: "GLM 5.3 · 1M 上下文，始终深度推理",
+    provider: "inkstone",
+    vision: false,
+  },
+  {
+    id: "kimi-k2.6",
+    label: "kimi-k2.6",
+    desc: "Kimi K2.6 · 1M 上下文",
+    provider: "inkstone",
+    vision: false,
+  },
+  {
+    id: "minimax-m3",
+    label: "minimax-m3",
+    desc: "MiniMax M3 · 1M 上下文",
+    provider: "inkstone",
+    vision: false,
+  },
+  {
+    id: "qwen3.8-27b",
+    label: "qwen3.8-27b",
+    desc: "Qwen3.8 27B · 轻量通用",
+    provider: "inkstone",
+    vision: false,
   },
 ];
 
@@ -162,7 +256,7 @@ export interface CustomProviderConfig {
 }
 
 /** 内置服务商 id 不能占用 */
-export const BUILTIN_PROVIDER_IDS = ["agnes", "deepseek"] as const;
+export const BUILTIN_PROVIDER_IDS = ["agnes", "deepseek", "inkstone"] as const;
 
 /** 自定义供应商 id 必须以 custom: 开头，避免与内置 id 冲突 */
 export const CUSTOM_PROVIDER_PREFIX = "custom:";
@@ -350,7 +444,7 @@ export function isBlockedBaseUrl(rawUrl: string): boolean {
 
 export const LS_KEYS = {
   // 各服务商的 Key 分开存
-  keys: "agnes:keys", // JSON: { agnes?: string; deepseek?: string }
+  keys: "agnes:keys", // JSON: { agnes?: string; deepseek?: string; inkstone?: string }
   apiKey: "agnes:apiKey",
   baseUrl: "agnes:baseUrl", // 旧字段，仅用于迁移
   baseUrls: "agnes:baseUrls", // JSON: { agnes?: string; deepseek?: string; "custom:x"?: string }
