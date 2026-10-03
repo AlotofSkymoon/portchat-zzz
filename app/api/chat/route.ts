@@ -212,6 +212,21 @@ export async function POST(request: Request) {
     return errorResponse(400, "BLOCKED_URL", st(request, "err.blockedUrl"));
   }
 
+  /**
+   * 品牌人格：Coffing。
+   *
+   * 放在服务端注入而不是前端拼 —— 前端拼的话，绕过页面直接打接口
+   * （或老版本客户端）就没有人格了，而且 prompt 会被存进会话记录里。
+   *
+   * ⚠️ 只在**发给上游时**加，不写进云端会话：
+   * 否则每次刷新历史都会多出一条 system 消息。
+   */
+  const persona = st(request, "chat.coffingPersona");
+  const outboundWithPersona = [
+    { role: "system" as const, content: persona },
+    ...outbound,
+  ];
+
   const upstreamUrl = `${targetBase}/chat/completions`;
 
   /**
@@ -229,7 +244,7 @@ export async function POST(request: Request) {
     },
     body: JSON.stringify({
       model,
-      messages: outbound.map((m) => ({ role: m.role, content: m.content })),
+      messages: outboundWithPersona.map((m) => ({ role: m.role, content: m.content })),
       stream: true,
       /**
        * Agnes 的扩展字段：开启后在 delta 里额外回传 reasoning_content。
