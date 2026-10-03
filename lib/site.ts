@@ -277,6 +277,66 @@ export const ICP_ICON_URL: string =
 export const FOOTER_EXTRA: string =
   process.env.NEXT_PUBLIC_FOOTER_EXTRA?.trim() || "";
 
+/* ------------------------------------------------------------------ *
+ * 联系方式（页脚「联系站长」）
+ *
+ * 只给两种：Telegram（频道 / 群链接）和 QQ（号码或群链接）。
+ *
+ * ⚠️ 为什么做成下拉选择而不是随便填一个链接：
+ * 站长需要的是"访客点一下就能找到我"，而不是又一个需要手写的 URL。
+ * 选了类型之后，QQ 号码会自动拼成 wpa 会话链接、
+ * Telegram 用户名会自动拼成 t.me 链接 —— 少一步出错的机会。
+ * ------------------------------------------------------------------ */
+
+export type ContactType = "" | "telegram" | "qq";
+
+/** 环境变量兜底（管理员面板里填的值优先） */
+export const CONTACT_TYPE: ContactType = (() => {
+  const v = process.env.NEXT_PUBLIC_CONTACT_TYPE?.trim();
+  return v === "telegram" || v === "qq" ? v : "";
+})();
+
+export const CONTACT_VALUE: string =
+  process.env.NEXT_PUBLIC_CONTACT_VALUE?.trim() || "";
+
+/**
+ * 把联系方式值解析成可点击的链接。
+ *
+ * 返回空串表示"填的内容没法用"，此时页脚不渲染这一项
+ * —— 宁可不显示，也不要渲染出一个点了报错的链接。
+ *
+ * 只放行 http / https，避免 javascript: 之类的伪协议被当成链接渲染。
+ */
+export function contactHref(type: ContactType, value: string): string {
+  const v = (value || "").trim();
+  if (!v || !type) return "";
+
+  // 已经是完整链接
+  if (/^https?:\/\//i.test(v)) return v;
+
+  if (type === "qq") {
+    // 纯 QQ 号 → 起会话；其他形态（比如群链接）直接按链接处理
+    if (/^\d{5,}$/.test(v)) {
+      return `https://wpa.qq.com/msgrd?v=3&uin=${encodeURIComponent(v)}&site=qq&menu=yes`;
+    }
+    // 没有协议的群链接，补上 https
+    if (/^(qun|qm\.)?qq\.com\//i.test(v) || /^(qun|qm\.)?qq\.com$/i.test(v)) {
+      return `https://${v}`;
+    }
+    return "";
+  }
+
+  if (type === "telegram") {
+    // @username / username / t.me/xxx 三种写法都认
+    const m = v.match(/^(?:@?|.*t\.me\/)([A-Za-z0-9_]{4,})$/);
+    if (m) return `https://t.me/${m[1]}`;
+    if (/^t\.me\/[A-Za-z0-9_+/]{4,}/i.test(v)) return `https://${v}`;
+    return "";
+  }
+
+  return "";
+}
+
 /** 是否有任何自定义页脚内容 */
 export const HAS_CUSTOM_FOOTER: boolean =
   Boolean(ICP_TEXT) || Boolean(ICP_ICON_URL) || Boolean(FOOTER_EXTRA);

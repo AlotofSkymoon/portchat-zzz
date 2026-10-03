@@ -12,6 +12,8 @@ import {
   SHOW_SOURCE_LINKS,
   SITE_NAME,
   UPSTREAM_URL,
+  contactHref,
+  type ContactType,
 } from "@/lib/site";
 
 /**
@@ -31,6 +33,8 @@ interface FooterSettings {
   icpUrl: string;
   icpIconUrl: string;
   footerExtra: string;
+  contactType: ContactType;
+  contactValue: string;
 }
 
 const EMPTY: FooterSettings = {
@@ -38,6 +42,8 @@ const EMPTY: FooterSettings = {
   icpUrl: "",
   icpIconUrl: "",
   footerExtra: "",
+  contactType: "",
+  contactValue: "",
 };
 
 export function SiteFooter({ className = "" }: { className?: string }) {
@@ -55,6 +61,8 @@ export function SiteFooter({ className = "" }: { className?: string }) {
           icpUrl: d.settings.icpUrl ?? "",
           icpIconUrl: d.settings.icpIconUrl ?? "",
           footerExtra: d.settings.footerExtra ?? "",
+          contactType: (d.settings.contactType ?? "") as ContactType,
+          contactValue: d.settings.contactValue ?? "",
         });
       })
       .catch(() => {
@@ -65,8 +73,14 @@ export function SiteFooter({ className = "" }: { className?: string }) {
     };
   }, []);
 
+  /**
+   * 联系方式链接解析失败（比如 QQ 填了昵称）就整项不渲染 ——
+   * 宁可少一行，也不要放一个点了报错的链接。
+   */
+  const contactLink = contactHref(footer.contactType, footer.contactValue);
+
   const hasCustom = Boolean(
-    footer.icpText || footer.icpIconUrl || footer.footerExtra,
+    footer.icpText || footer.icpIconUrl || footer.footerExtra || contactLink,
   );
 
   return (
@@ -150,6 +164,21 @@ export function SiteFooter({ className = "" }: { className?: string }) {
           {/* 额外自定义文字 */}
           {footer.footerExtra ? (
             <p className="text-fg-quaternary">{footer.footerExtra}</p>
+          ) : null}
+
+          {/* 联系方式：Telegram 频道/群 或 QQ */}
+          {contactLink ? (
+            <p className="text-fg-quaternary">
+              <a
+                href={contactLink}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="underline decoration-dotted underline-offset-2 hover:text-primary"
+              >
+                {t("footer.contact")} ·{" "}
+                {footer.contactType === "qq" ? t("footer.contactQq") : t("footer.contactTelegram")}
+              </a>
+            </p>
           ) : null}
         </div>
       ) : null}

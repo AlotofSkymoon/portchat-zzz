@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
-import { getRedis, getValue, hasRedisConfig,
+import { getRedis, getJsonValue, hasRedisConfig,
   storageErrorMessage, KEYS, setMembers } from "@/lib/redis";
 import { serverT as st } from "@/lib/i18n/server";
 
@@ -32,32 +32,29 @@ export async function GET(request: Request) {
   const ids = await setMembers(KEYS.chatIndex(user.id));
   const items = await Promise.all(
     ids.map(async (id) => {
-      const raw = await getValue<string>(KEYS.chat(user.id, id));
-      if (!raw) return null;
-      try {
-        const parsed = JSON.parse(raw) as {
-          updatedAt?: number;
-          model?: string;
-          title?: string;
-          messages?: unknown;
-        };
-        if (!full) {
-          return {
-            conversationId: id,
-            updatedAt: parsed.updatedAt ?? 0,
-            model: parsed.model ?? "",
-          };
-        }
+      // ⚠️ 后端可能返回已解析的对象（Upstash 自动反序列化 / CF KV "json"），
+      // 直接 JSON.parse 会拿到 "[object Object]" 抛错被吞 → 会话凭空消失。
+      const parsed = await getJsonValue<{
+        updatedAt?: number;
+        model?: string;
+        title?: string;
+        messages?: unknown;
+      }>(KEYS.chat(user.id, id));
+      if (!parsed) return null;
+      if (!full) {
         return {
           conversationId: id,
           updatedAt: parsed.updatedAt ?? 0,
           model: parsed.model ?? "",
-          title: typeof parsed.title === "string" ? parsed.title : "",
-          messages: Array.isArray(parsed.messages) ? parsed.messages : [],
         };
-      } catch {
-        return null;
       }
+      return {
+        conversationId: id,
+        updatedAt: parsed.updatedAt ?? 0,
+        model: parsed.model ?? "",
+        title: typeof parsed.title === "string" ? parsed.title : "",
+        messages: Array.isArray(parsed.messages) ? parsed.messages : [],
+      };
     }),
   );
 

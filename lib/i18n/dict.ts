@@ -317,6 +317,14 @@ const DICT: Record<string, Entry> = {
   "admin.badgeAlt": { "zh-CN": "备案徽章", "zh-TW": "備案徽章", en: "ICP badge", fr: "Badge ICP" },
   "admin.icpNotSet": { "zh-CN": "（未填备案号）", "zh-TW": "（未填備案號）", en: "(no ICP number)", fr: "(aucun numéro ICP)" },
   "admin.icpParsed": { "zh-CN": "已识别备案链接，请确认备案号文字", "zh-TW": "已識別備案連結，請確認備案號文字", en: "ICP link detected, please confirm the number text", fr: "Lien ICP détecté, veuillez confirmer le numéro" },
+  "admin.contact": { "zh-CN": "联系方式", "zh-TW": "聯絡方式", en: "Contact method", fr: "Moyen de contact" },
+  "admin.contactNone": { "zh-CN": "不显示", "zh-TW": "不顯示", en: "None", fr: "Aucun" },
+  "admin.contactTelegram": { "zh-CN": "Telegram", "zh-TW": "Telegram", en: "Telegram", fr: "Telegram" },
+  "admin.contactQq": { "zh-CN": "QQ", "zh-TW": "QQ", en: "QQ", fr: "QQ" },
+  "admin.contactValuePlaceholder": { "zh-CN": "先选择联系方式再填写", "zh-TW": "先選擇聯絡方式再填寫", en: "Pick a method first", fr: "Choisissez d'abord une méthode" },
+  "admin.contactValueTelegramPlaceholder": { "zh-CN": "频道或群组链接 / @用户名", "zh-TW": "頻道或群組連結 / @使用者名稱", en: "Channel or group link / @username", fr: "Lien de chaîne ou groupe / @utilisateur" },
+  "admin.contactValueQqPlaceholder": { "zh-CN": "QQ 号码或群链接", "zh-TW": "QQ 號碼或群連結", en: "QQ number or group link", fr: "Numéro QQ ou lien de groupe" },
+  "admin.contactHint": { "zh-CN": "Telegram 填频道/群组链接或 @用户名；QQ 填号码或群链接。识别不了就不显示，不会放出无效链接。", "zh-TW": "Telegram 填頻道/群組連結或 @使用者名稱；QQ 填號碼或群連結。辨識不了就不顯示，不會放出無效連結。", en: "Telegram: channel/group link or @username. QQ: number or group link. Unrecognized values are hidden rather than shown as dead links.", fr: "Telegram : lien de chaîne/groupe ou @utilisateur. QQ : numéro ou lien de groupe. Les valeurs non reconnues sont masquées plutôt qu'affichées en lien mort." },
 
   "chat.restored": { "zh-CN": "已从云端恢复", "zh-TW": "已從雲端恢復", en: "Restored", fr: "Restauré" },
   "chat.convsUnit": { "zh-CN": "个对话", "zh-TW": "個對話", en: "conversations", fr: "discussions" },
@@ -415,6 +423,9 @@ const DICT: Record<string, Entry> = {
   "footer.freeSite": { "zh-CN": "免费聊天站", "zh-TW": "免費聊天站", en: "free chat site", fr: "site de chat gratuit" },
   "footer.by": { "zh-CN": "由", "zh-TW": "由", en: "by", fr: "par" },
   "footer.created": { "zh-CN": "创作", "zh-TW": "創作", en: "created", fr: "créé" },
+  "footer.contact": { "zh-CN": "联系我们", "zh-TW": "聯絡我們", en: "Contact us", fr: "Nous contacter" },
+  "footer.contactTelegram": { "zh-CN": "Telegram", "zh-TW": "Telegram", en: "Telegram", fr: "Telegram" },
+  "footer.contactQq": { "zh-CN": "QQ", "zh-TW": "QQ", en: "QQ", fr: "QQ" },
 
   // ---- 通用补充 ----
   "common.remove": { "zh-CN": "移除", "zh-TW": "移除", en: "Remove", fr: "Retirer" },

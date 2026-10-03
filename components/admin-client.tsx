@@ -296,6 +296,8 @@ interface SiteSettings {
   icpUrl: string;
   icpIconUrl: string;
   footerExtra: string;
+  contactType: "" | "telegram" | "qq";
+  contactValue: string;
 }
 
 function SiteSettingsCard() {
@@ -308,6 +310,8 @@ function SiteSettingsCard() {
     icpUrl: "",
     icpIconUrl: "",
     footerExtra: "",
+    contactType: "",
+    contactValue: "",
   });
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -360,6 +364,8 @@ function SiteSettingsCard() {
           icpUrl: data.settings.icpUrl ?? "",
           icpIconUrl: data.settings.icpIconUrl ?? "",
           footerExtra: data.settings.footerExtra ?? "",
+          contactType: (data.settings.contactType ?? "") as "" | "telegram" | "qq",
+          contactValue: data.settings.contactValue ?? "",
         });
       }
       // storage:false 表示后端没配存储，配置能读但保存会失败，提前告知
@@ -611,6 +617,45 @@ function SiteSettingsCard() {
                   </div>
                 </div>
               ) : null}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="ss-contact-type">{t("admin.contact")}</Label>
+                <div className="flex gap-2">
+                  <select
+                    id="ss-contact-type"
+                    className="flex h-10 w-40 shrink-0 rounded-xl border border-input bg-background/60 px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={form.contactType}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        contactType: e.target.value as "" | "telegram" | "qq",
+                      }))
+                    }
+                  >
+                    <option value="">{t("admin.contactNone")}</option>
+                    <option value="telegram">{t("admin.contactTelegram")}</option>
+                    <option value="qq">{t("admin.contactQq")}</option>
+                  </select>
+                  <Input
+                    id="ss-contact-value"
+                    className="flex-1"
+                    placeholder={
+                      form.contactType === "qq"
+                        ? t("admin.contactValueQqPlaceholder")
+                        : form.contactType === "telegram"
+                          ? t("admin.contactValueTelegramPlaceholder")
+                          : t("admin.contactValuePlaceholder")
+                    }
+                    value={form.contactValue}
+                    onChange={(e) => setForm((f) => ({ ...f, contactValue: e.target.value }))}
+                    disabled={!form.contactType}
+                    autoComplete="off"
+                  />
+                </div>
+                {form.contactType ? (
+                  <p className="text-xs text-muted-foreground">{t("admin.contactHint")}</p>
+                ) : null}
+              </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="ss-footer-extra">{t("admin.footerExtra")}</Label>

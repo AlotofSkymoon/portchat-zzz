@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { getRedis, hasRedisConfig,
-  storageErrorMessage, KEYS, getValue } from "@/lib/redis";
+  storageErrorMessage, KEYS, getValue,
+  getJsonValue} from "@/lib/redis";
 import { serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
@@ -17,7 +18,7 @@ export interface Announcement {
 export async function GET(request: Request) {
   try {
     if (hasRedisConfig()) {
-      const data = await getValue<Announcement>(KEYS.announcement);
+      const data = await getJsonValue<Announcement>(KEYS.announcement);
       if (data && data.enabled && data.text) {
         return NextResponse.json({ announcement: data });
       }

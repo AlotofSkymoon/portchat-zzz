@@ -89,6 +89,36 @@ export async function getValue<T = string>(key: string): Promise<T | null> {
   return getStore().get<T>(key);
 }
 
+/**
+ * 归一化「JSON 值」：不管存储后端返回字符串还是已解析的对象，都返回对象。
+ *
+ * ⚠️ 为什么需要这个：两个后端的返回形态天然不一致。
+ * - Upstash：客户端默认开启 automaticDeserialization，`get` 直接返回**对象**
+ * - Cloudflare KV：`get(key, "json")` 也已经解析过，同样是**对象**
+ *
+ * 于是 `const raw = await getValue(key); JSON.parse(raw)` 等价于
+ * `JSON.parse(object)` —— 抛 SyntaxError，且被路由里的 catch 吞掉返回 null。
+ * 表现是「对话记录全部消失」，但数据其实一直好好躺在 Redis 里。
+ *
+ * 只用于**存的是 JSON** 的 key（会话、公告、TLD 缓存等）。
+ * 存的是裸字符串（如 userEmail 值）的 key 请继续用 getValue。
+ */
+export async function getJsonValue<T>(key: string): Promise<T | null> {
+  const raw = await getValue<unknown>(key);
+  return parseJsonValue<T>(raw);
+}
+
+/** 同步版归一化，供已拿到原始值的场景复用 */
+export function parseJsonValue<T>(raw: unknown): T | null {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw !== "string") return raw as T;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
 /** 读取 Set 成员 */
 export async function setMembers(key: string): Promise<string[]> {
   return getStore().smembers(key);

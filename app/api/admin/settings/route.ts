@@ -57,6 +57,12 @@ export async function POST(request: Request) {
     icpUrl: String(body.icpUrl ?? current.icpUrl ?? "").trim(),
     icpIconUrl: String(body.icpIconUrl ?? current.icpIconUrl ?? "").trim(),
     footerExtra: String(body.footerExtra ?? current.footerExtra ?? "").trim().slice(0, 300),
+    /* 联系方式：只允许 telegram / qq / 空，值最多 200 字符 */
+    contactType:
+      body.contactType === "telegram" || body.contactType === "qq"
+        ? body.contactType
+        : (current.contactType ?? ""),
+    contactValue: String(body.contactValue ?? current.contactValue ?? "").trim().slice(0, 200),
   };
 
   // Base URL 做基本校验，避免管理员手滑写坏全站

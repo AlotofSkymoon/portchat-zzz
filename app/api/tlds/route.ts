@@ -1,4 +1,5 @@
-import { hasRedisConfig, getRedis, getValue, KEYS } from "@/lib/redis";
+import { hasRedisConfig, getRedis, getValue, KEYS,
+  getJsonValue} from "@/lib/redis";
 import { FALLBACK_TLDS_NORMALIZED, normalizeTlds } from "@/lib/tld-fallback";
 
 export const runtime = "nodejs";
@@ -15,7 +16,7 @@ export async function GET() {
   // 1) Redis 缓存
   try {
     if (hasRedisConfig()) {
-      const cached = await getValue<{ list: string[]; at: number }>(KEYS.tlds);
+      const cached = await getJsonValue<{ list: string[]; at: number }>(KEYS.tlds);
       if (cached?.list?.length) {
         return Response.json({
           tlds: cached.list,

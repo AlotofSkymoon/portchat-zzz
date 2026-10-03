@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { FOOTER_EXTRA, ICP_ICON_URL, ICP_TEXT, ICP_URL, REQUIRE_LOGIN } from "@/lib/site";
+import {
+  CONTACT_TYPE,
+  CONTACT_VALUE,
+  FOOTER_EXTRA,
+  ICP_ICON_URL,
+  ICP_TEXT,
+  ICP_URL,
+  REQUIRE_LOGIN,
+} from "@/lib/site";
 import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/types";
 import { hasRedisConfig } from "@/lib/redis";
 import { readSiteSettings } from "@/lib/site-settings-store";
@@ -20,6 +28,8 @@ function fallbackSettings(): SiteSettings {
     icpUrl: ICP_URL,
     icpIconUrl: ICP_ICON_URL,
     footerExtra: FOOTER_EXTRA,
+    contactType: CONTACT_TYPE,
+    contactValue: CONTACT_VALUE,
   };
 }
 
@@ -57,6 +67,8 @@ export async function GET() {
       icpUrl: stored.icpUrl || base.icpUrl,
       icpIconUrl: stored.icpIconUrl || base.icpIconUrl,
       footerExtra: stored.footerExtra || base.footerExtra,
+      contactType: stored.contactType || base.contactType,
+      contactValue: stored.contactValue || base.contactValue,
     };
     return NextResponse.json({ settings, requireLogin: REQUIRE_LOGIN });
   } catch {
