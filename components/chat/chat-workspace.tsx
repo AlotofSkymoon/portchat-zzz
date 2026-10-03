@@ -506,19 +506,39 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
           const q = queryText.trim().slice(0, 200);
 
           if (q) {
+            // 带上最近几条对话（只取文字，图片 base64 太大不能发）
+            // 服务端据此理解指代，例如「它多少钱」里的「它」指什么
+            const ctx = outboundMessages.slice(-4).map((m) => ({
+              role: m.role,
+              content:
+                typeof m.content === "string"
+                  ? m.content.slice(0, 300)
+                  : Array.isArray(m.content)
+                    ? m.content
+                        .filter((c) => (c as { type?: string }).type === "text")
+                        .map((c) => (c as { text?: string }).text ?? "")
+                        .join(" ")
+                        .slice(0, 300)
+                    : "",
+            }));
+
             const sr = await fetch("/api/web-search", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ query: q, limit: 30 }),
+              body: JSON.stringify({ query: q, limit: 30, messages: ctx }),
               signal: abortRef.current?.signal,
             });
             const sd = (await sr.json()) as {
               ok?: boolean;
+              skipped?: boolean;
               context?: string;
               error?: string;
               results?: { title: string; url: string }[];
             };
             if (sd.ok && sd.context) {
+              // sd.skipped 表示决策器判断这条不用搜（问候、改写上文…），
+              // 此时 context 与 error 都为空，两个分支都不成立，自然跳过。
+              // 刻意不弹提示：否则每次对话都跳一个 toast 反而吵。
               searchNote = sd.context;
               searchSources = sd.results ?? [];
               // 来源先挂上，这样即使后面流式失败也能看到引用

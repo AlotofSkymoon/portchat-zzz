@@ -384,13 +384,31 @@ export interface SearchOutcome {
  *   3. 否则依次尝试 Bing → Sogou → DuckDuckGo
  *   4. 结果做相关性过滤，不相关的丢弃
  *   5. 全部失败返回 ok=false，由调用方决定如何提示
+ *
+ * @param rawQuery 原始提问（用于兜底提取关键词）
+ * @param limit 结果条数上限
+ * @param plannedQueries 决策器给出的关键词，优先级最高。
+ *   这些是模型读懂用户意图后提炼的（比如把「它多少钱」还原成具体产品名），
+ *   比本地从整句里硬截的词准得多，所以排在本地候选前面。
  */
-export async function webSearch(rawQuery: string, limit = 30): Promise<SearchOutcome> {
+export async function webSearch(
+  rawQuery: string,
+  limit = 30,
+  plannedQueries: string[] = [],
+): Promise<SearchOutcome> {
   const raw = rawQuery.trim();
   if (!raw) return { ok: false, results: [], error: "搜索词为空" };
   if (raw.length > 500) return { ok: false, results: [], error: "搜索词过长" };
 
-  const candidates = buildQueryCandidates(raw);
+  const candidates = Array.from(
+    new Set(
+      [
+        ...plannedQueries.map((q) => q.trim()).filter((q) => q && q.length <= 200),
+        ...buildQueryCandidates(raw),
+      ].filter(Boolean),
+    ),
+  ).slice(0, 5);
+
   if (candidates.length === 0) {
     return { ok: false, results: [], error: "无法从提问中提取搜索词" };
   }
