@@ -40,7 +40,8 @@ export async function generateConversationTitle(
   if (!presetKey) return null;
 
   const model = process.env.UPSTREAM_MODEL?.trim() || "agnes-3.0-flash";
-  const target = resolveTarget(model, {}, {});
+  // 第二个参数是自定义供应商列表：起标题只走内置模型，传空数组
+  const target = resolveTarget(model, []);
   if (!target) return null;
 
   const snippet = firstMessage.trim().slice(0, 500);
@@ -53,7 +54,7 @@ export async function generateConversationTitle(
         Authorization: `Bearer ${presetKey}`,
       },
       body: JSON.stringify({
-        model: target.modelId,
+        model,
         stream: false,
         temperature: 0.3,
         max_tokens: 64,
