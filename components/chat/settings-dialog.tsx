@@ -53,7 +53,7 @@ import {
 } from "@/lib/s3-presets";
 
 export interface ChatSettings {
-  /** 各服务商的 Key：{ agnes, deepseek, "custom:xxx" } */
+  /** 各服务商的 Key：{ agnes, "custom:xxx" } */
   keys: Record<string, string>;
   /**
    * 各服务商「独立」的 Base URL 覆盖值。
@@ -80,7 +80,8 @@ interface SettingsDialogProps {
   onClearAll: () => void;
 }
 
-const PROVIDER_ORDER: ProviderId[] = ["agnes", "deepseek"];
+// DeepSeek 入口已移除：站点不提供 DeepSeek Key，界面不再列出
+const PROVIDER_ORDER: ProviderId[] = ["agnes"];
 
 /**
  * 自定义供应商编辑器。
@@ -720,7 +721,7 @@ export function SettingsDialog({
                       ? t("settings.sendTo", { url: p.baseUrl })
                       : p.hasPreset
                         ? t("settings.storedLocal")
-                        : t("settings.deepseekNote")}
+                        : t("settings.requireKeyNote")}
                   </p>
 
                   {/* 每个供应商独立的 Base URL —— 互不干扰 */}

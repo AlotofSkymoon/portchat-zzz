@@ -64,7 +64,7 @@ function visionEnabled(modelId: string, custom: CustomProviderConfig[]): boolean
 }
 
 const DEFAULT_SETTINGS: ChatSettings = {
-  keys: { agnes: "", deepseek: "" },
+  keys: { agnes: "" },
   baseUrls: {},
   customProviders: [],
   model: DEFAULT_MODEL,
@@ -115,7 +115,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
   React.useEffect(() => {
     try {
       // 新版：各服务商分开存；兼容旧版单一 apiKey
-      let keys: Record<string, string> = { agnes: "", deepseek: "" };
+      let keys: Record<string, string> = { agnes: "" };
       const rawKeys = localStorage.getItem(LS_KEYS.keys);
       if (rawKeys) {
         try {
@@ -125,7 +125,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
            * 之前写死挑这两个字段，导致自定义供应商（custom:xxx）的 Key
            * 存进去了却读不回来 —— 刷新页面就"凭空消失"。
            */
-          keys = { agnes: "", deepseek: "", ...parsed };
+          keys = { agnes: "", ...parsed };
         } catch {
           /* 忽略 */
         }
