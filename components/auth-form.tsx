@@ -211,6 +211,19 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                   maxLength={6}
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  onPaste={(e) => {
+                    /*
+                     * 从邮件里整段复制时，正文可能带「验证码：」「30 分钟内有效」等文字，
+                     * 默认粘贴 + maxLength 截断可能截出错误的 6 位。
+                     * 剪贴板里能找到连续 6 位就直接用那一串，否则交给上面的 onChange 兜底。
+                     */
+                    const text = e.clipboardData.getData("text") ?? "";
+                    const hit = text.match(/\d{6}/);
+                    if (hit) {
+                      e.preventDefault();
+                      setCode(hit[0]);
+                    }
+                  }}
                   className="text-center text-lg tracking-[0.4em]"
                 />
                 <Button
