@@ -13,6 +13,7 @@ import {
   FileText,
   KeyRound,
   Loader2,
+  Mail,
   RefreshCw,
   Save,
   Server,
@@ -203,6 +204,8 @@ export function AdminClient({ me }: { me: AdminUser }) {
         </Card>
 
         <SiteSettingsCard />
+
+        <MailCard />
 
         <Card>
           <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
@@ -673,6 +676,181 @@ function SiteSettingsCard() {
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {t("admin.saveConfig")}
             </Button>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface MailStatus {
+  enabled: boolean;
+  from?: string;
+  missing?: string[];
+  keyPreview?: string;
+}
+
+/**
+ * 邮箱验证状态卡片。
+ *
+ * 存在的理由：Resend 配没配上，以前完全没有可观测性 ——
+ * 用户以为开了邮箱验证，其实 isEmailConfigured() 一直是 false，
+ * 注册静默跳过验证，谁也不知道。这里把「读到了什么」直接摊开。
+ */
+function MailCard() {
+  const { t } = useI18n();
+  const [status, setStatus] = React.useState<MailStatus | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [to, setTo] = React.useState("");
+  const [sending, setSending] = React.useState(false);
+  const [result, setResult] = React.useState<{ ok: boolean; msg: string } | null>(null);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/mail-test", { signal: timeoutSignal(10_000) });
+      const data = (await res.json().catch(() => ({}))) as MailStatus & { error?: string };
+      if (!res.ok) {
+        setStatus(null);
+        setResult({ ok: false, msg: data.error ?? t("admin.readFailedHttp", { code: res.status }) });
+        return;
+      }
+      setStatus({ enabled: !!data.enabled, from: data.from, missing: data.missing, keyPreview: data.keyPreview });
+    } catch (err) {
+      const name = err instanceof Error ? err.name : "";
+      setStatus(null);
+      setResult({
+        ok: false,
+        msg: name === "TimeoutError" || name === "AbortError" ? t("admin.readTimeout") : t("admin.readFailed"),
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function send() {
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/mail-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to }),
+        signal: timeoutSignal(20_000),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        detail?: string;
+        hint?: string;
+      };
+      if (res.ok && data.ok) {
+        setResult({ ok: true, msg: t("admin.mailTestOk") });
+      } else {
+        setResult({
+          ok: false,
+          msg: [data.hint, data.error, data.detail].filter(Boolean).join(" ｜ ") || t("admin.mailTestFailed"),
+        });
+      }
+    } catch (err) {
+      const name = err instanceof Error ? err.name : "";
+      setResult({
+        ok: false,
+        msg: name === "TimeoutError" || name === "AbortError" ? t("admin.readTimeout") : t("admin.readFailed"),
+      });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            {t("admin.mailTitle")}
+          </CardTitle>
+          <CardDescription>{t("admin.mailDesc")}</CardDescription>
+        </div>
+        <Button variant="ghost" size="icon" onClick={() => void load()} title={t("admin.refresh")}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? (
+          <div className="h-16 w-full animate-pulse rounded-md bg-muted" aria-busy />
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <Badge variant={status?.enabled ? "secondary" : "outline"}>
+                {status?.enabled ? t("admin.mailEnabled") : t("admin.mailDisabled")}
+              </Badge>
+              {status?.from ? (
+                <span className="text-muted-foreground">
+                  {t("admin.mailFrom")}: {status.from}
+                </span>
+              ) : null}
+              {status?.keyPreview ? (
+                <span className="text-muted-foreground">key: {status.keyPreview}</span>
+              ) : null}
+            </div>
+
+            {status && !status.enabled && status.missing?.length ? (
+              <div className="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-sm">
+                <p className="flex items-start gap-2 text-amber-700 dark:text-amber-400">
+                  <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                  {t("admin.mailMissing")}: <code>{status.missing.join(", ")}</code>
+                </p>
+                <p className="text-[11px] text-muted-foreground">{t("admin.mailMissingHint")}</p>
+              </div>
+            ) : null}
+
+            {status?.enabled ? (
+              <p className="rounded-xl border border-border/70 bg-muted/30 px-3 py-2.5 text-[11px] text-muted-foreground">
+                {t("admin.mailDomainHint")}
+              </p>
+            ) : null}
+
+            <div className="space-y-1.5">
+              <Label>{t("admin.mailTestTitle")}</Label>
+              <p className="text-[11px] text-muted-foreground">{t("admin.mailTestDesc")}</p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="you@example.com"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  autoComplete="off"
+                  inputMode="email"
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => void send()}
+                  disabled={sending || !to.trim()}
+                  className="shrink-0"
+                >
+                  {sending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+                  {t("admin.mailTestSend")}
+                </Button>
+              </div>
+            </div>
+
+            {result ? (
+              <p
+                className={`flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm ${
+                  result.ok
+                    ? "border border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
+                    : "border border-destructive/30 bg-destructive/5 text-destructive"
+                }`}
+              >
+                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                {result.msg}
+              </p>
+            ) : null}
           </>
         )}
       </CardContent>
