@@ -59,6 +59,34 @@ function errorResponse(status: number, code: string, message: string) {
   return NextResponse.json({ error: message, code }, { status });
 }
 
+/**
+ * 「纯打招呼」判断：整轮对话只有一条用户消息，且内容就是一句问候。
+ *
+ * 只有这种情况才让 Coffing 念开场白。否则（比如用户问「Logo 是什么」）
+ * 硬塞自我介绍会把答案搅乱 —— 实测出现过把开场白插进 Logo 说明中间、
+ * 还把名字写成 "Coffin" 的情况。
+ */
+const GREETING_RE =
+  /^(hi|hello|hey|yo|hola|bonjour|salut|cou?cou|nihao|ni\s?hao|\u4f60\u597d|\u60a8\u597d|\u55e8|\u54c8\u55e8|\u54c8\u5570|\u5728\u5417|\u5728\u4e48|\u65e9\u4e0a\u597d|\u4e0b\u5348\u597d|\u665a\u4e0a\u597d|who\s+are\s+you)[\s!\u3001,.\uff0c\u3002~\uff01\uff1f?.]*$/i;
+
+function isGreetingOnly(
+  messages: { role: string; content: string | ContentPart[] }[],
+): boolean {
+  const users = messages.filter((m) => m.role === "user");
+  if (users.length !== 1) return false;
+  const c = users[0].content;
+  const text = (typeof c === "string"
+    ? c
+    : c
+        .map((part) => (part.type === "text" ? part.text : ""))
+        .join("")
+  )
+    .trim()
+    .toLowerCase();
+  // 带附件的、长句的都不算打招呼
+  return text.length > 0 && text.length <= 24 && GREETING_RE.test(text);
+}
+
 export async function POST(request: Request) {
   let body: ChatRequestBody;
   try {
@@ -221,7 +249,9 @@ export async function POST(request: Request) {
    * ⚠️ 只在**发给上游时**加，不写进云端会话：
    * 否则每次刷新历史都会多出一条 system 消息。
    */
-  const persona = st(request, "chat.coffingPersona");
+  const persona = isGreetingOnly(messages)
+    ? st(request, "chat.coffingPersona")
+    : st(request, "chat.coffingBase");
   const outboundWithPersona = [
     { role: "system" as const, content: persona },
     ...outbound,
