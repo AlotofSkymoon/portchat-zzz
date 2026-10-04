@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
+import { timeoutSignal } from "@/lib/fetch-timeout";
 import {
   DEFAULT_MODEL,
   PROVIDERS,
@@ -26,6 +27,12 @@ export const maxDuration = 60;
 type ContentPart =
   | { type: "text"; text: string }
   | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } };
+
+/** 转发给上游的消息（content 可能是文本或多模态片段） */
+interface OutboundMessage {
+  role: "user" | "assistant" | "system";
+  content: string | ContentPart[];
+}
 
 interface ChatRequestBody {
   messages?: {
@@ -96,6 +103,97 @@ function isGreetingOnly(
     .toLowerCase();
   // 带附件的、长句的都不算打招呼
   return text.length > 0 && text.length <= 24 && GREETING_RE.test(text);
+}
+
+/**
+ * 附件图片内联为 data URL。
+ *
+ * 为什么必须内联：补全成绝对地址之后，上游仍然经常取不到 ——
+ * 本站附件走 R2/OSS 且可能带防盗链或签名过期，上游模型服务器
+ * 在境外、不带 Cookie、也不认我们的鉴权，结果就是「图发出去了
+ * 但 AI 说看不到」。直接把字节塞进 data URL，上游不用再回源，
+ * 这是唯一对所有上游都成立的做法。
+ *
+ * 只对本站图片做内联；用户粘贴的外链交给上游自己去取（我们
+ * 不该代抓任意外网地址，那是 SSRF 面）。
+ */
+const MAX_INLINE_IMAGE_BYTES = 5 * 1024 * 1024; // 单张 5MB，再大请求体就爆了
+const MAX_INLINE_TOTAL_BYTES = 12 * 1024 * 1024;
+
+async function inlineImages(
+  messages: OutboundMessage[],
+  origin: string,
+  request: Request,
+): Promise<OutboundMessage[]> {
+  const cache = new Map<string, string | null>();
+  let total = 0;
+
+  async function toDataUrl(url: string): Promise<string | null> {
+    if (cache.has(url)) return cache.get(url) ?? null;
+    let result: string | null = null;
+    try {
+      const absolute = /^https?:\/\//i.test(url)
+        ? url
+        : `${origin}${url.startsWith("/") ? "" : "/"}${url}`;
+
+      const res = await fetch(absolute, {
+        signal: timeoutSignal(15_000),
+        headers: { accept: "image/*" },
+      });
+      if (!res.ok) throw new Error(String(res.status));
+
+      const type = (res.headers.get("content-type") ?? "").split(";")[0].trim();
+      if (!type.startsWith("image/")) throw new Error("not-image");
+
+      const buf = new Uint8Array(await res.arrayBuffer());
+      if (buf.byteLength > MAX_INLINE_IMAGE_BYTES) throw new Error("too-large");
+
+      total += buf.byteLength;
+      if (total > MAX_INLINE_TOTAL_BYTES) throw new Error("total-too-large");
+
+      // 分块拼接，避免大数组展开时爆调用栈
+      let binary = "";
+      const CHUNK = 0x8000;
+      for (let i = 0; i < buf.length; i += CHUNK) {
+        binary += String.fromCharCode(...buf.subarray(i, i + CHUNK));
+      }
+      result = `data:${type};base64,${btoa(binary)}`;
+    } catch {
+      // 取不到就退回绝对地址 —— 至少比相对路径强，上游可能还能直接拉到
+      result = null;
+    }
+    cache.set(url, result);
+    return result;
+  }
+
+  const out: OutboundMessage[] = [];
+  for (const m of messages) {
+    if (typeof m.content === "string") {
+      out.push(m);
+      continue;
+    }
+    const parts = await Promise.all(
+      m.content.map(async (c) => {
+        if (c.type !== "image_url") return c;
+        const url = (c as { image_url: { url: string } }).image_url.url;
+        if (!url || url.startsWith("data:")) return c;
+
+        const dataUrl = await toDataUrl(url);
+        if (dataUrl) return { ...c, image_url: { ...(c as { image_url: object }).image_url, url: dataUrl } };
+
+        // 兜底：至少补成绝对地址
+        return {
+          ...c,
+          image_url: {
+            ...(c as { image_url: object }).image_url,
+            url: /^https?:\/\//i.test(url) ? url : `${origin}${url.startsWith("/") ? "" : "/"}${url}`,
+          },
+        };
+      }),
+    );
+    out.push({ ...m, content: parts } as OutboundMessage);
+  }
+  return out;
 }
 
 export async function POST(request: Request) {
@@ -270,19 +368,7 @@ export async function POST(request: Request) {
    */
   if (visionOk) {
     const origin = new URL(request.url).origin;
-    outbound = outbound.map((m) => {
-      if (typeof m.content === "string") return m;
-      return {
-        ...m,
-        content: m.content.map((c) => {
-          if (c.type !== "image_url") return c;
-          const url = (c as { image_url: { url: string } }).image_url.url;
-          if (!url || /^https?:\/\//i.test(url) || url.startsWith("data:")) return c;
-          // 相对路径 → 拼上本站 origin
-          return { ...c, image_url: { ...(c as { image_url: object }).image_url, url: `${origin}${url.startsWith("/") ? "" : "/"}${url}` } };
-        }),
-      };
-    });
+    outbound = await inlineImages(outbound, origin, request);
   }
 
   // SSRF 防护：内置地址一定安全，只校验用户可能改写的部分

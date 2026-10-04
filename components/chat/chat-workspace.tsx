@@ -92,6 +92,8 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
   const [mounted, setMounted] = React.useState(false);
   const [input, setInput] = React.useState("");
   const [status, setStatus] = React.useState<"idle" | "streaming">("idle");
+  /** 图片生成进行中（与对话流式互不干扰） */
+  const [imageBusy, setImageBusy] = React.useState(false);
   const [streamingId, setStreamingId] = React.useState<string | null>(null);
   const [settings, setSettings] = React.useState<ChatSettings>(DEFAULT_SETTINGS);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
@@ -781,6 +783,93 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
     ],
   );
 
+  /* ------------------------------ 图片生成 ------------------------------ */
+  const generateImage = React.useCallback(async () => {
+    if (imageBusy) {
+      toast.error(t("image.busy"));
+      return;
+    }
+    if (status === "streaming") return;
+
+    const prompt = input.trim();
+    if (!prompt) {
+      toast.error(t("image.needPrompt"));
+      return;
+    }
+    if (REQUIRE_LOGIN && !user) {
+      toast.error(t("chat.needLogin"), {
+        description: t("chat.needLoginDesc"),
+        duration: 5000,
+      });
+      return;
+    }
+
+    setImageBusy(true);
+    const toastId = toast.loading(t("image.generating"));
+
+    // 确保有当前会话：生成的图要能留在历史里翻回去看
+    let convId = currentId;
+    let base: ChatMessage[];
+    if (!convId) {
+      convId = newConversation();
+      base = [];
+    } else {
+      base = messagesRef.current.filter((m) => !m.error);
+      ensureConversation(convId, prompt);
+    }
+    if (base.length === 0) autoTitleConversation(convId, prompt);
+
+    try {
+      const res = await fetch("/api/images/generations", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ prompt, apiKey: settings.keys.agnes }),
+      });
+      const data = (await res.json()) as { images?: string[]; error?: string };
+      if (!res.ok || !data.images?.length) {
+        toast.error(data.error ?? t("image.failed"), { duration: 6000 });
+        return;
+      }
+
+      const userMessage: ChatMessage = {
+        id: createId(),
+        role: "user",
+        content: prompt,
+        createdAt: Date.now(),
+      };
+      /*
+       * 用 Markdown 图片写进消息，好处是沿用现成的渲染与点击放大，
+       * 刷新后也能从会话里还原（前提是对外链接还没过期）。
+       */
+      const markdown = data.images.map((u) => `![](${u})`).join("\n\n");
+      const next: ChatMessage[] = [
+        ...base,
+        userMessage,
+        { id: createId(), role: "assistant", content: markdown, createdAt: Date.now() },
+      ];
+      messagesRef.current = next;
+      setMessages(next);
+      setInput("");
+      toast.success(t("image.done"));
+    } catch {
+      toast.error(t("chat.networkErr"));
+    } finally {
+      setImageBusy(false);
+      toast.dismiss(toastId);
+    }
+  }, [
+    autoTitleConversation,
+    currentId,
+    ensureConversation,
+    imageBusy,
+    input,
+    newConversation,
+    setMessages,
+    status,
+    settings.keys.agnes,
+    user,
+  ]);
+
   const retry = React.useCallback(() => {
     const cleaned = messagesRef.current.filter((m) => !m.error && m.content.trim() !== "");
     if (cleaned.length === 0) return;
@@ -1408,6 +1497,8 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   webSearchSupported={ALLOW_WEB_SEARCH}
                   webSearch={webSearch}
                   onWebSearchChange={toggleWebSearch}
+                  imageBusy={imageBusy}
+                  onGenerateImage={() => void generateImage()}
                 />
                 <p className="mt-3 text-center text-xs text-fg-quaternary">
                   {t("input.disclaimerHero")}
@@ -1439,6 +1530,8 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   webSearchSupported={ALLOW_WEB_SEARCH}
                   webSearch={webSearch}
                   onWebSearchChange={toggleWebSearch}
+                  imageBusy={imageBusy}
+                  onGenerateImage={() => void generateImage()}
                 />
                 <p className="mt-2 text-center text-xs text-fg-quaternary">
                   {t("input.disclaimer")}

@@ -118,6 +118,17 @@ const config: Config = {
           "0%, 60%, 100%": { transform: "translateY(0)", opacity: "0.45" },
           "30%": { transform: "translateY(-4px)", opacity: "1" },
         },
+        /**
+         * 空状态可颂：轻微上下浮动 + 极小幅摆动。
+         * 只做「呼吸感」，不做旋转翻滚 —— 大图旋转会显得廉价且晃眼。
+         */
+        "croissant-bob": {
+          "0%, 100%": { transform: "translateY(0) rotate(-1.2deg)" },
+          "50%": { transform: "translateY(-7px) rotate(1.2deg)" },
+        },
+        /** 过渡遮罩里的小鲸鱼 —— keyframes 直接写在 app/globals.css，
+            因为鲸鱼由 .pt-whale 原生 CSS 驱动，不走 Tailwind 的 animate-* 类，
+            写在 config 里不会被 emit。 */
       },
       transitionTimingFunction: {
         /** 优雅缓出：起步轻快、尾部柔和停靠 */
@@ -130,6 +141,7 @@ const config: Config = {
         "gradient-pan": "gradient-pan 14s ease-in-out infinite",
         "caret": "caret 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         "dot": "dot 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite",
+        "croissant-bob": "croissant-bob 4.6s ease-in-out infinite",
       },
     },
   },

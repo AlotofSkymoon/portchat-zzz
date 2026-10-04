@@ -8,6 +8,7 @@ import {
   EyeOff,
   KeyRound,
   Palette,
+  RefreshCw,
   Server,
   Trash2,
   TriangleAlert,
@@ -91,6 +92,202 @@ const PROVIDER_ORDER: ProviderId[] = ["agnes", "inkstone"];
  * React 会把它整个 unmount 再 mount —— 用户填到一半的内容（名称、
  * URL、Key、勾选的模型）随时可能被清空，表现为「怎么都保存不进去」。
  */
+/**
+ * 已添加供应商的「模型管理」区。
+ *
+ * 为什么需要它：中转站会不断上架新模型，而原来加完供应商之后
+ * 模型列表就写死了 —— 想用新模型只能删掉整条重加，Key 和地址
+ * 都要重新填一遍。这里做增量：重新探测 /models，把上游新增的、
+ * 本地还没有的模型标成「新增」，用户勾选即可追加；也可以直接
+ * 手动补一个 id（有些中转站关了 /models 端点，只能手填）。
+ */
+function ProviderModelManager({
+  provider,
+  apiKey,
+  onChange,
+}: {
+  provider: CustomProviderConfig;
+  apiKey: string;
+  onChange: (models: string[]) => void;
+}) {
+  const { t } = useI18n();
+  const [probing, setProbing] = React.useState(false);
+  const [msg, setMsg] = React.useState("");
+  const [candidates, setCandidates] = React.useState<string[]>([]);
+  const [picked, setPicked] = React.useState<Set<string>>(new Set());
+  const [manual, setManual] = React.useState("");
+
+  const owned = new Set(provider.models);
+
+  async function probe() {
+    setProbing(true);
+    setMsg("");
+    setCandidates([]);
+    setPicked(new Set());
+    try {
+      const res = await fetch("/api/probe-models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl: provider.baseUrl, apiKey }),
+      });
+      const data = (await res.json()) as { ok?: boolean; models?: string[]; error?: string };
+
+      if (!data.ok || !data.models?.length) {
+        setMsg(data.error ?? t("settings.probeNone"));
+        return;
+      }
+
+      // 只展示本地还没有的 —— 已有的不需要再勾一遍
+      const fresh = data.models.filter((m) => !owned.has(m));
+      if (fresh.length === 0) {
+        setMsg(t("settings.noNewModels"));
+        return;
+      }
+      setCandidates(fresh);
+      setPicked(new Set(fresh));
+      setMsg(t("settings.newModelsFound", { count: fresh.length }));
+    } catch {
+      setMsg(t("settings.probeFailed"));
+    } finally {
+      setProbing(false);
+    }
+  }
+
+  function toggle(id: string) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function appendPicked() {
+    const add = Array.from(picked).filter((m) => !owned.has(m));
+    if (add.length === 0) return;
+    onChange([...provider.models, ...add]);
+    setCandidates([]);
+    setPicked(new Set());
+    setMsg(t("settings.modelsAppended", { count: add.length }));
+  }
+
+  function addManual() {
+    const id = manual.trim();
+    if (!id) return;
+    if (owned.has(id)) {
+      setMsg(t("settings.modelAlreadyThere"));
+      return;
+    }
+    onChange([...provider.models, id]);
+    setManual("");
+    setMsg(t("settings.modelsAppended", { count: 1 }));
+  }
+
+  function removeModel(id: string) {
+    // 至少留一个：删空了供应商会变成废条目，下拉框里也选不出模型
+    if (provider.models.length <= 1) {
+      setMsg(t("settings.keepOneModel"));
+      return;
+    }
+    onChange(provider.models.filter((m) => m !== id));
+  }
+
+  return (
+    <div className="space-y-2 border-t border-border/60 pt-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-medium text-fg-tertiary">
+          {t("settings.manageModels")} · {provider.models.length}
+        </span>
+        <button
+          type="button"
+          onClick={probe}
+          disabled={probing}
+          className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline disabled:opacity-50"
+        >
+          <RefreshCw className={cn("h-3 w-3", probing && "animate-spin")} />
+          {probing ? t("settings.probing") : t("settings.probeNew")}
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {provider.models.map((m) => (
+          <span
+            key={m}
+            className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-fg-secondary"
+          >
+            <span className="max-w-[190px] truncate">{m}</span>
+            <button
+              type="button"
+              onClick={() => removeModel(m)}
+              className="text-fg-quaternary hover:text-destructive"
+              aria-label={t("common.delete")}
+            >
+              <XIcon className="h-2.5 w-2.5" />
+            </button>
+          </span>
+        ))}
+      </div>
+
+      {candidates.length > 0 ? (
+        <div className="space-y-1.5 rounded-lg border border-primary/30 bg-primary/5 p-2">
+          <p className="text-[10px] font-medium text-primary">{msg}</p>
+          <div className="max-h-32 space-y-1 overflow-y-auto">
+            {candidates.map((m) => (
+              <label key={m} className="flex items-center gap-1.5 text-[11px] text-fg-secondary">
+                <input
+                  type="checkbox"
+                  checked={picked.has(m)}
+                  onChange={() => toggle(m)}
+                  className="h-3 w-3 accent-[hsl(var(--primary))]"
+                />
+                <span className="truncate">{m}</span>
+              </label>
+            ))}
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            className="h-6 w-full text-[11px]"
+            onClick={appendPicked}
+            disabled={picked.size === 0}
+          >
+            <Plus className="mr-1 h-3 w-3" />
+            {t("settings.appendSelected")}
+          </Button>
+        </div>
+      ) : msg ? (
+        <p className="text-[10px] text-muted-foreground">{msg}</p>
+      ) : null}
+
+      <div className="flex gap-1.5">
+        <Input
+          value={manual}
+          onChange={(e) => setManual(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addManual();
+            }
+          }}
+          placeholder={t("settings.modelIdPlaceholder")}
+          className="h-7 text-[11px]"
+          autoComplete="off"
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 shrink-0 px-2 text-[11px]"
+          onClick={addManual}
+          disabled={!manual.trim()}
+        >
+          {t("settings.addModel")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function CustomProviderEditor({
   existingIds,
   onAdd,
@@ -498,6 +695,14 @@ export function SettingsDialog({
     return [...builtin, ...custom];
   }, [form.customProviders, form.baseUrls]);
 
+  /** 只改某个自定义供应商的模型列表，Key / Base URL 原样保留 */
+  function updateProviderModels(id: string, models: string[]) {
+    setForm((f) => ({
+      ...f,
+      customProviders: f.customProviders.map((c) => (c.id === id ? { ...c, models } : c)),
+    }));
+  }
+
   function removeCustomProvider(id: string) {
     setForm((f) => ({
       ...f,
@@ -756,6 +961,24 @@ export function SettingsDialog({
                         </p>
                       ) : null}
                     </div>
+                  ) : null}
+
+                  {/* 上游上架新模型后在这里增量追加，不用删掉整条重加 */}
+                  {isCustom ? (
+                    <ProviderModelManager
+                      provider={
+                        form.customProviders.find((c) => c.id === pid) ?? {
+                          id: pid,
+                          label: p.label,
+                          baseUrl: p.baseUrl,
+                          models: [],
+                          vision: false,
+                          thinking: false,
+                        }
+                      }
+                      apiKey={form.keys[pid] ?? ""}
+                      onChange={(models) => updateProviderModels(pid, models)}
+                    />
                   ) : null}
                 </div>
               );

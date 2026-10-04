@@ -19,6 +19,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     // 但界面上统一叫 Portchat —— 访客不需要知道背后接的是哪家。
     label: "Portchat",
     baseUrl: "https://apihub.agnes-ai.com/v1",
+    // 文生图走独立的 images 端点，不是 chat/completions
     hasPreset: true,
     keyUrl: "https://platform.agnes-ai.com/",
   },
@@ -198,6 +199,10 @@ export const AGNES_MODELS = CHAT_MODELS.filter((m) => m.provider === "agnes");
  * 默认模型。站长可用 UPSTREAM_MODEL 换成自己中转服务的模型名，
  * 这样连"换中转服务"都不用改代码。
  */
+/** Agnes 文生图端点 */
+export const AGNES_IMAGE_URL =
+  process.env.AGNES_IMAGE_URL?.trim() || "https://apihub.agnes-ai.com/v1/images/generations";
+
 export const DEFAULT_MODEL = process.env.UPSTREAM_MODEL?.trim() || "agnes-3.0-flash";
 
 /**

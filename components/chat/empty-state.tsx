@@ -32,13 +32,15 @@ export function EmptyState({ onPick }: { onPick: (text: string) => void }) {
         <Vortex className="-z-10 h-56 w-56 rounded-full" />
         <Sparkles count={12} className="-z-10 h-40 w-72" />
 
-        {/* 空状态：小蓝海豚游动 */}
-        <span className="mb-4 inline-flex h-[76px] w-[130px] items-center justify-center">
+        {/* 空状态：Coffing（可颂吉祥物）。
+            尺寸给足（172px）才看得清酥皮纹理和表情，
+            小尺寸下会糊成一团黄影子。 */}
+        <span className="mb-5 inline-flex h-[172px] w-[172px] items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/dolphin-swim.gif"
+            src="/croissant.png"
             alt={t("chat.emptyAlt")}
-            className="h-[76px] w-[130px] object-contain"
+            className="h-[172px] w-[172px] animate-croissant-bob object-contain drop-shadow-[0_10px_24px_rgba(120,72,24,0.28)]"
             draggable={false}
           />
         </span>

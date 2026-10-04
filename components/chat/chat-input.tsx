@@ -7,6 +7,8 @@ import {
   Globe,
   FileText,
   FileVideo,
+  ImagePlus,
+  Loader2,
   Paperclip,
   Square,
   X,
@@ -47,6 +49,12 @@ interface ChatInputProps {
   webSearchSupported?: boolean;
   webSearch?: boolean;
   onWebSearchChange?: (on: boolean) => void;
+  /* ---- 图片生成 ---- */
+  /** 站点是否开放生图（站长可关） */
+  imageSupported?: boolean;
+  /** 是否正在生成图片 */
+  imageBusy?: boolean;
+  onGenerateImage?: () => void;
 }
 
 export function ChatInput({
@@ -71,6 +79,9 @@ export function ChatInput({
   webSearchSupported = false,
   webSearch = false,
   onWebSearchChange,
+  imageSupported = true,
+  imageBusy = false,
+  onGenerateImage,
 }: ChatInputProps) {
   const { t } = useI18n();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -232,6 +243,28 @@ export function ChatInput({
             >
               <Globe className="h-3.5 w-3.5" />
               {t("input.web")}
+            </button>
+          ) : null}
+          {imageSupported && onGenerateImage ? (
+            <button
+              type="button"
+              onClick={onGenerateImage}
+              disabled={imageBusy}
+              title={t("input.imageTip")}
+              aria-label={t("input.image")}
+              aria-busy={imageBusy}
+              className={
+                imageBusy
+                  ? "flex h-7 shrink-0 items-center gap-1 rounded-full border border-primary/40 bg-primary/12 px-2.5 text-[11px] font-medium text-primary"
+                  : "flex h-7 shrink-0 items-center gap-1 rounded-full border border-border px-2.5 text-[11px] text-fg-tertiary transition-colors hover:bg-muted hover:text-foreground"
+              }
+            >
+              {imageBusy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ImagePlus className="h-3.5 w-3.5" />
+              )}
+              {t("input.image")}
             </button>
           ) : null}
           {onPickFiles ? (

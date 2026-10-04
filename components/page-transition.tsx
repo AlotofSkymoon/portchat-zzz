@@ -291,11 +291,60 @@ export function PageTransition() {
       <div className="pt-aurora" aria-hidden="true" />
       <WarpField />
       <div className="pt-content">
-        <div className="pt-core" aria-hidden="true">
-          <div className="pt-ring" />
-          <div className="pt-ring pt-ring-2" />
-          <div className="pt-hole" />
-          <div className="pt-core-glow" />
+        <div className="pt-whale" aria-hidden="true">
+          <svg viewBox="0 0 200 120" className="pt-whale-svg">
+            <defs>
+              <linearGradient id="ptWhaleBody" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#7FC9FF" />
+                <stop offset="55%" stopColor="#3E86D6" />
+                <stop offset="100%" stopColor="#25538F" />
+              </linearGradient>
+            </defs>
+
+            {/* 喷出的小水柱 */}
+            <g className="pt-whale-spout">
+              <circle cx="62" cy="30" r="4" fill="#BFE4FF" opacity="0.9" />
+              <circle cx="66" cy="20" r="3" fill="#BFE4FF" opacity="0.7" />
+              <circle cx="70" cy="12" r="2.2" fill="#BFE4FF" opacity="0.5" />
+            </g>
+
+            {/* 尾鳍（单独摆动） */}
+            <g className="pt-whale-tail">
+              <path
+                d="M158 62c10-14 22-18 30-14-6 6-8 12-7 18 2 8-4 16-14 20-4-9-8-17-9-24z"
+                fill="url(#ptWhaleBody)"
+              />
+            </g>
+
+            {/* 身体 */}
+            <path
+              d="M28 66c0-18 18-30 44-32 22-2 40 2 54 10 10 6 16 12 20 18-4 8-10 14-20 20-14 8-32 12-54 10-26-2-44-14-44-26z"
+              fill="url(#ptWhaleBody)"
+            />
+            {/* 腹部浅色 */}
+            <path
+              d="M34 74c8 8 22 13 40 14 18 1 34-2 46-8-10 9-24 15-42 16-20 1-36-6-44-16z"
+              fill="#CFEBFF"
+              opacity="0.55"
+            />
+            {/* 胸鳍 */}
+            <path
+              d="M74 82c-2 10-10 16-20 16 6-4 9-9 10-14z"
+              fill="#2C62A6"
+            />
+            {/* 眼睛 */}
+            <circle cx="52" cy="58" r="4.2" fill="#0E2A4A" />
+            <circle cx="53.4" cy="56.6" r="1.4" fill="#FFFFFF" opacity="0.9" />
+            {/* 嘴部弧线 */}
+            <path
+              d="M36 70c8 5 18 7 28 6"
+              stroke="#0E2A4A"
+              strokeWidth="1.6"
+              fill="none"
+              strokeLinecap="round"
+              opacity="0.55"
+            />
+          </svg>
         </div>
 
         <p className="pt-title">
