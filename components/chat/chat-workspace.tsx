@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import {
+  ImagePlus,
   Monitor,
   Eraser,
   Menu,
@@ -1420,6 +1421,12 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
             </span>
           </div>
           <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" asChild title={t("route.create")}>
+              <Link href="/create" className="gap-1.5">
+                <ImagePlus className="h-4 w-4" />
+                <span className="hidden lg:inline">{t("route.create")}</span>
+              </Link>
+            </Button>
             <Button variant="ghost" size="sm" asChild title={t("sidebar.arena")}>
               <Link href="/arena" className="gap-1.5">
                 <Swords className="h-4 w-4" />
