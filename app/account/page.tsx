@@ -21,7 +21,7 @@ export default async function AccountPage() {
     <>
       <PageTitle titleKey="route.account" />
       <AccountClient
-        user={{ id: me.id, email: me.email, role: me.role, createdAt: me.createdAt }}
+        user={{ id: me.id, email: me.email, role: me.role, createdAt: me.createdAt, nickname: me.nickname }}
       />
     </>
   );

@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, LogOut, Shield, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/components/i18n-provider";
+import { EmailCard, GithubBindCard, NicknameCard, TwoFactorCard } from "@/components/account-cards";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ interface AccountUser {
   email: string;
   role: "admin" | "user";
   createdAt: string;
+  nickname?: string;
 }
 
 export function AccountClient({ user }: { user: AccountUser }) {
@@ -114,8 +116,8 @@ export function AccountClient({ user }: { user: AccountUser }) {
           <CardHeader>
             <CardTitle>{t("account.title")}</CardTitle>
             <CardDescription>
-              {user.email} · {user.role === "admin" ? t("account.adminRole") : t("account.userRole")} · {t("account.registeredAt")}{" "}
-              {new Date(user.createdAt).toLocaleString("zh-CN")}
+              {user.nickname?.trim() || user.email} · {user.role === "admin" ? t("account.adminRole") : t("account.userRole")} ·{" "}
+              {t("account.registeredAt")} {new Date(user.createdAt).toLocaleString("zh-CN")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -128,6 +130,17 @@ export function AccountClient({ user }: { user: AccountUser }) {
                 {t("account.goAdmin")}
               </Link>
             ) : null}
+
+            {/* 账号类设置：昵称 / 邮箱换绑 / GitHub 绑定 / 两步验证
+                与聊天里的设置弹窗共用同一批组件，改一处两边都生效 */}
+            <div className="space-y-3">
+              <NicknameCard onChanged={() => router.refresh()} />
+              <EmailCard onChanged={() => router.refresh()} />
+              <GithubBindCard redirect="/account" />
+              <TwoFactorCard />
+            </div>
+
+            <div className="h-px bg-border" />
 
             <form onSubmit={changePassword} className="space-y-3">
               <div className="space-y-2">

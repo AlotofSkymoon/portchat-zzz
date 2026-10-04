@@ -122,12 +122,12 @@ function majority(votes: number[], valid: (n: number) => boolean): number | null
   for (const v of pool) count.set(v, (count.get(v) ?? 0) + 1);
   let best = 0;
   let top: number[] = [];
-  for (const [seat, n] of count) {
+  count.forEach((n, seat) => {
     if (n > best) {
       best = n;
       top = [seat];
     } else if (n === best) top.push(seat);
-  }
+  });
   return top[Math.floor(Math.random() * top.length)];
 }
 
