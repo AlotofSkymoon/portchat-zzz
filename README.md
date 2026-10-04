@@ -32,7 +32,7 @@
 - **联网搜索**：输入框「联网」开关，先搜再答并在回答下方列出来源
 - **🖥️ 云电脑**：浏览器里跑的迷你桌面环境（终端 / 记事本 / 计算器 / 时钟 / 关于本机），
   窗口可拖动、最小化，数据全在本地，不联网不上传
-- 用户系统（注册/登录/管理员面板）+ 导航站
+- 用户系统（注册/登录/管理员面板）
 - **Aceternity UI 风格视觉效果**：极光背景、聚光灯跟随卡片、3D 倾斜、旋转流光边框、光柱
 - 文件上传（需先配置对象存储，见下）
 
@@ -983,7 +983,6 @@ RESEND_FROM=Agnes AI <onboarding@yourdomain.com>
 | `/register` | 注册（第一个用户 = admin） |
 | `/account` | 改密码、登出、清空云端记录 |
 | `/admin` | 管理员：用户列表、切角色、删用户、查看内置 Key |
-| `/nav` | 导航站（20 个栏目 / 112 个免费资源） |
 | `/sponsor` | 赞助页（收款码 + 支持方式，可关） |
 | `/api/chat` | 聊天代理（SSE 流式，避免 CORS） |
 | `/api/auth/register` | 注册 |
@@ -1026,7 +1025,7 @@ lib/storage/
 | `users` | 用户：`id, email, password_hash, role, created_at` |
 | `meta` | 计数器：`users_count` 原子自增，判定首个用户 |
 
-**KV**：`user:{id}`、`user:email:{email}`、`session:{sid}`、`chat:*`、限流键、导航数据、TLD 缓存。
+**KV**：`user:{id}`、`user:email:{email}`、`session:{sid}`、`chat:*`、限流键。
 
 ### Vercel（Upstash Redis）数据结构
 

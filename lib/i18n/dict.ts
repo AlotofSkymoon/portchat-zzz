@@ -36,7 +36,6 @@ const DICT: Record<string, Entry> = {
   "sidebar.login": { "zh-CN": "登录 / 注册", "zh-TW": "登入 / 註冊", en: "Log in / Sign up", fr: "Connexion / Inscription" },
   "sidebar.sponsor": { "zh-CN": "赞助支持", "zh-TW": "贊助支持", en: "Sponsor", fr: "Soutenir" },
   "sidebar.arena": { "zh-CN": "竞技场", "zh-TW": "競技場", en: "Arena", fr: "Arène" },
-  "sidebar.nav": { "zh-CN": "导航站", "zh-TW": "導航站", en: "Sites", fr: "Annuaire" },
   "sidebar.clearAll": { "zh-CN": "清空全部对话", "zh-TW": "清空全部對話", en: "Clear all", fr: "Tout effacer" },
   "sidebar.collapse": { "zh-CN": "收起侧边栏", "zh-TW": "收起側邊欄", en: "Collapse sidebar", fr: "Réduire la barre" },
   "sidebar.expand": { "zh-CN": "展开侧边栏", "zh-TW": "展開側邊欄", en: "Expand sidebar", fr: "Afficher la barre" },
@@ -244,36 +243,11 @@ const DICT: Record<string, Entry> = {
   "theme.shortSystem": { "zh-CN": "跟随", "zh-TW": "跟隨", en: "Auto", fr: "Auto" },
 
   // ---- 导航站 ----
-  "nav.title": { "zh-CN": "导航站", "zh-TW": "導航站", en: "Site directory", fr: "Annuaire de sites" },
-  "nav.back": { "zh-CN": "返回", "zh-TW": "返回", en: "Back", fr: "Retour" },
-  "nav.empty": { "zh-CN": "还没有收录站点", "zh-TW": "還沒有收錄站點", en: "No sites yet", fr: "Aucun site pour l'instant" },
 
   "footer.upstream": { "zh-CN": "上游项目迁移自", "zh-TW": "上游專案遷移自", en: "Migrated from", fr: "Migré depuis" },
   "footer.source": { "zh-CN": "本项目源码", "zh-TW": "本專案原始碼", en: "Source code", fr: "Code source" },
   "footer.license": { "zh-CN": "代码开源（MIT），公开部署需获作者授权 · 详见 LICENSE", "zh-TW": "程式碼開源（MIT），公開部署需獲作者授權 · 詳見 LICENSE", en: "MIT licensed · deployment requires author's permission · see LICENSE", fr: "Sous licence MIT · le déploiement nécessite l'autorisation de l'auteur · voir LICENSE" },
   "footer.badge": { "zh-CN": "备案徽章", "zh-TW": "備案徽章", en: "ICP badge", fr: "Badge ICP" },
-  "nav.titleMain": { "zh-CN": "Portchat 导航", "zh-TW": "Portchat 導航", en: "Portchat Directory", fr: "Annuaire Portchat" },
-  "nav.tagline": { "zh-CN": "站长工具 · 免费资源 · 全球域名后缀速查", "zh-TW": "站長工具 · 免費資源 · 全球網域後綴速查", en: "Webmaster tools · free resources · TLD lookup", fr: "Outils webmaster · ressources gratuites · recherche d'extensions" },
-  "nav.source": { "zh-CN": "域名数据来源：ICANN / IANA", "zh-TW": "網域資料來源：ICANN / IANA", en: "TLD data from ICANN / IANA", fr: "Données TLD de ICANN / IANA" },
-  "nav.tools": { "zh-CN": "工具导航", "zh-TW": "工具導航", en: "Tools", fr: "Outils" },
-  "nav.tlds": { "zh-CN": "全球域名后缀", "zh-TW": "全球網域後綴", en: "TLDs worldwide", fr: "Extensions mondiales" },
-  "nav.searchSites": { "zh-CN": "搜索", "zh-TW": "搜尋", en: "Search", fr: "Rechercher" },
-  "nav.sitesUnit": { "zh-CN": "个站点…", "zh-TW": "個站點…", en: "sites…", fr: "sites…" },
-  "nav.visit": { "zh-CN": "访问", "zh-TW": "造訪", en: "Visit", fr: "Visiter" },
-  "nav.noMatch": { "zh-CN": "没有匹配的站点", "zh-TW": "沒有符合的站點", en: "No matching sites", fr: "Aucun site correspondant" },
-  "nav.tldLookup": { "zh-CN": "全球域名后缀速查", "zh-TW": "全球網域後綴速查", en: "TLD lookup", fr: "Recherche d'extensions" },
-  "nav.authoritative": { "zh-CN": "ICANN / IANA 权威列表", "zh-TW": "ICANN / IANA 權威清單", en: "ICANN / IANA authoritative list", fr: "Liste officielle ICANN / IANA" },
-  "nav.builtIn": { "zh-CN": "内置常用列表（IANA 拉取失败）", "zh-TW": "內建常用清單（IANA 拉取失敗）", en: "Built-in list (IANA fetch failed)", fr: "Liste intégrée (échec du chargement IANA)" },
-  "nav.loadFailed": { "zh-CN": "加载失败", "zh-TW": "載入失敗", en: "Failed to load", fr: "Échec du chargement" },
-  "nav.loading": { "zh-CN": "加载中…", "zh-TW": "載入中…", en: "Loading…", fr: "Chargement…" },
-  "nav.tldPlaceholder": { "zh-CN": "搜索后缀，如 dev / 中国…", "zh-TW": "搜尋後綴，如 dev / 中國…", en: "Search TLDs, e.g. dev", fr: "Rechercher une extension, ex. dev" },
-  "nav.fetchingIana": { "zh-CN": "正在从 IANA 获取…", "zh-TW": "正在從 IANA 取得…", en: "Fetching from IANA…", fr: "Récupération depuis IANA…" },
-  "nav.noTldMatch": { "zh-CN": "没有匹配", "zh-TW": "沒有符合", en: "No match for", fr: "Aucune correspondance pour" },
-  "nav.noData": { "zh-CN": "暂无数据", "zh-TW": "暫無資料", en: "No data", fr: "Aucune donnée" },
-  "nav.matched": { "zh-CN": "匹配", "zh-TW": "符合", en: "Matched", fr: "Correspondances" },
-  "nav.tldUnit": { "zh-CN": "个后缀", "zh-TW": "個後綴", en: "TLDs", fr: "extensions" },
-  "nav.totalUnit": { "zh-CN": "共", "zh-TW": "共", en: "Total", fr: "Total" },
-  "nav.communityNote": { "zh-CN": "链接由社区整理，站长可在管理后台增删改 · 点击卡片跳转外部站点", "zh-TW": "連結由社群整理，站長可在管理後台增刪改 · 點擊卡片跳轉外部站點", en: "Links curated by the community · cards open external sites", fr: "Liens organisés par la communauté · les cartes ouvrent des sites externes" },
 
   "account.backToChat": { "zh-CN": "返回聊天", "zh-TW": "返回聊天", en: "Back to chat", fr: "Retour au chat" },
   "account.title": { "zh-CN": "账户设置", "zh-TW": "帳戶設定", en: "Account", fr: "Compte" },
@@ -357,7 +331,6 @@ const DICT: Record<string, Entry> = {
   "chat.uploadedFiles": { "zh-CN": "已上传", "zh-TW": "已上傳", en: "Uploaded", fr: "Téléversé" },
   "chat.filesUnit": { "zh-CN": "个文件", "zh-TW": "個檔案", en: "files", fr: "fichiers" },
   "chat.settingsSaved": { "zh-CN": "设置已保存", "zh-TW": "設定已儲存", en: "Settings saved", fr: "Paramètres enregistrés" },
-  "chat.navSite": { "zh-CN": "导航站", "zh-TW": "導航站", en: "Directory", fr: "Annuaire" },
   "chat.cloudPc": { "zh-CN": "云电脑", "zh-TW": "雲端電腦", en: "Cloud PC", fr: "PC cloud" },
   "chat.clearCurrent": { "zh-CN": "清空当前对话", "zh-TW": "清空目前對話", en: "Clear conversation", fr: "Effacer la discussion" },
   "chat.maxFiles": { "zh-CN": "最多同时上传", "zh-TW": "最多同時上傳", en: "Upload at most", fr: "Téléversez au maximum" },
@@ -392,7 +365,6 @@ const DICT: Record<string, Entry> = {
   "landing.preview.r1": { "zh-CN": "当然，我把句子拆短一些，去掉重复的形容词：", "zh-TW": "當然，我把句子拆短一些，去掉重複的形容詞：", en: "Sure — I'll shorten the sentences and drop the repeated adjectives:", fr: "Bien sûr — je raccourcis les phrases et supprime les adjectifs répétés :" },
   "landing.preview.r2": { "zh-CN": "「他犹豫了一下，还是把那句话说了出来。」", "zh-TW": "「他猶豫了一下，還是把那句話說了出來。」", en: "\"He hesitated, then said it anyway.\"", fr: "« Il hésita, puis le dit quand même. »" },
   "landing.preview.r3": { "zh-CN": "这样节奏更紧凑，读起来也顺。", "zh-TW": "這樣節奏更緊湊，讀起來也順。", en: "Tighter rhythm, smoother read.", fr: "Un rythme plus serré, une lecture plus fluide." },
-  "route.nav": { "zh-CN": "导航站", "zh-TW": "導航站", en: "Directory", fr: "Annuaire" },
   "route.sponsor": { "zh-CN": "赞助支持", "zh-TW": "贊助支持", en: "Sponsor", fr: "Soutenir" },
   "route.admin": { "zh-CN": "管理员面板", "zh-TW": "管理員面板", en: "Admin panel", fr: "Panneau d'administration" },
   "route.account": { "zh-CN": "账户设置", "zh-TW": "帳戶設定", en: "Account", fr: "Compte" },
@@ -486,7 +458,6 @@ const DICT: Record<string, Entry> = {
 
   // ---- 子页面顶栏 ----
   "chrome.chat": { "zh-CN": "聊天", "zh-TW": "聊天", en: "Chat", fr: "Chat" },
-  "chrome.nav": { "zh-CN": "导航", "zh-TW": "導航", en: "Directory", fr: "Annuaire" },
   "chrome.admin": { "zh-CN": "管理员", "zh-TW": "管理員", en: "Admin", fr: "Admin" },
   "chrome.account": { "zh-CN": "账户", "zh-TW": "帳戶", en: "Account", fr: "Compte" },
 
@@ -579,7 +550,6 @@ const DICT: Record<string, Entry> = {
   "sponsor.putFileHere": { "zh-CN": "把图片放到", "zh-TW": "把圖片放到", en: "Save the image as", fr: "Enregistrez l'image sous" },
 
   // ---- 导航站补充 ----
-  "nav.recommended": { "zh-CN": "荐", "zh-TW": "薦", en: "Top", fr: "Reco" },
 
   // ---- 聊天：提示与报错 ----
   "chat.webSearchFailed": { "zh-CN": "联网搜索未成功：{err}。将按常规方式回答。", "zh-TW": "聯網搜尋未成功：{err}。將按常規方式回答。", en: "Web search failed: {err}. Answering without it.", fr: "La recherche web a échoué : {err}. Réponse sans recherche." },

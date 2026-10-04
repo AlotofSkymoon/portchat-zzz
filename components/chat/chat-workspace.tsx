@@ -3,13 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  Compass,
   Monitor,
   Eraser,
   Menu,
   PanelLeftOpen,
   Plus,
   Settings2,
+  Swords,
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -1317,24 +1317,40 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                 : (conversations.find((c) => c.id === currentId)?.title ?? t("chat.newChat"))}
             </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Button variant="ghost" size="icon" asChild title={t("chat.navSite")}>
-              <Link href="/nav">
-                <Compass className="h-4 w-4" />
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" asChild title={t("sidebar.arena")}>
+              <Link href="/arena" className="gap-1.5">
+                <Swords className="h-4 w-4" />
+                <span className="hidden lg:inline">{t("sidebar.arena")}</span>
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" asChild title={t("chat.cloudPc")}>
-              <Link href="/pc">
+            <Button variant="ghost" size="sm" asChild title={t("chat.cloudPc")}>
+              <Link href="/pc" className="gap-1.5">
                 <Monitor className="h-4 w-4" />
+                <span className="hidden lg:inline">{t("chat.cloudPc")}</span>
               </Link>
             </Button>
             {!isEmpty ? (
-              <Button variant="ghost" size="icon" onClick={handleClearCurrent} title={t("chat.clearCurrent")}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearCurrent}
+                title={t("chat.clearCurrent")}
+                className="gap-1.5"
+              >
                 <Eraser className="h-4 w-4" />
+                <span className="hidden lg:inline">{t("chat.clearCurrent")}</span>
               </Button>
             ) : null}
-            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title={t("settings.title")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSettingsOpen(true)}
+              title={t("settings.title")}
+              className="gap-1.5"
+            >
               <Settings2 className="h-4 w-4" />
+              <span className="hidden lg:inline">{t("settings.title")}</span>
             </Button>
             {/* 主题切换：常驻顶栏，液态玻璃 */}
             <ThemeToggle />
