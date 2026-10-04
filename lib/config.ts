@@ -139,7 +139,7 @@ export const CHAT_MODELS: ModelOption[] = [
   {
     id: "atria-dawn-preview",
     label: "Atria Dawn",
-    desc: "Atria Dawn · 512K 科学推理，限时免费",
+    desc: "Atria Dawn · 256K 科学推理，限时免费",
     provider: "inkstone",
     vision: false,
   },
@@ -209,23 +209,19 @@ export const CHAT_MODELS: ModelOption[] = [
   /* ------------------------- 书生·浦语（InternLM / Atria） ------------------------- */
 
   /*
-   * ⚠️ 模型 id 说明：
-   * 这两个是浦语官方公开文档里长期稳定的别名（latest 指向当前版本），
-   * 但平台随时会上下架模型。如果调用报 model not found，
+   * ⚠️ 模型 id 以官方文档「模型概览与接口选择」为准：
+   * 浦语平台当前只提供 Atria-Dawn-Preview 一款模型，上下文 256K tokens。
+   * 注意 id 的大小写是官方写法（Atria-Dawn-Preview），与端砚那条
+   * atria-dawn-preview 是不同 provider 下的同名模型，别合并。
+   *
+   * 平台随时会上下架模型。如果调用报 model not found，
    * 用设置里的「管理模型 → 探测」拉取该 Key 实际可用的模型列表，
    * 勾选后即自动加入下拉框，不需要改代码。
    */
   {
-    id: "internlm3-latest",
-    label: "InternLM 3",
-    desc: "书生·浦语 3 · 通用对话",
-    provider: "atriasi",
-    vision: false,
-  },
-  {
-    id: "internlm2.5-latest",
-    label: "InternLM 2.5",
-    desc: "书生·浦语 2.5 · 通用对话",
+    id: "Atria-Dawn-Preview",
+    label: "Atria Dawn Preview",
+    desc: "书生·浦语 · 256K 科研分析 / 代码 / 多轮 Agent",
     provider: "atriasi",
     vision: false,
   },
