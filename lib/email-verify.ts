@@ -48,9 +48,20 @@ export async function saveCode(email: string, userId: string): Promise<string> {
   return code;
 }
 
-export type VerifyResult =
-  | { ok: true; userId: string }
-  | { ok: false; reason: "expired" | "wrong" | "too_many" };
+/*
+ * ⚠️ 这里刻意不用可辨识联合（discriminated union）。
+ * 本项目 tsconfig 关闭了 strictNullChecks，而布尔字面量判别式的收窄
+ * 依赖它 —— 关掉之后 `if (!r.ok)` 不会把类型收窄到失败分支，
+ * 访问 r.reason 直接报 TS2339（Vercel 构建会因为这个失败）。
+ * 改成单对象 + 可选字段，行为不变，但不会再踩这个坑。
+ */
+export type VerifyResult = {
+  ok: boolean;
+  /** 仅成功时有值 */
+  userId?: string;
+  /** 仅失败时有值 */
+  reason?: "expired" | "wrong" | "too_many";
+};
 
 export async function checkCode(email: string, code: string): Promise<VerifyResult> {
   const raw = await getValue<string>(KEYS.emailVerify(email));

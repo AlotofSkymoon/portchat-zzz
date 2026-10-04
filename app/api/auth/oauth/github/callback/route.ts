@@ -4,9 +4,8 @@ import { cookies } from "next/headers";
 import { createSession, createUserId, setSessionCookie, toSafeUser, getCurrentUser, readOAuth } from "@/lib/auth";
 import { getRedis, hgetAll, hasRedisConfig, storageErrorMessage, KEYS } from "@/lib/redis";
 import { issueTrustCookie } from "@/lib/two-factor";
-import { resolveGithubOAuth } from "@/lib/oauth-config";
+import { resolveGithubOAuth, STATE_COOKIE } from "@/lib/oauth-config";
 import type { UserRecord } from "@/lib/auth";
-import { STATE_COOKIE } from "../route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 
 import { serverT as st } from "@/lib/i18n/server";
 import { getCurrentUser } from "@/lib/auth";
-import { resolveGithubOAuth } from "@/lib/oauth-config";
+import { resolveGithubOAuth, STATE_COOKIE, STATE_TTL_SECONDS } from "@/lib/oauth-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,9 +25,6 @@ export const dynamic = "force-dynamic";
  */
 
 const GITHUB_AUTHORIZE = "https://github.com/login/oauth/authorize";
-/** state 有效期：10 分钟足够完成一次授权 */
-const STATE_TTL_SECONDS = 600;
-const STATE_COOKIE = "pc_oauth_state";
 
 /** 只申请读取公开资料和邮箱，不要 write 权限 */
 const SCOPE = "read:user user:email";
@@ -92,5 +89,3 @@ export async function GET(request: Request) {
 
   return NextResponse.redirect(`${GITHUB_AUTHORIZE}?${params.toString()}`);
 }
-
-export { STATE_COOKIE, STATE_TTL_SECONDS };

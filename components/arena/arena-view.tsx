@@ -16,7 +16,7 @@ import {
 import { runDebate, runWerewolf } from "@/lib/arena/engine";
 import type { ArenaLine, ArenaMode, PlayerState } from "@/lib/arena/types";
 
-const PROVIDER_ORDER: ProviderId[] = ["agnes", "inkstone"];
+const PROVIDER_ORDER: ProviderId[] = ["agnes", "atriasi", "inkstone"];
 
 /* ------------------------------ 本地存储读取 ------------------------------ */
 
@@ -24,10 +24,16 @@ interface Transport {
   keys: Record<string, string>;
   baseUrls: Record<string, string>;
   customProviders: CustomProviderConfig[];
+  extraModels: Record<string, string[]>;
 }
 
 function readTransport(): Transport {
-  const empty: Transport = { keys: {}, baseUrls: {}, customProviders: [] };
+  const empty: Transport = {
+    keys: {},
+    baseUrls: {},
+    customProviders: [],
+    extraModels: {},
+  };
   if (typeof window === "undefined") return empty;
   try {
     const keys = JSON.parse(localStorage.getItem(LS_KEYS.keys) || "{}");
@@ -35,30 +41,58 @@ function readTransport(): Transport {
     const customProviders = JSON.parse(
       localStorage.getItem(LS_KEYS.customProviders) || "[]",
     );
+    let extraModels: Record<string, string[]> = {};
+    const rawExtra = localStorage.getItem(LS_KEYS.extraModels);
+    if (rawExtra) {
+      try {
+        const parsed = JSON.parse(rawExtra) as Record<string, unknown>;
+        extraModels = Object.fromEntries(
+          Object.entries(parsed).map(([k, v]) => [
+            k,
+            Array.isArray(v)
+              ? v.filter((x): x is string => typeof x === "string")
+              : [],
+          ]),
+        );
+      } catch {
+        extraModels = {};
+      }
+    }
     return {
       keys: typeof keys === "object" && keys ? keys : {},
       baseUrls: typeof baseUrls === "object" && baseUrls ? baseUrls : {},
       customProviders: Array.isArray(customProviders) ? customProviders : [],
+      extraModels,
     };
   } catch {
     return empty;
   }
 }
 
-/** 内置模型 + 自定义供应商的模型，拼成可选的扁平列表 */
-function useModelOptions(customProviders: CustomProviderConfig[]) {
+/** 内置模型 + 内置供应商追加模型 + 自定义供应商的模型，拼成可选的扁平列表 */
+function useModelOptions(
+  customProviders: CustomProviderConfig[],
+  extraModels: Record<string, string[]>,
+  keys: Record<string, string>,
+) {
   return React.useMemo(() => {
-    const builtin = PROVIDER_ORDER.flatMap((pid) =>
-      CHAT_MODELS.filter((m) => m.provider === pid).map((m) => ({
+    const builtin = PROVIDER_ORDER.flatMap((pid) => {
+      // 没填 Key 的内置供应商（且无站点内置 Key）整组不显示
+      if (!PROVIDERS[pid].hasPreset && !(keys[pid] ?? "").trim()) return [];
+      const own = CHAT_MODELS.filter((m) => m.provider === pid).map((m) => ({
         id: m.id,
         label: `${PROVIDERS[pid].label} · ${m.label}`,
-      })),
-    );
+      }));
+      const extra = (extraModels[pid] ?? [])
+        .filter((id) => !own.some((o) => o.id === id))
+        .map((id) => ({ id, label: `${PROVIDERS[pid].label} · ${id}` }));
+      return [...own, ...extra];
+    });
     const custom = (customProviders ?? []).flatMap((c) =>
       (c.models ?? []).map((id) => ({ id, label: `${c.label} · ${id}` })),
     );
     return [...builtin, ...custom];
-  }, [customProviders]);
+  }, [customProviders, extraModels, keys]);
 }
 
 /* -------------------------------- 主组件 -------------------------------- */
@@ -70,6 +104,7 @@ export function ArenaView() {
     keys: {},
     baseUrls: {},
     customProviders: [],
+    extraModels: {},
   });
   const [mode, setMode] = React.useState<ArenaMode>("debate");
 
@@ -102,7 +137,11 @@ export function ArenaView() {
   const abortRef = React.useRef<AbortController | null>(null);
   const outRef = React.useRef<HTMLDivElement>(null);
 
-  const options = useModelOptions(transport.customProviders);
+  const options = useModelOptions(
+    transport.customProviders,
+    transport.extraModels,
+    transport.keys,
+  );
 
   React.useEffect(() => {
     setTransport(readTransport());

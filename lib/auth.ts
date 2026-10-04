@@ -60,6 +60,11 @@ export interface UserRecord {
       login: string;
     };
   };
+  /**
+   * 自定义昵称。用户不想把邮箱露在界面上时用它。
+   * 没设置时前端回落显示邮箱，所以老账号不需要回填。
+   */
+  nickname?: string;
 }
 
 /** 可以安全返回给前端的用户信息（永远不含 passwordHash） */
@@ -269,4 +274,35 @@ export function getClientIp(headers: Headers): string {
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0].trim();
   return headers.get("x-real-ip") ?? "unknown";
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                 写用户字段                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * 改用户字段（nickname / email / emailVerified …）。
+ *
+ * ⚠️ 只允许传 string 值：用户在 Redis 里是 hash，嵌套对象存进去会变成
+ * "[object Object]"，所以嵌套字段（twoFactor / oauth）必须各自序列化，
+ * 不要从这里写。
+ *
+ * @returns 改完的完整记录；用户不存在时返回 null
+ */
+export async function updateUser(
+  id: string,
+  patch: Partial<Record<"email" | "emailVerified" | "nickname" | "role", string>>,
+): Promise<UserRecord | null> {
+  const redis = getRedis();
+  const key = KEYS.user(id);
+
+  // Redis hash 不接受 undefined；空 patch 直接返回当前记录
+  const clean: Record<string, string> = {};
+  for (const [k, v] of Object.entries(patch)) {
+    if (typeof v === "string") clean[k] = v;
+  }
+  if (Object.keys(clean).length === 0) return hgetAll<UserRecord>(key);
+
+  await redis.hset(key, clean);
+  return hgetAll<UserRecord>(key);
 }

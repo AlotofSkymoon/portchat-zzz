@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ImagePlus,
   Monitor,
@@ -12,6 +13,7 @@ import {
   Settings2,
   Swords,
   Upload,
+  MailWarning,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,6 +37,7 @@ import {
   supportsVision,
   type CustomProviderConfig,
 } from "@/lib/config";
+import { EMAIL_POLICY_DEADLINE } from "@/lib/email-policy";
 import { IMAGE_TARGET_BASE64, compressImageToDataUrl } from "@/lib/image-compress";
 import { DEFAULT_S3_CONFIG, type S3Config } from "@/lib/s3-presets";
 import {
@@ -55,8 +58,14 @@ import { useConversations } from "@/lib/use-conversations";
 interface SafeUser {
   id: string;
   email: string;
+  /** 昵称，没设置时界面回落显示邮箱 */
+  nickname?: string;
   role: "admin" | "user";
   createdAt: string;
+  /** 邮箱不在白名单里，需要换绑 */
+  emailMustChange?: boolean;
+  /** 已过换绑期限，聊天会被拦 */
+  emailPastDeadline?: boolean;
 }
 
 /** 该模型是否支持识图（内置 + 自定义供应商都要考虑） */
@@ -69,11 +78,14 @@ const DEFAULT_SETTINGS: ChatSettings = {
   keys: { agnes: "" },
   baseUrls: {},
   customProviders: [],
+  extraModels: {},
   model: DEFAULT_MODEL,
 };
 
 export function ChatWorkspace({ user }: { user: SafeUser | null }) {
   const { t } = useI18n();
+  // 改完昵称/邮箱只重取服务端数据，当前对话不会丢
+  const router = useRouter();
   const {
     conversations,
     currentId,
@@ -179,10 +191,28 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
         }
       }
 
+      // 内置供应商额外追加的模型（探测 / 手填）
+      let extraModels: Record<string, string[]> = {};
+      const rawExtra = localStorage.getItem(LS_KEYS.extraModels);
+      if (rawExtra) {
+        try {
+          const parsed = JSON.parse(rawExtra) as Record<string, unknown>;
+          extraModels = Object.fromEntries(
+            Object.entries(parsed).map(([k, v]) => [
+              k,
+              Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [],
+            ]),
+          );
+        } catch {
+          extraModels = {};
+        }
+      }
+
       const saved: ChatSettings = {
         keys: keys as ChatSettings["keys"],
         baseUrls,
         customProviders,
+        extraModels,
         model: localStorage.getItem(LS_KEYS.model) ?? DEFAULT_MODEL,
         s3,
         thinking: localStorage.getItem(LS_KEYS.thinking) === "true",
@@ -1359,6 +1389,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
       localStorage.setItem(LS_KEYS.keys, JSON.stringify(next.keys));
       localStorage.setItem(LS_KEYS.baseUrls, JSON.stringify(next.baseUrls));
       localStorage.setItem(LS_KEYS.customProviders, JSON.stringify(next.customProviders));
+      localStorage.setItem(LS_KEYS.extraModels, JSON.stringify(next.extraModels ?? {}));
       localStorage.setItem(LS_KEYS.model, next.model);
       if (next.thinking !== undefined) {
         localStorage.setItem(LS_KEYS.thinking, next.thinking ? "true" : "false");
@@ -1399,6 +1430,25 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
 
       {/* 主区域 */}
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* 邮箱换绑提醒：未过期限只是提醒，过期后才真正拦截 */}
+        {user?.emailMustChange ? (
+          <div className="mx-2 mt-2 flex shrink-0 flex-wrap items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            <MailWarning className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 flex-1">
+              {user.emailPastDeadline
+                ? t("chat.emailBannerPast")
+                : t("chat.emailBanner", { d: EMAIL_POLICY_DEADLINE })}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 shrink-0"
+              onClick={() => setSettingsOpen(true)}
+            >
+              {t("chat.emailBannerAction")}
+            </Button>
+          </div>
+        ) : null}
         {/* 顶栏：常驻显示，液态玻璃 */}
         <header className="liquid-glass liquid-bar sticky top-0 z-30 mx-2 mt-2 flex h-14 shrink-0 items-center justify-between px-3">
           <div className="flex min-w-0 items-center gap-2">
@@ -1516,6 +1566,8 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   model={mounted ? settings.model : undefined}
                   onModelChange={changeModel}
                   customProviders={settings.customProviders}
+                  keys={settings.keys}
+                  extraModels={settings.extraModels}
                   placeholder={t("input.placeholderDrop")}
                   attachments={attachments}
                   onPickFiles={storageReady ? addFiles : undefined}
@@ -1555,6 +1607,8 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   model={mounted ? settings.model : undefined}
                   onModelChange={changeModel}
                   customProviders={settings.customProviders}
+                  keys={settings.keys}
+                  extraModels={settings.extraModels}
                   placeholder={t("input.placeholderDrop")}
                   attachments={attachments}
                   onPickFiles={storageReady ? addFiles : undefined}
@@ -1619,6 +1673,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
         cloudSync={cloudSync}
         onCloudSyncChange={handleCloudSyncChange}
         onClearAll={clearAllData}
+        onUserChanged={() => router.refresh()}
       />
     </div>
   );

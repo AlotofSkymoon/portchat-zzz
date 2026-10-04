@@ -1,5 +1,5 @@
 /** 支持的模型服务商 */
-export type ProviderId = "agnes" | "deepseek" | "inkstone";
+export type ProviderId = "agnes" | "deepseek" | "inkstone" | "atriasi";
 
 export interface ProviderConfig {
   id: ProviderId;
@@ -43,6 +43,21 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     baseUrl: "https://discovery-api.intern-ai.org.cn/v1",
     hasPreset: false,
     keyUrl: "https://discovery.intern-ai.org.cn/",
+  },
+  atriasi: {
+    id: "atriasi",
+    /**
+     * 上海 AI 实验室「书生·浦语」通用模型 API。
+     *
+     * ⚠️ 与「书生·端砚」（inkstone）是两个不同的平台，别合并：
+     * - 端砚：科研模型平台 discovery-api.intern-ai.org.cn
+     * - 浦语：通用模型平台 api.atria-asi.ai
+     * 两者的 Key 不通用，模型列表也不一样。
+     */
+    label: "书生·浦语",
+    baseUrl: "https://api.atria-asi.ai/v1",
+    hasPreset: false,
+    keyUrl: "https://atria-asi.ai/",
   },
 };
 
@@ -188,6 +203,30 @@ export const CHAT_MODELS: ModelOption[] = [
     label: "Qwen3.8 27B",
     desc: "Qwen3.8 27B · 轻量通用",
     provider: "inkstone",
+    vision: false,
+  },
+
+  /* ------------------------- 书生·浦语（InternLM / Atria） ------------------------- */
+
+  /*
+   * ⚠️ 模型 id 说明：
+   * 这两个是浦语官方公开文档里长期稳定的别名（latest 指向当前版本），
+   * 但平台随时会上下架模型。如果调用报 model not found，
+   * 用设置里的「管理模型 → 探测」拉取该 Key 实际可用的模型列表，
+   * 勾选后即自动加入下拉框，不需要改代码。
+   */
+  {
+    id: "internlm3-latest",
+    label: "InternLM 3",
+    desc: "书生·浦语 3 · 通用对话",
+    provider: "atriasi",
+    vision: false,
+  },
+  {
+    id: "internlm2.5-latest",
+    label: "InternLM 2.5",
+    desc: "书生·浦语 2.5 · 通用对话",
+    provider: "atriasi",
     vision: false,
   },
 ];
@@ -353,7 +392,7 @@ export interface CustomProviderConfig {
 }
 
 /** 内置服务商 id 不能占用 */
-export const BUILTIN_PROVIDER_IDS = ["agnes", "deepseek", "inkstone"] as const;
+export const BUILTIN_PROVIDER_IDS = ["agnes", "deepseek", "inkstone", "atriasi"] as const;
 
 /** 自定义供应商 id 必须以 custom: 开头，避免与内置 id 冲突 */
 export const CUSTOM_PROVIDER_PREFIX = "custom:";
@@ -541,11 +580,24 @@ export function isBlockedBaseUrl(rawUrl: string): boolean {
 
 export const LS_KEYS = {
   // 各服务商的 Key 分开存
-  keys: "agnes:keys", // JSON: { agnes?: string; deepseek?: string; inkstone?: string }
+  keys: "agnes:keys", // JSON: { agnes?: string; deepseek?: string; inkstone?: string; atriasi?: string }
   apiKey: "agnes:apiKey",
   baseUrl: "agnes:baseUrl", // 旧字段，仅用于迁移
   baseUrls: "agnes:baseUrls", // JSON: { agnes?: string; deepseek?: string; "custom:x"?: string }
   customProviders: "agnes:customProviders", // JSON: CustomProviderConfig[]
+  /**
+   * 内置供应商的额外模型。
+   *
+   * 结构：{ [providerId]: string[] }，例如 { inkstone: ["new-model-id"] }。
+   *
+   * 为什么需要：内置供应商的模型是写死在 CHAT_MODELS 里的，
+   * 上游一加新模型，用户就只能等发版。
+   * 有了这个字段，「管理模型 → 探测」可以把上游新增的模型 id 追加到这里，
+   * ModelPicker 展示时会把它并进该供应商的分组里。
+   *
+   * 注意：这里只额外**增加**，不会覆盖 CHAT_MODELS 里已有的内置模型。
+   */
+  extraModels: "agnes:extraModels",
   model: "agnes:model",
   messages: "agnes:messages",
   conversationId: "agnes:conversationId",

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
+import { checkEmailAllowed, isPastEmailDeadline } from "@/lib/email-policy";
 import { timeoutSignal } from "@/lib/fetch-timeout";
 import {
   DEFAULT_MODEL,
@@ -316,6 +317,30 @@ export async function POST(request: Request) {
    * 否则用户会问"我明明填了自己的 Key 为什么还受限"。
    */
   const chatUser = await getCurrentUser();
+
+  /*
+   * 邮箱白名单：老账号用的邮箱不在白名单里时，到期后禁止对话。
+   *
+   * ⚠️ 只在这里拦、不在登录处拦 —— 登录永远放行，否则用户登不进来
+   * 也就换不了邮箱。管理员豁免：站长自己的邮箱未必在白名单里。
+   */
+  if (chatUser && chatUser.role !== "admin") {
+    const policy = checkEmailAllowed(chatUser.email);
+    if (!policy.ok && isPastEmailDeadline()) {
+      return NextResponse.json(
+        {
+          error:
+            policy.reason === "microsoft"
+              ? st(request, "err.emailMicrosoft")
+              : policy.reason === "temporary"
+                ? st(request, "err.emailTemporary")
+                : st(request, "err.emailNotAllowed"),
+          code: "EMAIL_CHANGE_REQUIRED",
+        },
+        { status: 403 },
+      );
+    }
+  }
 
   // 管理员不受限：站长不该被自己定的规则挡住
   const isAdminUser = chatUser?.role === "admin";

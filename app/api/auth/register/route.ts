@@ -9,6 +9,7 @@ import {
   toSafeUser,
 } from "@/lib/auth";
 import { isEmailConfigured, sendVerificationCode } from "@/lib/email";
+import { checkEmailAllowed } from "@/lib/email-policy";
 import { checkCode, consumeCode, markResent, saveCode } from "@/lib/email-verify";
 import { getRedis, getValue, hasRedisConfig,
   storageErrorMessage, KEYS } from "@/lib/redis";
@@ -34,6 +35,28 @@ export async function POST(request: Request) {
     if (!isValidEmail(email)) {
       return NextResponse.json({ error: st(request, "err.invalidEmail") }, { status: 400 });
     }
+
+    /*
+     * 邮箱白名单：本站只接受 Hypermail / Gmail / QQ。
+     * 微软邮箱与临时邮箱一律拒绝 —— 临时邮箱让封号形同虚设，
+     * 微软邮箱则是因为发信常被判垃圾邮件、验证码收不到。
+     */
+    const policy = checkEmailAllowed(email);
+    if (!policy.ok) {
+      return NextResponse.json(
+        {
+          error:
+            policy.reason === "microsoft"
+              ? st(request, "err.emailMicrosoft")
+              : policy.reason === "temporary"
+                ? st(request, "err.emailTemporary")
+                : st(request, "err.emailNotAllowed"),
+          code: "EMAIL_NOT_ALLOWED",
+        },
+        { status: 400 },
+      );
+    }
+
     if (password.length < 8) {
       return NextResponse.json({ error: st(request, "err.passwordMin8") }, { status: 400 });
     }

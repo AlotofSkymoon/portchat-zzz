@@ -21,10 +21,14 @@ interface ModelPickerProps {
   className?: string;
   /** 用户自建的供应商，用于把它们的模型也列进下拉 */
   customProviders?: CustomProviderConfig[];
+  /** 各服务商的 Key，用于判断哪些供应商「没填 Key 就不显示」 */
+  keys?: Record<string, string>;
+  /** 内置供应商额外追加的模型 id（探测 / 手填），会并进对应分组 */
+  extraModels?: Record<string, string[]>;
 }
 
 // DeepSeek 入口已移除：站点不提供 DeepSeek Key，界面不再列出
-const PROVIDER_ORDER: ProviderId[] = ["agnes", "inkstone"];
+const PROVIDER_ORDER: ProviderId[] = ["agnes", "atriasi", "inkstone"];
 
 /** 模型名全是拉丁字符，强制走 Montserrat */
 const MONTSERRAT = "Montserrat, -apple-system, BlinkMacSystemFont, system-ui, sans-serif";
@@ -54,7 +58,14 @@ interface Placement {
  *   3. 高度压进可用空间内，超出就在菜单内部滚动；
  *   4. 打开后自动把当前选中的模型滚进视野。
  */
-export function ModelPicker({ value, onChange, className, customProviders = [] }: ModelPickerProps) {
+export function ModelPicker({
+  value,
+  onChange,
+  className,
+  customProviders = [],
+  keys = {},
+  extraModels = {},
+}: ModelPickerProps) {
   const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [placement, setPlacement] = React.useState<Placement | null>(null);
@@ -64,22 +75,32 @@ export function ModelPicker({ value, onChange, className, customProviders = [] }
 
   /** 内置 + 自定义，拼成统一的分组列表 */
   const groups = React.useMemo(() => {
-    const builtin = PROVIDER_ORDER.map((pid) => ({
-      key: pid as string,
-      label: PROVIDERS[pid].label,
-      items: CHAT_MODELS.filter((m) => m.provider === pid).map((m) => ({
-        id: m.id,
-        label: m.label,
-        desc: m.desc,
-      })),
-    }));
+    const builtin = PROVIDER_ORDER
+      // 没填 Key 的内置供应商整个不显示 —— 列出来也调不通，点了就是报错
+      .filter((pid) => PROVIDERS[pid].hasPreset || Boolean((keys[pid] ?? "").trim()))
+      .map((pid) => {
+        const base = CHAT_MODELS.filter((m) => m.provider === pid).map((m) => ({
+          id: m.id,
+          label: m.label,
+          desc: m.desc,
+        }));
+        // 用户自己探测/手填追加的模型，去掉与内置重复的再并进去
+        const extras = (extraModels[pid] ?? [])
+          .filter((id) => !base.some((m) => m.id === id))
+          .map((id) => ({ id, label: id, desc: t("model.customProvider") }));
+        return {
+          key: pid as string,
+          label: PROVIDERS[pid].label,
+          items: [...base, ...extras],
+        };
+      });
     const custom = customProviders.map((c) => ({
       key: c.id,
       label: c.label,
       items: c.models.map((id) => ({ id, label: id, desc: t("model.customProvider") })),
     }));
     return [...builtin, ...custom].filter((g) => g.items.length > 0);
-  }, [customProviders]);
+  }, [customProviders, keys, extraModels, t]);
 
   const allModels = React.useMemo(() => groups.flatMap((g) => g.items), [groups]);
   const current = allModels.find((m) => m.id === value) ?? allModels[0] ?? CHAT_MODELS[0];

@@ -34,7 +34,7 @@ interface SidebarProps {
   onOpenSettings: () => void;
   open: boolean;
   onClose: () => void;
-  user: { email: string; role: string } | null;
+  user: { email: string; role: string; nickname?: string } | null;
   /** 桌面端是否收起（宽度归零，主内容区补位） */
   collapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -271,7 +271,7 @@ export function Sidebar({
                 >
                   <span className={GLOW_BAR} aria-hidden />
                   <UserIcon className="h-4 w-4" />
-                  <span className="truncate">{user.email}</span>
+                  <span className="truncate">{user.nickname?.trim() || user.email}</span>
                 </Link>
               </>
             ) : (

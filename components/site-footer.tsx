@@ -28,6 +28,9 @@ import {
  * 没必要因为一个接口失败就报错。
  */
 
+/** 站长博客：默认写死，想换地址就用 NEXT_PUBLIC_BLOG_URL 覆盖 */
+const BLOG_URL = process.env.NEXT_PUBLIC_BLOG_URL || "https://blog.r0.us.ci";
+
 interface FooterSettings {
   icpText: string;
   icpUrl: string;
@@ -90,6 +93,16 @@ export function SiteFooter({ className = "" }: { className?: string }) {
       <p>
         <span className="font-medium text-fg-secondary">{SITE_NAME}</span> {t("footer.freeSite")} · {t("footer.by")}{" "}
         <span className="font-medium text-fg-secondary">{AUTHOR_NAME}</span> {t("footer.created")}
+      </p>
+      <p className="mt-1">
+        <Link
+          href={BLOG_URL}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="underline decoration-dotted underline-offset-2 hover:text-primary"
+        >
+          {t("footer.blog")}
+        </Link>
       </p>
       {/*
         源码 / 上游仓库链接：默认**不显示**。

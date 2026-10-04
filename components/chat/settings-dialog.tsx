@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   CloudUpload,
   Loader2,
+  Mail,
   ShieldCheck,
   ExternalLink,
   Eye,
@@ -73,6 +74,11 @@ export interface ChatSettings {
   s3?: S3Config;
   /** 思考模式：让模型先输出推理过程 */
   thinking?: boolean;
+  /**
+   * 内置供应商额外追加的模型 id：{ inkstone: ["xxx"], atriasi: ["yyy"] }。
+   * 上游上架新模型时用「管理模型 → 探测」追加，不必等站点发版。
+   */
+  extraModels?: Record<string, string[]>;
 }
 
 interface SettingsDialogProps {
@@ -84,10 +90,12 @@ interface SettingsDialogProps {
   cloudSync: boolean;
   onCloudSyncChange: (value: boolean) => void;
   onClearAll: () => void;
+  /** 昵称/邮箱改完了调一下，用来刷新顶栏显示（可选） */
+  onUserChanged?: () => void;
 }
 
 // DeepSeek 入口已移除：站点不提供 DeepSeek Key，界面不再列出
-const PROVIDER_ORDER: ProviderId[] = ["agnes", "inkstone"];
+const PROVIDER_ORDER: ProviderId[] = ["agnes", "atriasi", "inkstone"];
 
 /**
  * 自定义供应商编辑器。
@@ -232,6 +240,202 @@ function ProviderModelManager({
           </span>
         ))}
       </div>
+
+      {candidates.length > 0 ? (
+        <div className="space-y-1.5 rounded-lg border border-primary/30 bg-primary/5 p-2">
+          <p className="text-[10px] font-medium text-primary">{msg}</p>
+          <div className="max-h-32 space-y-1 overflow-y-auto">
+            {candidates.map((m) => (
+              <label key={m} className="flex items-center gap-1.5 text-[11px] text-fg-secondary">
+                <input
+                  type="checkbox"
+                  checked={picked.has(m)}
+                  onChange={() => toggle(m)}
+                  className="h-3 w-3 accent-[hsl(var(--primary))]"
+                />
+                <span className="truncate">{m}</span>
+              </label>
+            ))}
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            className="h-6 w-full text-[11px]"
+            onClick={appendPicked}
+            disabled={picked.size === 0}
+          >
+            <Plus className="mr-1 h-3 w-3" />
+            {t("settings.appendSelected")}
+          </Button>
+        </div>
+      ) : msg ? (
+        <p className="text-[10px] text-muted-foreground">{msg}</p>
+      ) : null}
+
+      <div className="flex gap-1.5">
+        <Input
+          value={manual}
+          onChange={(e) => setManual(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addManual();
+            }
+          }}
+          placeholder={t("settings.modelIdPlaceholder")}
+          className="h-7 text-[11px]"
+          autoComplete="off"
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 shrink-0 px-2 text-[11px]"
+          onClick={addManual}
+          disabled={!manual.trim()}
+        >
+          {t("settings.addModel")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 内置供应商的「模型管理」区。
+ *
+ * 为什么需要：内置供应商（书生·浦语 / 书生·端砚）的模型 id 是写死在
+ * CHAT_MODELS 里的，上游一上架新模型，用户就只能等站点发版。
+ *
+ * 这里做增量：用你填的 Key 去探测 /models，把上游有、本地还没有的
+ * 模型 id 追加进 localStorage 的 extraModels，ModelPicker 会把它们
+ * 并进该供应商的分组里。手填 id 也可以（有些平台关了 /models 端点）。
+ *
+ * ⚠️ 只能增删「额外追加」的模型，CHAT_MODELS 里写死的那些动不了 ——
+ * 否则内置列表会被改坏，回落默认模型时就会选到一个不存在的 id。
+ */
+function BuiltinProviderModelManager({
+  pid,
+  label,
+  baseUrl,
+  apiKey,
+  extra,
+  onChange,
+}: {
+  pid: string;
+  label: string;
+  baseUrl: string;
+  apiKey: string;
+  extra: string[];
+  onChange: (models: string[]) => void;
+}) {
+  const { t } = useI18n();
+  const [probing, setProbing] = React.useState(false);
+  const [msg, setMsg] = React.useState("");
+  const [candidates, setCandidates] = React.useState<string[]>([]);
+  const [picked, setPicked] = React.useState<Set<string>>(new Set());
+  const [manual, setManual] = React.useState("");
+
+  const owned = new Set(extra);
+
+  async function probe() {
+    setProbing(true);
+    setMsg("");
+    setCandidates([]);
+    setPicked(new Set());
+    try {
+      const res = await fetch("/api/probe-models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl, apiKey }),
+      });
+      const data = (await res.json()) as { ok?: boolean; models?: string[]; error?: string };
+      if (!data.ok || !data.models?.length) {
+        setMsg(apiKey ? data.error ?? t("settings.probeNone") : t("settings.probeNeedKey"));
+        return;
+      }
+      const fresh = data.models.filter((m) => !owned.has(m));
+      if (fresh.length === 0) {
+        setMsg(t("settings.noNewModels"));
+        return;
+      }
+      setCandidates(fresh);
+      setPicked(new Set(fresh));
+      setMsg(t("settings.newModelsFound", { count: fresh.length }));
+    } catch {
+      setMsg(t("settings.probeFailed"));
+    } finally {
+      setProbing(false);
+    }
+  }
+
+  function toggle(id: string) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function appendPicked() {
+    const add = Array.from(picked).filter((m) => !owned.has(m));
+    if (add.length === 0) return;
+    onChange([...extra, ...add]);
+    setCandidates([]);
+    setPicked(new Set());
+    setMsg(t("settings.modelsAppended", { count: add.length }));
+  }
+
+  function addManual() {
+    const id = manual.trim();
+    if (!id) return;
+    if (owned.has(id)) {
+      setMsg(t("settings.modelAlreadyThere"));
+      return;
+    }
+    onChange([...extra, id]);
+    setManual("");
+    setMsg(t("settings.modelsAppended", { count: 1 }));
+  }
+
+  return (
+    <div className="space-y-2 border-t border-border/60 pt-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-medium text-fg-tertiary">
+          {t("settings.manageModels")} · {label} +{extra.length}
+        </span>
+        <button
+          type="button"
+          onClick={probe}
+          disabled={probing || !apiKey}
+          className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline disabled:opacity-50"
+        >
+          <RefreshCw className={cn("h-3 w-3", probing && "animate-spin")} />
+          {probing ? t("settings.probing") : t("settings.probeNew")}
+        </button>
+      </div>
+
+      {extra.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {extra.map((m) => (
+            <span
+              key={m}
+              className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-fg-secondary"
+            >
+              <span className="max-w-[190px] truncate">{m}</span>
+              <button
+                type="button"
+                onClick={() => onChange(extra.filter((x) => x !== m))}
+                className="text-fg-quaternary hover:text-destructive"
+                aria-label={t("common.delete")}
+              >
+                <XIcon className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       {candidates.length > 0 ? (
         <div className="space-y-1.5 rounded-lg border border-primary/30 bg-primary/5 p-2">
@@ -859,6 +1063,252 @@ function GithubBindCard() {
   );
 }
 
+/**
+ * 邮箱账号卡片。
+ *
+ * 邮箱不在白名单里的老账号会看到换绑提示 —— 到期还没换，聊天接口会拦他，
+ * 但登录永远放行，所以这里只提示、不硬挡。
+ */
+function EmailCard({ onChanged }: { onChanged: () => void }) {
+  const { t } = useI18n();
+  const [loading, setLoading] = React.useState(true);
+  const [email, setEmail] = React.useState<string>("");
+  const [mustChange, setMustChange] = React.useState(false);
+  const [pastDeadline, setPastDeadline] = React.useState(false);
+  const [recommended, setRecommended] = React.useState<string>("hypermail.kdns.fr");
+  const [open, setOpen] = React.useState(false);
+  const [newEmail, setNewEmail] = React.useState("");
+  const [code, setCode] = React.useState("");
+  const [sent, setSent] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/profile", { signal: timeoutSignal(8_000) });
+      const data = (await res.json().catch(() => ({}))) as {
+        email?: {
+          address?: string;
+          mustChange?: boolean;
+          pastDeadline?: boolean;
+          recommendedDomain?: string;
+        };
+      };
+      setEmail(data.email?.address ?? "");
+      setMustChange(!!data.email?.mustChange);
+      setPastDeadline(!!data.email?.pastDeadline);
+      setRecommended(data.email?.recommendedDomain || "hypermail.kdns.fr");
+    } catch {
+      /* 查不到就保持默认 */
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function submit(action: "request" | "confirm") {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/auth/change-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, newEmail: newEmail.trim(), code: code.trim() }),
+        signal: timeoutSignal(15_000),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        toast.error(data.error ?? t("common.retryLater"));
+        return;
+      }
+      if (action === "request") {
+        setSent(true);
+        toast.success(t("settings.emailCode"));
+      } else {
+        toast.success(t("settings.emailChanged"));
+        setOpen(false);
+        setSent(false);
+        setNewEmail("");
+        setCode("");
+        await load();
+        onChanged();
+      }
+    } catch {
+      toast.error(t("common.retryLater"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-card/40 px-3 py-3 text-xs text-muted-foreground">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        {t("common.loading")}
+      </div>
+    );
+  }
+
+  if (!email) return null;
+
+  return (
+    <div className="space-y-3 rounded-xl border border-border/70 bg-card/40 px-3 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="pr-3">
+          <p className="text-sm font-medium">{t("settings.email")}</p>
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground">{email}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {mustChange ? t("settings.emailMustChange") : t("settings.emailAllowedHint")}
+          </p>
+          {mustChange ? (
+            <p className="mt-1 text-[11px] text-destructive">
+              {t("settings.emailDeadline").replace("{d}", "2026-10-15")}
+            </p>
+          ) : null}
+        </div>
+        <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+      </div>
+
+      {open ? (
+        <div className="space-y-2">
+          <p className="text-[11px] text-muted-foreground">
+            {t("settings.emailRecommend").replace("{d}", recommended)}
+          </p>
+          <Input
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            placeholder={`name@${recommended}`}
+            className="h-8 text-xs"
+            disabled={busy || sent}
+          />
+          {sent ? (
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder={t("settings.emailCode")}
+              className="h-8 text-xs"
+              disabled={busy}
+            />
+          ) : null}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={sent ? "secondary" : "default"}
+              disabled={busy || !newEmail.trim() || (sent && !code.trim())}
+              onClick={() => void submit(sent ? "confirm" : "request")}
+            >
+              {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+              {sent ? t("settings.emailConfirm") : t("settings.emailSendCode")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => {
+                setOpen(false);
+                setSent(false);
+              }}
+            >
+              {t("common.cancel")}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(true)}>
+          {t("settings.emailChangeAction")}
+        </Button>
+      )}
+
+      {pastDeadline ? (
+        <p className="text-[11px] text-destructive">{t("settings.emailMustChange")}</p>
+      ) : null}
+    </div>
+  );
+}
+
+/** 昵称：不填就回落显示邮箱，所以老账号不受影响 */
+function NicknameCard({ onChanged }: { onChanged: () => void }) {
+  const { t } = useI18n();
+  const [value, setValue] = React.useState("");
+  const [saved, setSaved] = React.useState<string | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const [dirty, setDirty] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/profile", { signal: timeoutSignal(8_000) });
+      const data = (await res.json().catch(() => ({}))) as { user?: { nickname?: string } };
+      const n = data.user?.nickname ?? "";
+      setValue(n);
+      setSaved(n);
+    } catch {
+      /* 查不到就留空 */
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname: value }),
+        signal: timeoutSignal(8_000),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string; user?: { nickname?: string } };
+      if (!res.ok) {
+        toast.error(data.error ?? t("settings.saveFailed"));
+        return;
+      }
+      setSaved(data.user?.nickname ?? "");
+      setDirty(false);
+      toast.success(t("settings.nicknameSaved"));
+      onChanged();
+    } catch {
+      toast.error(t("settings.saveFailed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border border-border/70 bg-card/40 px-3 py-3">
+      <div>
+        <p className="text-sm font-medium">{t("settings.nickname")}</p>
+        <p className="text-xs text-muted-foreground">{t("settings.nicknameDesc")}</p>
+      </div>
+      <Input
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
+          setDirty(true);
+        }}
+        placeholder={t("settings.nicknamePlaceholder")}
+        className="h-8 text-xs"
+        disabled={busy}
+      />
+      <Button
+        type="button"
+        size="sm"
+        variant="secondary"
+        disabled={busy || !dirty || value === (saved ?? "")}
+        onClick={() => void save()}
+      >
+        {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+        {t("settings.nicknameSave")}
+      </Button>
+    </div>
+  );
+}
+
 export function SettingsDialog({
   open,
   onOpenChange,
@@ -868,6 +1318,7 @@ export function SettingsDialog({
   cloudSync,
   onCloudSyncChange,
   onClearAll,
+  onUserChanged,
 }: SettingsDialogProps) {
   const { t } = useI18n();
   const [form, setForm] = React.useState<ChatSettings>(settings);
@@ -1273,6 +1724,22 @@ export function SettingsDialog({
                   ) : null}
 
                   {/* 上游上架新模型后在这里增量追加，不用删掉整条重加 */}
+                  {!isCustom && !p.hasPreset ? (
+                    <BuiltinProviderModelManager
+                      pid={pid}
+                      label={p.label}
+                      baseUrl={form.baseUrls[pid] || p.baseUrl}
+                      apiKey={form.keys[pid] ?? ""}
+                      extra={form.extraModels?.[pid] ?? []}
+                      onChange={(models) =>
+                        setForm((f) => ({
+                          ...f,
+                          extraModels: { ...(f.extraModels ?? {}), [pid]: models },
+                        }))
+                      }
+                    />
+                  ) : null}
+
                   {isCustom ? (
                     <ProviderModelManager
                       provider={
@@ -1616,6 +2083,11 @@ export function SettingsDialog({
               />
             </div>
           ) : null}
+
+          {/* 昵称与邮箱账号 —— 放在最前，账号相关的最常用 */}
+          {user ? <NicknameCard onChanged={onUserChanged ?? (() => {})} /> : null}
+
+          {user ? <EmailCard onChanged={onUserChanged ?? (() => {})} /> : null}
 
           {/* 两步验证（TOTP） */}
           {user ? <TwoFactorCard /> : null}

@@ -37,6 +37,10 @@ interface ChatInputProps {
   onModelChange?: (modelId: string) => void;
   /** 用户自建供应商，透传给模型选择框 */
   customProviders?: CustomProviderConfig[];
+  /** 各服务商的 Key（没填 Key 的供应商不在下拉里显示） */
+  keys?: Record<string, string>;
+  /** 内置供应商额外追加的模型 id */
+  extraModels?: Record<string, string[]>;
   placeholder?: string;
   /* ---- 附件 ---- */
   attachments?: Attachment[];
@@ -80,6 +84,8 @@ export function ChatInput({
   model,
   onModelChange,
   customProviders = [],
+  keys,
+  extraModels,
   placeholder,
   attachments = [],
   onPickFiles,
@@ -223,7 +229,13 @@ export function ChatInput({
         {/* 左侧：模型选择小框 + 附件按钮 */}
         <div className="flex min-w-0 items-center gap-1.5">
           {model && onModelChange ? (
-            <ModelPicker value={model} onChange={onModelChange} customProviders={customProviders} />
+            <ModelPicker
+              value={model}
+              onChange={onModelChange}
+              customProviders={customProviders}
+              keys={keys}
+              extraModels={extraModels}
+            />
           ) : null}
           {thinkingSupported && onThinkingChange ? (
             <button

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { ChatWorkspace } from "@/components/chat/chat-workspace";
 import { getCurrentSafeUser } from "@/lib/auth";
+import { checkEmailAllowed, isPastEmailDeadline } from "@/lib/email-policy";
 import { hasRedisConfig } from "@/lib/redis";
 import { pageTitle } from "@/lib/site";
 
@@ -24,10 +25,24 @@ export const metadata: Metadata = {
 export default async function ChatPage() {
   // 未配置 Redis 时也能聊天（只是不能注册/登录）
   const user = hasRedisConfig() ? await getCurrentSafeUser() : null;
+  // 邮箱不在白名单里的老账号：提示换绑（登录永远放行，聊天到期才拦）
+  const mustChange = user ? !checkEmailAllowed(user.email).ok && user.role !== "admin" : false;
 
   return (
     <ChatWorkspace
-      user={user ? { id: user.id, email: user.email, role: user.role, createdAt: user.createdAt } : null}
+      user={
+        user
+          ? {
+              id: user.id,
+              email: user.email,
+              nickname: user.nickname,
+              role: user.role,
+              createdAt: user.createdAt,
+              emailMustChange: mustChange,
+              emailPastDeadline: mustChange && isPastEmailDeadline(),
+            }
+          : null
+      }
     />
   );
 }

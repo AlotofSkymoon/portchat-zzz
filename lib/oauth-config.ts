@@ -19,6 +19,18 @@ export interface GithubOAuthConfig {
   source: "env" | "site" | "none";
 }
 
+/**
+ * state 用的 Cookie 名与有效期。
+ *
+ * ⚠️ 这两个常量必须放在 lib 里，不能从 app/api/**\/route.ts 导出。
+ * Next.js 会为路由文件生成类型校验：只允许导出 GET/POST/runtime/dynamic 等
+ * 固定名字，多出来的具名导出会报 TS2344（Property 'xxx' is incompatible
+ * with index signature）。之前就是写在 route.ts 里 export 出去才构建失败的。
+ */
+/** state 有效期：10 分钟足够完成一次授权 */
+export const STATE_TTL_SECONDS = 600;
+export const STATE_COOKIE = "pc_oauth_state";
+
 /** 环境变量是否完整配置了 GitHub OAuth */
 export function githubOAuthFromEnv(): boolean {
   return Boolean(

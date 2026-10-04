@@ -16,12 +16,28 @@ import { getRedis, getValue, hasRedisConfig,
   storageErrorMessage, hgetAll, KEYS } from "@/lib/redis";
 import { verifyTotp, hashBackupCode, normalizeBackupCode } from "@/lib/totp";
 import { issueTrustCookie, isTrustedDevice } from "@/lib/two-factor";
+import { checkEmailAllowed, isPastEmailDeadline } from "@/lib/email-policy";
 import { serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const GENERIC_ERROR = "err.loginFailed";
+
+/**
+ * 老用户换绑提示。
+ *
+ * ⚠️ 故意不在登录这里拦截：过期也照样让登录，只是标记 mustChange。
+ * 否则用户永远登不进去、也就永远换不了邮箱 —— 死锁。
+ * 真正的拦截放在聊天接口，那边可以带着提示把他挡在对话之外。
+ */
+function emailPolicyFlags(user: UserRecord) {
+  const allowed = checkEmailAllowed(user.email);
+  return {
+    mustChange: !allowed.ok,
+    pastDeadline: !allowed.ok && isPastEmailDeadline(),
+  };
+}
 
 export async function POST(request: Request) {
   try {
@@ -129,6 +145,7 @@ export async function POST(request: Request) {
         await setSessionCookie(s.sessionId, s.maxAge);
         return NextResponse.json({
           user: toSafeUser(user),
+          ...emailPolicyFlags(user),
           backupRemaining: consumedBackup
             ? Math.max(0, (tf.backupCodes?.length ?? 0) - 1)
             : (tf.backupCodes?.length ?? 0),
@@ -138,7 +155,7 @@ export async function POST(request: Request) {
 
     const { sessionId, maxAge } = await createSession(user.id);
     await setSessionCookie(sessionId, maxAge);
-    return NextResponse.json({ user: toSafeUser(user) });
+    return NextResponse.json({ user: toSafeUser(user), ...emailPolicyFlags(user) });
   } catch (error) {
     console.error("[login] 登录失败");
     return NextResponse.json({ error: st(request, "err.loginGeneric") }, { status: 500 });
