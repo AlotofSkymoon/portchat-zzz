@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Play, Square, Swords, Users } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Play, Square, Swords, Users } from "lucide-react";
 
 import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
@@ -201,6 +202,15 @@ export function ArenaView() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
+      {/* 返回聊天：竞技场是独立页面，没有侧边栏可点，必须给一个出口 */}
+      <Link
+        href="/chat"
+        className="mb-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-fg"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        {t("auth.backToChat")}
+      </Link>
+
       <header className="mb-6">
         <h1 className="flex items-center gap-2 text-2xl font-semibold">
           <Swords className="h-5 w-5" />

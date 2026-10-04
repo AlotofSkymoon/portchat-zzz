@@ -226,6 +226,45 @@ export const IMAGE_SIZES = ["1K", "2K", "3K", "4K"] as const;
 /** 单次最多生成张数（文档未明确上限，保守取 4 避免超时） */
 export const IMAGE_MAX_COUNT = 4;
 
+/* ------------------------------ 文生视频 ------------------------------ */
+
+/**
+ * Agnes 文生视频端点。
+ *
+ * ⚠️ 视频是**异步任务**，跟图片不一样：这里只负责"创建任务"，
+ *    拿到 video_id 后要到 /agnesapi 轮询（见 AGNES_VIDEO_POLL_URL）。
+ */
+export const AGNES_VIDEO_URL =
+  process.env.AGNES_VIDEO_URL?.trim() || "https://api.agnes-ai.cn/v1/videos";
+
+/** 查询任务进度。文档要求带 model_name，keyframe/reference 模式必填。 */
+export const AGNES_VIDEO_POLL_URL =
+  process.env.AGNES_VIDEO_POLL_URL?.trim() || "https://api.agnes-ai.cn/agnesapi";
+
+/**
+ * 文生视频模型名。
+ *
+ * 文档里 Video 2.5 的模型 ID 是 agnes-video-2.5；另有 agnes-video-2.5-flash。
+ * 站长可用 AGNES_VIDEO_MODEL 覆盖。
+ */
+export const AGNES_VIDEO_MODEL =
+  process.env.AGNES_VIDEO_MODEL?.trim() || "agnes-video-2.5";
+
+/** 时长（秒）。文档要求以**字符串**传，范围 "4"–"12"。 */
+export const VIDEO_SECONDS = ["4", "5", "8", "10", "12"] as const;
+
+/** 视频画幅。文档只说默认 16:9，这里取常见档位，未被接受时上游会报错并原样透出。 */
+export const VIDEO_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4"] as const;
+
+/** 视频分辨率档位（文档：720P / 1080P / 1K / 2K） */
+export const VIDEO_SIZES = ["720P", "1080P", "1K", "2K"] as const;
+
+/**
+ * 轮询上限：视频生成通常几十秒到几分钟。
+ * 前端按 5 秒一次轮询，上限 90 次 ≈ 7.5 分钟，超了就提示用户去查任务。
+ */
+export const VIDEO_MAX_POLLS = 90;
+
 export const DEFAULT_MODEL = process.env.UPSTREAM_MODEL?.trim() || "agnes-3.0-flash";
 
 /**
