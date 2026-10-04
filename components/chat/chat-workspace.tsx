@@ -405,6 +405,20 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
     settings.s3,
   ]);
 
+  /*
+   * 从 GitHub 绑定流程跳回来时提示一次。
+   * 放在页面层而不是设置弹窗里 —— 弹窗关闭时内容是卸载的，放那儿收不到。
+   * 提示完立刻把参数从地址栏抹掉，刷新不会重复弹。
+   */
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("oauth_bound") !== "1") return;
+    url.searchParams.delete("oauth_bound");
+    window.history.replaceState({}, "", url.toString());
+    toast.success(t("settings.githubBindOk"));
+  }, [t]);
+
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, status]);

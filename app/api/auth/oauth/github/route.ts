@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { serverT as st } from "@/lib/i18n/server";
+import { getCurrentUser } from "@/lib/auth";
 import { resolveGithubOAuth } from "@/lib/oauth-config";
 
 export const runtime = "nodejs";
@@ -54,6 +55,17 @@ export async function GET(request: Request) {
   const raw = url.searchParams.get("redirect") || "/chat";
   const redirect = /^\/(?!\/)/.test(raw) ? raw : "/chat";
 
+  /*
+   * 两种用途：
+   *   login（默认） —— 用 GitHub 登录/注册，回调会建会话
+   *   bind          —— 已登录用户把 GitHub 绑到现有账号，回调只写绑定关系
+   * 必须在发起时就判登录态：未登录却走 bind，回调才发现的话用户已经白跳一趟。
+   */
+  const mode = url.searchParams.get("mode") === "bind" ? "bind" : "login";
+  if (mode === "bind" && !(await getCurrentUser())) {
+    return NextResponse.json({ error: st(request, "api.notLoggedIn") }, { status: 401 });
+  }
+
   const origin = url.origin;
   const callbackUrl = `${origin}/api/auth/oauth/github/callback`;
 
@@ -61,7 +73,7 @@ export async function GET(request: Request) {
   const state = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
 
   const store = await cookies();
-  store.set(STATE_COOKIE, JSON.stringify({ state, redirect }), {
+  store.set(STATE_COOKIE, JSON.stringify({ state, redirect, mode }), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

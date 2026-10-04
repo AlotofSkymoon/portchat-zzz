@@ -44,7 +44,7 @@ import {
   type CustomProviderConfig,
   type ProviderId,
 } from "@/lib/config";
-import { Plus, Pencil, Search, Check as CheckIcon, X as XIcon } from "lucide-react";
+import { Plus, Pencil, Search, Check as CheckIcon, X as XIcon, Github } from "lucide-react";
 import {
   ALLOW_CUSTOM_BASE_URL,
   ALLOW_CUSTOM_KEY,
@@ -741,6 +741,120 @@ function TwoFactorCard() {
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * GitHub 绑定卡片（设置里，仅登录可见）
+ *
+ * 绑定要跳出去再跳回来，所以用一个一次性标记避免重复弹提示：
+ * 回调回来时 URL 上带 oauth_bound=1，落地后立刻从地址栏抹掉。
+ */
+function GithubBindCard() {
+  const { t } = useI18n();
+  const [loading, setLoading] = React.useState(true);
+  const [enabled, setEnabled] = React.useState(false);
+  const [bound, setBound] = React.useState(false);
+  const [login, setLogin] = React.useState<string | null>(null);
+  const [busy, setBusy] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/oauth/github/bind", { signal: timeoutSignal(8_000) });
+      const data = (await res.json().catch(() => ({}))) as {
+        enabled?: boolean;
+        bound?: boolean;
+        login?: string | null;
+      };
+      setEnabled(!!data.enabled);
+      setBound(!!data.bound);
+      setLogin(data.login ?? null);
+    } catch {
+      /* 查不到就当没配 */
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  function startBind() {
+    setBusy(true);
+    // 整页跳转，不走 fetch：GitHub 授权页必须顶层导航
+    window.location.href = "/api/auth/oauth/github?mode=bind&redirect=/chat";
+  }
+
+  async function unbind() {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/auth/oauth/github/bind", {
+        method: "DELETE",
+        signal: timeoutSignal(8_000),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        toast.error(data.error ?? t("common.retryLater"));
+        return;
+      }
+      toast.success(t("settings.githubUnbindOk"));
+      await load();
+    } catch {
+      toast.error(t("common.retryLater"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-card/40 px-3 py-3 text-xs text-muted-foreground">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        {t("common.loading")}
+      </div>
+    );
+  }
+
+  // 站长没配就不显示，避免放一个点了报错的按钮
+  if (!enabled) return null;
+
+  return (
+    <div className="space-y-3 rounded-xl border border-border/70 bg-card/40 px-3 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="pr-3">
+          <p className="text-sm font-medium">{t("settings.githubBind")}</p>
+          <p className="text-xs text-muted-foreground">
+            {bound ? t("settings.githubBindOnDesc") : t("settings.githubBindDesc")}
+          </p>
+          {bound && login ? (
+            <p className="mt-1 font-mono text-xs text-muted-foreground">@{login}</p>
+          ) : null}
+        </div>
+        <Github className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+      </div>
+
+      {bound ? (
+        <>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            disabled={busy}
+            onClick={() => void unbind()}
+          >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("settings.githubUnbind")}
+          </Button>
+          <p className="text-[11px] text-muted-foreground">{t("settings.githubUnbindHint")}</p>
+        </>
+      ) : (
+        <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={startBind}>
+          {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+          {t("settings.githubBindAction")}
+        </Button>
+      )}
     </div>
   );
 }
@@ -1505,6 +1619,9 @@ export function SettingsDialog({
 
           {/* 两步验证（TOTP） */}
           {user ? <TwoFactorCard /> : null}
+
+          {/* GitHub 绑定 */}
+          {user ? <GithubBindCard /> : null}
 
           {/* 云端保存 —— 仅管理员可见（站点级配置已移到 /admin） */}
           {!isAdmin ? null : user ? (

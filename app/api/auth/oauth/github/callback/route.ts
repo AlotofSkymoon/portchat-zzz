@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-import { createSession, createUserId, setSessionCookie, toSafeUser, readOAuth } from "@/lib/auth";
+import { createSession, createUserId, setSessionCookie, toSafeUser, getCurrentUser, readOAuth } from "@/lib/auth";
 import { getRedis, hgetAll, hasRedisConfig, storageErrorMessage, KEYS } from "@/lib/redis";
 import { issueTrustCookie } from "@/lib/two-factor";
 import { resolveGithubOAuth } from "@/lib/oauth-config";
@@ -50,7 +50,10 @@ export async function GET(request: Request) {
   const raw = store.get(STATE_COOKIE)?.value || "";
   store.set(STATE_COOKIE, "", { path: "/", maxAge: 0 }); // state 一次性
 
-  let saved: { state: string; redirect: string } = { state: "", redirect: "/chat" };
+  let saved: { state: string; redirect: string; mode?: "login" | "bind" } = {
+    state: "",
+    redirect: "/chat",
+  };
   try {
     saved = JSON.parse(raw);
   } catch {
@@ -59,6 +62,8 @@ export async function GET(request: Request) {
 
   if (!saved.state || saved.state !== returnedState) return fail(request, "state");
   if (!code) return fail(request, "no_code");
+
+  const mode: "login" | "bind" = saved.mode === "bind" ? "bind" : "login";
 
   // 环境变量优先，其次是管理员在 /admin 面板里填的
   const cfg = await resolveGithubOAuth();
@@ -129,6 +134,28 @@ export async function GET(request: Request) {
   const email = (gh.email || `${gh.login}@users.noreply.github.com`).toLowerCase();
 
   const redis = getRedis();
+
+  /* --------------------------- 绑定模式 --------------------------- */
+  /*
+   * 已登录用户在设置里点「绑定 GitHub」走这里。
+   * 跟登录模式的差别：不建会话、不动登录态，只把 GitHub id 写进当前账号。
+   */
+  if (mode === "bind") {
+    const current = await getCurrentUser();
+    if (!current) return fail(request, "need_login", saved.redirect || "/chat");
+
+    const owner = await redis.get<string>(KEYS.githubId(githubId)).catch(() => null);
+    if (owner && owner !== current.id) return fail(request, "already_bound", saved.redirect || "/chat");
+
+    const bindings = { ...readOAuth(current), github: { id: githubId, login: gh.login } };
+    // 只改 oauth 一个字段 —— 用 set 整个覆盖会丢掉 hash 里其他内容
+    await redis.hset(KEYS.user(current.id), { oauth: JSON.stringify(bindings) });
+    await redis.set(KEYS.githubId(githubId), current.id).catch(() => undefined);
+
+    const done = new URL(saved.redirect || "/chat", request.url);
+    done.searchParams.set("oauth_bound", "1");
+    return NextResponse.redirect(done);
+  }
 
   /* ------------------------------ 找用户 ------------------------------ */
   // 1) 先按 GitHub id 精确匹配（已绑定过的）
