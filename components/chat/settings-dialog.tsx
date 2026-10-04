@@ -44,7 +44,7 @@ import {
   type CustomProviderConfig,
   type ProviderId,
 } from "@/lib/config";
-import { Loader2, Plus, Pencil, Search, Check as CheckIcon, X as XIcon } from "lucide-react";
+import { Plus, Pencil, Search, Check as CheckIcon, X as XIcon } from "lucide-react";
 import {
   ALLOW_CUSTOM_BASE_URL,
   ALLOW_CUSTOM_KEY,
