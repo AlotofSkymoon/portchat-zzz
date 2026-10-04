@@ -524,6 +524,8 @@ const DICT: Record<string, Entry> = {
   "video.needTranscode": { "zh-CN": "{ext} 不是浏览器原生格式，需要先用内置解码器转换为 MP4。", "zh-TW": "{ext} 不是瀏覽器原生格式，需要先用內建解碼器轉換為 MP4。", en: "{ext} isn't a native browser format — it must be converted to MP4 first.", fr: "{ext} n'est pas un format natif — il doit d'abord être converti en MP4." },
   "video.decodeAndPlay": { "zh-CN": "解码并播放", "zh-TW": "解碼並播放", en: "Decode and play", fr: "Décoder et lire" },
   "video.play": { "zh-CN": "播放", "zh-TW": "播放", en: "Play", fr: "Lire" },
+  "video.convertingUpload": { "zh-CN": "正在把「{name}」转为 MP4…（首次需要下载解码器，请稍候）", "zh-TW": "正在把「{name}」轉為 MP4…（首次需要下載解碼器，請稍候）", en: "Converting “{name}” to MP4… (first run downloads the decoder, please wait)", fr: "Conversion de « {name} » en MP4… (premier lancement : téléchargement du décodeur, patientez)" },
+  "video.convertFailedUpload": { "zh-CN": "转码失败，已改传原文件（{msg}）", "zh-TW": "轉檔失敗，已改傳原檔案（{msg}）", en: "Conversion failed, uploading the original file instead ({msg})", fr: "Échec de la conversion, envoi du fichier d’origine à la place ({msg})" },
 
   // ---- 邮箱验证 ----
   "verify.title": { "zh-CN": "验证邮箱", "zh-TW": "驗證信箱", en: "Verify email", fr: "Vérifier l'e-mail" },

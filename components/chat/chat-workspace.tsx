@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/chat/empty-state";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { SettingsDialog, type ChatSettings } from "@/components/chat/settings-dialog";
 import { probeImageUrl } from "@/lib/image-probe";
+import { transcodeToMp4, videoNeedsTranscode } from "@/lib/video-transcode";
 import { ALLOW_WEB_SEARCH, REQUIRE_LOGIN } from "@/lib/site";
 import { Sidebar } from "@/components/chat/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -1016,10 +1017,44 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
       picked.map(async (f) => {
         if (storageAvailable && needsRemote(f)) {
           try {
+            /**
+             * 视频：浏览器放不了的格式先在本地转成 mp4 再上传。
+             *
+             * 这样落库的就是 mp4，之后任何设备打开链接都能直接播，
+             * 不用每次播放都在浏览器里现转一遍（播放端转码只存在内存里，
+             * 换台设备又要重新下载 32MB 的解码器）。
+             */
+            let target = f;
+            if (isVideoFile(f) && videoNeedsTranscode(f)) {
+              const note = (msg: string) => {
+                if (toastId !== undefined) toast.loading(msg, { id: toastId });
+              };
+              note(t("video.convertingUpload", { name: f.name }));
+
+              try {
+                target = await transcodeToMp4(f, { onProgress: note, t });
+                note(t("chat.uploading"));
+              } catch (err) {
+                /**
+                 * 转码失败**不阻断上传**：原文件照传。
+                 * 播放端还有一层 ffmpeg 兜底，只是每次打开都要现转。
+                 */
+                if (toastId !== undefined) {
+                  toast.warning(
+                    t("video.convertFailedUpload", {
+                      msg: err instanceof Error ? err.message : t("video.unknownError"),
+                    }),
+                    { id: toastId },
+                  );
+                }
+                if (willUpload) toastId = toast.loading(t("chat.uploading"));
+              }
+            }
+
             /* 优先走 R2 binding（免密钥），失败再退回预签名 */
             const att = storageBoundRef.current
-              ? await uploadViaBinding(f)
-              : await uploadViaS3(f);
+              ? await uploadViaBinding(target)
+              : await uploadViaS3(target);
 
             /**
              * 上传"成功"不等于 AI 看得到。

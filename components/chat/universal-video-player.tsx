@@ -5,6 +5,12 @@ import { Loader2, Play, TriangleAlert } from "lucide-react";
 
 import { useI18n } from "@/components/i18n-provider";
 
+/**
+ * ffmpeg 加载器改为复用共享模块 —— 上传转码和播放端转码
+ * 共用同一个实例，否则 32MB 的 core 会被下载两遍。
+ */
+import { loadFFmpeg } from "@/lib/video-transcode";
+
 /** 取文案的函数签名：模块级函数也用它，避免把 hook 拆得到处都是 */
 type TFn = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -23,22 +29,6 @@ type TFn = (key: string, vars?: Record<string, string | number>) => string;
  * 所以改成**首次播放时才从 CDN 按需加载**，用到才下载。
  */
 
-/* ---------------------------------------------------------------------------
-   CDN 源
-
-   unpkg 偶尔会挂，挂掉之后整个"解码并播放"就废了，所以配了备用源。
-   --------------------------------------------------------------------------- */
-const CDN_SOURCES = [
-  {
-    core: "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd",
-    js: "https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js",
-  },
-  {
-    core: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd",
-    js: "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js",
-  },
-];
-
 /** ffmpeg.wasm 是单线程 core，转大文件必然超时/OOM。超过这个体积先劝退。 */
 const SIZE_WARN_BYTES = 80 * 1024 * 1024;
 
@@ -48,8 +38,6 @@ type Phase =
   | { kind: "transcoding"; progress: string }
   | { kind: "ready"; url: string; via: string }
   | { kind: "error"; message: string; logs: string[] };
-
-let ffmpegPromise: Promise<any> | null = null;
 
 /** ffmpeg 原始输出（保留最近若干行）—— 失败时给用户看，否则无法定位 */
 let recentLogs: string[] = [];
@@ -70,67 +58,6 @@ function tailLogs(n = 8): string[] {
       !/^\s*(configuration|libavutil|libavcodec|libavformat|built with|Input #|Metadata)/.test(l),
   );
   return (useful.length ? useful : recentLogs).slice(-n);
-}
-
-/** 惰性加载 ffmpeg.wasm（全站只加载一次） */
-async function loadFFmpeg(onProgress: (msg: string) => void, t: TFn): Promise<any> {
-  if (ffmpegPromise) return ffmpegPromise;
-
-  ffmpegPromise = (async () => {
-    let lastErr: unknown = null;
-
-    for (let i = 0; i < CDN_SOURCES.length; i++) {
-      const cdn = CDN_SOURCES[i];
-      try {
-        onProgress(
-          i === 0
-            ? t("video.loadingDecoder")
-            : t("video.retrySource", { i: i + 1, n: CDN_SOURCES.length }),
-        );
-
-        // @ts-expect-error - UMD 包没有类型声明
-        if (!window.FFmpegWASM) {
-          await new Promise<void>((resolve, reject) => {
-            const s = document.createElement("script");
-            s.src = cdn.js;
-            s.onload = () => resolve();
-            s.onerror = () => reject(new Error(t("video.scriptFailed", { url: cdn.js })));
-            document.head.appendChild(s);
-          });
-        }
-
-        // @ts-expect-error - UMD 全局
-        const { FFmpeg } = window.FFmpegWASM;
-        const ffmpeg = new FFmpeg();
-        ffmpeg.on("log", ({ message }: { message: string }) => pushLog(message ?? ""));
-
-        await ffmpeg.load({
-          coreURL: `${cdn.core}/ffmpeg-core.js`,
-          wasmURL: `${cdn.core}/ffmpeg-core.wasm`,
-        });
-        return ffmpeg;
-      } catch (err) {
-        lastErr = err;
-        // 换源前清掉上一支遗留的 script，避免命中同一个 UMD 全局
-        // @ts-expect-error - UMD 全局
-        try { delete window.FFmpegWASM; } catch { /* 忽略 */ }
-      }
-    }
-
-    throw new Error(
-      t("video.loadFailed", {
-        n: CDN_SOURCES.length,
-        msg: lastErr instanceof Error ? lastErr.message : t("video.unknownError"),
-      }),
-    );
-  })();
-
-  // 加载失败要清掉缓存，否则后续重试永远返回同一个 rejected promise
-  ffmpegPromise.catch(() => {
-    ffmpegPromise = null;
-  });
-
-  return ffmpegPromise;
 }
 
 /** 从 `-i` 的输出里解析流信息（ffmpeg.wasm 没有 ffprobe，只能读日志） */
