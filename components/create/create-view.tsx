@@ -5,10 +5,13 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Download,
+  ExternalLink,
   Film,
+  History,
   ImagePlus,
   Loader2,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -24,6 +27,13 @@ import {
   VIDEO_SECONDS,
   VIDEO_SIZES,
 } from "@/lib/config";
+import {
+  clearCreations,
+  deleteCreation,
+  listCreations,
+  saveCreation,
+  type CreationRecord,
+} from "@/lib/creations";
 
 type GenResult = {
   images: string[];
@@ -71,6 +81,52 @@ export function CreateView() {
   const fileRef = React.useRef<HTMLInputElement>(null);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollsRef = React.useRef(0);
+
+  // 生成记录
+  const [history, setHistory] = React.useState<CreationRecord[]>([]);
+  const [hSource, setHSource] = React.useState<"cloud" | "local">("cloud");
+  const [hNote, setHNote] = React.useState("");
+
+  const reloadHistory = React.useCallback(async () => {
+    const r = await listCreations();
+    setHistory(r.list);
+    setHSource(r.source);
+  }, []);
+
+  React.useEffect(() => {
+    void reloadHistory();
+  }, [reloadHistory]);
+
+  /** 存一条并刷新列表。存哪都算成功，只是提示不同。 */
+  const persist = React.useCallback(
+    async (rec: Parameters<typeof saveCreation>[0]) => {
+      const r = await saveCreation(rec);
+      setHNote(r.source === "cloud" ? t("create.savedCloud") : t("create.savedLocal"));
+      void reloadHistory();
+    },
+    [reloadHistory, t],
+  );
+
+  const removeOne = React.useCallback(
+    async (id: string) => {
+      await deleteCreation(id);
+      void reloadHistory();
+    },
+    [reloadHistory],
+  );
+
+  const removeAll = React.useCallback(async () => {
+    await clearCreations();
+    setHNote("");
+    void reloadHistory();
+  }, [reloadHistory]);
+
+  /*
+   * 视频是异步的：轮询回调里拿不到当时的参数（闭包会捕获旧值），
+   * 所以用 ref 存一份最新的，完成时再落库。
+   */
+  const vParamsRef = React.useRef({ seconds: "5", ratio: "16:9", model: "" });
+  const vPromptRef = React.useRef("");
 
   /** 卸载或切换页时停掉轮询，避免后台一直打接口 */
   const stopPoll = React.useCallback(() => {
@@ -147,12 +203,20 @@ export function CreateView() {
         return;
       }
       setResult({ images: data.images, sent: data.sent });
+      void persist({
+        kind: "image",
+        prompt: data.prompt || prompt.trim(),
+        model: data.sent?.model,
+        urls: data.images || [],
+        ratio,
+        size,
+      });
     } catch {
       setError(t("create.networkErr"));
     } finally {
       setBusy(false);
     }
-  }, [count, prompt, ratio, refImage, size, t]);
+  }, [count, persist, prompt, ratio, refImage, size, t]);
 
   /* ------------------------------ 视频 ------------------------------ */
 
@@ -177,6 +241,14 @@ export function CreateView() {
 
       if (data.status === "completed" && data.url) {
         setVUrl(data.url);
+        void persist({
+          kind: "video",
+          prompt: vPromptRef.current,
+          model: vParamsRef.current.model || undefined,
+          urls: [data.url],
+          ratio: vParamsRef.current.ratio,
+          seconds: Number(vParamsRef.current.seconds) || undefined,
+        });
         return true;
       }
       if (data.status === "failed") {
@@ -185,7 +257,7 @@ export function CreateView() {
       }
       return false;
     },
-    [t],
+    [persist, t],
   );
 
   const schedulePoll = React.useCallback(
@@ -227,6 +299,8 @@ export function CreateView() {
     setVProgress(0);
     setVSent(null);
     pollsRef.current = 0;
+    vParamsRef.current = { seconds: vSeconds, ratio: vRatio, model: "" };
+    vPromptRef.current = p;
     try {
       const res = await fetch("/api/videos", {
         method: "POST",
@@ -251,12 +325,21 @@ export function CreateView() {
         return;
       }
       setVSent(data.sent ?? null);
+      vPromptRef.current = p;
 
       // 少数情况下上游同步就给了 url，省掉轮询
       if (data.url) {
         setVUrl(data.url);
         setVProgress(100);
         setVBusy(false);
+        void persist({
+          kind: "video",
+          prompt: p,
+          model: data.sent?.model,
+          urls: [data.url],
+          ratio: vRatio,
+          seconds: Number(vSeconds) || undefined,
+        });
         return;
       }
       schedulePoll(data.videoId);
@@ -550,6 +633,132 @@ export function CreateView() {
           ) : null}
         </div>
       ) : null}
+
+      {/* ------------------------- 生成记录 ------------------------- */}
+      <div className="mt-8 border-t border-border pt-6">
+        <div className="mb-1 flex items-center gap-2">
+          <History className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">{t("create.history")}</span>
+          {history.length ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto h-7 px-2 text-xs text-muted-foreground"
+              onClick={() => void removeAll()}
+            >
+              <Trash2 className="mr-1 h-3 w-3" />
+              {t("create.clearAll")}
+            </Button>
+          ) : null}
+        </div>
+        <p className="mb-3 text-xs text-muted-foreground">
+          {hSource === "local"
+            ? t("create.historyLocal")
+            : `${t("create.historyHint")} ${t("create.linkExpiry")}`}
+        </p>
+
+        {hNote ? (
+          <div className="mb-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            {hNote}
+          </div>
+        ) : null}
+
+        {history.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            {t("create.historyEmpty")}
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {history.map((item) => {
+              const first = item.urls[0] || "";
+              return (
+                <div
+                  key={item.id}
+                  className="group relative overflow-hidden rounded-lg border border-border bg-muted/30"
+                >
+                  <button
+                    type="button"
+                    className="block w-full text-left"
+                    onClick={() => {
+                      if (!first) return;
+                      if (item.kind === "image") {
+                        // 复用上方结果区展示，省一套灯箱
+                        setMode("image");
+                        setResult({
+                          images: item.urls,
+                          sent: {
+                            prompt: item.prompt,
+                            model: item.model || "",
+                            size: item.size || "",
+                            ratio: item.ratio || "",
+                          },
+                        });
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      } else {
+                        window.open(first, "_blank", "noopener,noreferrer");
+                      }
+                    }}
+                  >
+                    {item.kind === "image" ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={first}
+                        alt={item.prompt}
+                        loading="lazy"
+                        className="aspect-square w-full object-cover"
+                      />
+                    ) : (
+                      <video
+                        src={first}
+                        muted
+                        preload="metadata"
+                        playsInline
+                        className="aspect-square w-full bg-black object-cover"
+                      />
+                    )}
+                  </button>
+
+                  <div className="space-y-1 px-2 py-2">
+                    <p className="line-clamp-2 text-xs text-fg">{item.prompt}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {item.kind === "video" ? <Film className="mr-1 inline h-3 w-3" /> : null}
+                      {new Date(item.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div className="absolute right-1 top-1 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <a
+                      href={first}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={t("create.open")}
+                      className="rounded bg-black/60 p-1 text-white hover:bg-black/80"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <a
+                      href={first}
+                      download
+                      title={t("create.download")}
+                      className="rounded bg-black/60 p-1 text-white hover:bg-black/80"
+                    >
+                      <Download className="h-3 w-3" />
+                    </a>
+                    <button
+                      type="button"
+                      title={t("create.remove")}
+                      onClick={() => void removeOne(item.id)}
+                      className="rounded bg-black/60 p-1 text-white hover:bg-black/80"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
