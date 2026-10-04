@@ -44,8 +44,42 @@ function guardHeaders(verdict: { allowed: boolean; reason: string; provider?: st
   return h;
 }
 
+/*
+ * 会话 cookie 名。
+ *
+ * ⚠️ 故意不从 @/lib/auth 引入：那个模块顶层 import 了 next/headers，
+ *    middleware 跑在 Edge runtime，把它带进来会让构建期依赖解析变复杂。
+ *    这里只需要名字，写死一份即可（改 cookie 名时记得同步）。
+ */
+const SESSION_COOKIE = "agnes_session";
+
+/**
+ * 聊天域名直达。
+ *
+ * 场景：chat.xyz.ci 这类子域名专门指向聊天，但访客不一定登录。
+ * 已登录 → 直接进 /chat；未登录 → 留在落地页，看完介绍再决定。
+ */
+function chatHostRedirect(request: NextRequest, pathname: string) {
+  const chatHost = process.env.CHAT_HOST?.trim().toLowerCase();
+  if (!chatHost || pathname !== "/") return null;
+
+  const host = (request.headers.get("host") ?? "").split(":")[0].toLowerCase();
+  if (host !== chatHost) return null;
+
+  // 只判断 cookie 是否存在，不做有效性校验 —— 那是 /chat 页面自己的事。
+  // 拿不到有效会话时页面会正常跳登录，这里不做重定向避免循环。
+  if (!request.cookies.get(SESSION_COOKIE)?.value) return null;
+
+  const url = request.nextUrl.clone();
+  url.pathname = "/chat";
+  return NextResponse.rewrite(url);
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  const hostRedirect = chatHostRedirect(request, pathname);
+  if (hostRedirect) return hostRedirect;
 
   const ip = clientIpFromHeaders(request.headers);
   if (!ip) return NextResponse.next({ headers: guardHeaders({ allowed: true, reason: "no-ip" }) });
