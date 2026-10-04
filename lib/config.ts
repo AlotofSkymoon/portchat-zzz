@@ -237,27 +237,55 @@ export const IMAGE_MAX_COUNT = 4;
 export const AGNES_VIDEO_URL =
   process.env.AGNES_VIDEO_URL?.trim() || "https://api.agnes-ai.cn/v1/videos";
 
-/** 查询任务进度。文档要求带 model_name，keyframe/reference 模式必填。 */
+/**
+ * 查询任务进度。文档要求带 model_name，keyframe/reference 模式必填。
+ *
+ * ⚠️ 注意域名跟创建任务**不同**：创建走 api.agnes-ai.cn，查询走 apihub.agnes-ai.com。
+ *    文档里两个是分开写的，混用会查不到任务。
+ */
 export const AGNES_VIDEO_POLL_URL =
-  process.env.AGNES_VIDEO_POLL_URL?.trim() || "https://api.agnes-ai.cn/agnesapi";
+  process.env.AGNES_VIDEO_POLL_URL?.trim() || "https://apihub.agnes-ai.com/agnesapi";
 
 /**
  * 文生视频模型名。
  *
- * 文档里 Video 2.5 的模型 ID 是 agnes-video-2.5；另有 agnes-video-2.5-flash。
+ * Flash 版固定为 agnes-video-2.5-flash（文档明确）。
  * 站长可用 AGNES_VIDEO_MODEL 覆盖。
  */
 export const AGNES_VIDEO_MODEL =
-  process.env.AGNES_VIDEO_MODEL?.trim() || "agnes-video-2.5";
+  process.env.AGNES_VIDEO_MODEL?.trim() || "agnes-video-2.5-flash";
+
+/**
+ * Flash 只支持纯文本生成，且不支持任何媒体字段（first_frame / last_frame /
+ * images / audios / videos 传了就 400）。显式声明比依赖上游默认更稳。
+ */
+export const VIDEO_MODE = "text";
 
 /** 时长（秒）。文档要求以**字符串**传，范围 "4"–"12"。 */
-export const VIDEO_SECONDS = ["4", "5", "8", "10", "12"] as const;
+export const VIDEO_SECONDS = [
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "11",
+  "12",
+] as const;
 
-/** 视频画幅。文档只说默认 16:9，这里取常见档位，未被接受时上游会报错并原样透出。 */
-export const VIDEO_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4"] as const;
+/**
+ * 视频画幅。文档给的完整清单（决定输出像素，如 21:9→1680x720、9:16→720x1280）。
+ * 传清单外的值上游会拒。
+ */
+export const VIDEO_RATIOS = ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] as const;
 
-/** 视频分辨率档位（文档：720P / 1080P / 1K / 2K） */
-export const VIDEO_SIZES = ["720P", "1080P", "1K", "2K"] as const;
+/**
+ * 分辨率：Flash **强制 720P**，传其他值上游直接返回 400 `size must be 720P`。
+ * 所以这里只有一项，UI 也不再让用户选——选了必然失败。
+ * 输出尺寸由 aspect_ratio 决定，不是由 size 决定。
+ */
+export const VIDEO_SIZES = ["720P"] as const;
 
 /**
  * 轮询上限：视频生成通常几十秒到几分钟。

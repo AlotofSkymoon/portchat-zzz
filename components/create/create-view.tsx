@@ -61,7 +61,8 @@ export function CreateView() {
   // 视频
   const [vSeconds, setVSeconds] = React.useState<string>("5");
   const [vRatio, setVRatio] = React.useState<string>("16:9");
-  const [vSize, setVSize] = React.useState<string>("720P");
+  // Flash 强制 720P，不给用户选（见 VIDEO_SIZES 注释）
+  const vSize: string = VIDEO_SIZES[0];
   const [vBusy, setVBusy] = React.useState(false);
   const [vProgress, setVProgress] = React.useState(0);
   const [vUrl, setVUrl] = React.useState("");
@@ -443,17 +444,13 @@ export function CreateView() {
               </div>
             </div>
 
-            <div>
-              <div className="mb-2 text-xs font-medium text-muted-foreground">
-                {t("create.size")}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {VIDEO_SIZES.map((s) => (
-                  <button key={s} type="button" onClick={() => setVSize(s)} className={chip(vSize === s)}>
-                    {s}
-                  </button>
-                ))}
-              </div>
+            {/*
+             * Flash 强制 720P：传 1080P / 1K / 2K 上游直接 400。
+             * 所以这里不给选项，改成一句说明——选了必然失败，不如不让人选。
+             */}
+            <div className="text-xs text-muted-foreground">
+              {t("create.size")}：{VIDEO_SIZES[0]}
+              <span className="ml-2 opacity-70">{t("create.videoSizeFixed")}</span>
             </div>
           </div>
 

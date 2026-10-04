@@ -8,6 +8,7 @@ import {
   AGNES_VIDEO_MODEL,
   AGNES_VIDEO_POLL_URL,
   AGNES_VIDEO_URL,
+  VIDEO_MODE,
   VIDEO_RATIOS,
   VIDEO_SECONDS,
   VIDEO_SIZES,
@@ -51,11 +52,25 @@ function resolveKey(own?: string): string {
   return trimmed || configValue("AGNES_IMAGE_API_KEY", "PRESET_AGNES_API_KEY");
 }
 
-/** 把上游非 2xx 的原始响应转成带状态码的错误，交给外层归类成中文提示 */
+/**
+ * 把上游非 2xx 的原始响应转成带状态码的错误，交给外层归类成中文提示。
+ *
+ * 上游的错误体是 `{"detail": "size must be 720P"}` 这种，
+ * 能解析出来就单独存一份——比整段 JSON 好看，也方便直接照着改参数。
+ */
 async function readUpstream(res: Response): Promise<never> {
   const raw = (await res.text().catch(() => "")).slice(0, 500);
-  const err = new Error(raw) as Error & { status?: number };
+  let detail = "";
+  try {
+    const parsed = JSON.parse(raw) as { detail?: unknown; message?: unknown };
+    if (typeof parsed.detail === "string") detail = parsed.detail;
+    else if (typeof parsed.message === "string") detail = parsed.message;
+  } catch {
+    /* 不是 JSON（比如 HTML 错误页）就留空，外层回落到整段原文 */
+  }
+  const err = new Error(detail || raw) as Error & { status?: number; detail?: string };
   err.status = res.status;
+  err.detail = detail;
   throw err;
 }
 
@@ -110,11 +125,17 @@ export async function POST(request: Request) {
     ? rawRatio
     : "16:9";
 
-  const rawSize = (body.size ?? "").trim();
-  const size = (VIDEO_SIZES as readonly string[]).includes(rawSize) ? rawSize : "720P";
+  /*
+   * Flash 强制 720P：传 1080P / 1K / 2K 上游会直接 400（"size must be 720P"）。
+   * 所以这里**忽略前端传来的 size**，固定写死——宁可不给选项，也不让点了必然失败。
+   * 输出尺寸实际上由 aspect_ratio 决定（如 21:9→1680x720）。
+   */
+  const size = VIDEO_SIZES[0];
 
   const payload = {
     model: AGNES_VIDEO_MODEL,
+    // Flash 只支持纯文本，且不支持任何媒体字段；显式声明避免上游按别的模式校验
+    mode: VIDEO_MODE,
     prompt,
     seconds,
     size,
@@ -162,8 +183,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: t("api.imageTimeout") }, { status: 504 });
     }
     const status = (err as Error & { status?: number }).status ?? 502;
+    const detail = (err as Error & { detail?: string }).detail ?? "";
+    /*
+     * 把上游的英文 detail 直接拼进提示里。
+     * 像 "size must be 720P" 这种，光看中文"生成失败 400"根本改不动参数，
+     * 站长要的就是那句原文。
+     */
     return NextResponse.json(
-      { error: hintFor(t, status), upstream: (err as Error).message },
+      {
+        error: detail ? `${hintFor(t, status)} · ${detail}` : hintFor(t, status),
+        upstream: (err as Error).message,
+        detail,
+      },
       { status: 502 },
     );
   }
@@ -228,8 +259,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: t("api.imageTimeout") }, { status: 504 });
     }
     const status = (err as Error & { status?: number }).status ?? 502;
+    const detail = (err as Error & { detail?: string }).detail ?? "";
+    /*
+     * 把上游的英文 detail 直接拼进提示里。
+     * 像 "size must be 720P" 这种，光看中文"生成失败 400"根本改不动参数，
+     * 站长要的就是那句原文。
+     */
     return NextResponse.json(
-      { error: hintFor(t, status), upstream: (err as Error).message },
+      {
+        error: detail ? `${hintFor(t, status)} · ${detail}` : hintFor(t, status),
+        upstream: (err as Error).message,
+        detail,
+      },
       { status: 502 },
     );
   }
