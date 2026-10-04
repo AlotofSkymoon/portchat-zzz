@@ -14,15 +14,7 @@ import { getRedis, hasRedisConfig, KEYS } from "@/lib/redis";
 import { REQUIRE_LOGIN } from "@/lib/site";
 import { configValue } from "@/lib/runtime-config";
 import { serverT as st } from "@/lib/i18n/server";
-import {
-  CREDITS_ADMIN_BYPASS,
-  CREDITS_ANONYMOUS,
-  CREDITS_ENABLED,
-  LOW_CREDIT_MODEL,
-  costOfModel,
-  readCredits,
-  spendCredits,
-} from "@/lib/credits";
+import { CHAT_RATE_LIMIT_PER_MINUTE, hitChatRateLimit } from "@/lib/chat-rate-limit";
 
 export const runtime = "nodejs";
 
@@ -216,103 +208,76 @@ export async function POST(request: Request) {
     );
   }
 
-  /* ------------------------------ 积分闸门 ------------------------------ */
+  /* --------------------- 会员闸门 + 聊天频率限制 --------------------- */
   /**
-   * 按模型计费，每次对话前扣。
+   * 积分制已移除，改用两条更容易理解的规则：
    *
-   * 规则对所有人一致（不区分是否自带 Key）：统一计价才好解释，
-   * 否则用户会问"我明明填了自己的 Key 为什么还扣分"。
+   *   1. 会员制：先判封禁，再判档位是否覆盖当前模型
+   *   2. 频率限制：非会员每分钟 N 次
+   *
+   * 是否自带 Key 不影响这两条 —— 统一规则才好解释，
+   * 否则用户会问"我明明填了自己的 Key 为什么还受限"。
    */
-  const chatUser = CREDITS_ENABLED ? await getCurrentUser() : null;
+  const chatUser = await getCurrentUser();
 
-  if (CREDITS_ENABLED) {
-    if (!chatUser && CREDITS_ANONYMOUS === "block") {
+  // 管理员预设为最高级会员：站长不该被自己定的规则挡住
+  const isAdminUser = chatUser?.role === "admin";
+
+  let memberCover = false;
+  if (chatUser && !isAdminUser) {
+    const { getMembership, tierAllowsModel } = await import("@/lib/membership");
+    // 用原始记录而不是 getActiveMembership：
+    // 后者在被封禁 / 已过期时都返回 null，封禁就永远查不出来。
+    const ms = await getMembership(chatUser.id);
+
+    if (ms?.banned) {
       return NextResponse.json(
-        { error: st(request, "err.loginRequired"), code: "LOGIN_REQUIRED" },
-        { status: 401 },
+        { error: st(request, "membership.banned"), code: "BANNED" },
+        { status: 403 },
       );
     }
 
-    // 会员制：先判封禁，再判档位是否覆盖当前模型
-    let memberCover = false;
-    if (chatUser) {
-      const { getMembership, tierAllowsModel } = await import("@/lib/membership");
-      // 用原始记录而不是 getActiveMembership：
-      // 后者在被封禁 / 已过期时都返回 null，封禁就永远查不出来。
-      const ms = await getMembership(chatUser.id);
+    const active = !!ms && !ms.banned && (ms.expiresAt === null || ms.expiresAt > Date.now());
 
-      if (ms?.banned) {
+    if (active && ms) {
+      if (tierAllowsModel(ms.tier, model, target.providerId)) {
+        memberCover = true;
+      } else {
         return NextResponse.json(
-          { error: st(request, "membership.banned"), code: "BANNED" },
+          {
+            error: st(request, "membership.tierNotAllowed"),
+            code: "TIER_NOT_ALLOWED",
+            tier: ms.tier,
+          },
           { status: 403 },
         );
       }
-
-      const active =
-        !!ms && !ms.banned && (ms.expiresAt === null || ms.expiresAt > Date.now());
-
-      if (active && ms) {
-        if (tierAllowsModel(ms.tier, model, target.providerId)) {
-          // 档位覆盖该模型：免积分、不受降级限制
-          memberCover = true;
-        } else {
-          return NextResponse.json(
-            {
-              error: st(request, "membership.tierNotAllowed"),
-              code: "TIER_NOT_ALLOWED",
-              tier: ms.tier,
-            },
-            { status: 403 },
-          );
-        }
-      }
     }
+  }
 
-    // 管理员免积分：站长就是额度的提供者，不该被自己定的规则挡住
-    const creditsUser =
-      chatUser && !(memberCover || (CREDITS_ADMIN_BYPASS && chatUser.role === "admin"))
-        ? chatUser
-        : null;
+  if (isAdminUser) {
+    // 管理员按 ADMIN_PRESET_TIER 处理，等价于全档位覆盖
+    memberCover = true;
+  }
 
-    if (creditsUser) {
-      const cost = costOfModel(model, target.providerId);
-      const acc = await readCredits(creditsUser.id);
+  // 频率限制：会员（含管理员预设）不受限，其余按每分钟 N 次计数
+  if (!memberCover) {
+    const fwd = request.headers.get("x-forwarded-for") ?? "";
+    const clientIp =
+      fwd.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim() || "unknown";
+    const subject = chatUser ? `u:${chatUser.id}` : `ip:${clientIp}`;
 
-      if (acc.available < cost) {
-        /**
-         * 余额不足时的降级：
-         *   · 书生 / 第三方（10 分档）直接拒绝 —— 成本太高，不能白送
-         *   · Agnes Low 作为保底档位始终放行（哪怕余额 0），
-         *     否则新用户注册完一分没有就完全用不了，等于劝退
-         */
-        const canFallback = target.providerId === "agnes" && acc.available >= Math.min(cost, 1);
-        if (!canFallback) {
-          return NextResponse.json(
-            {
-              error: st(request, "credits.insufficient"),
-              code: "INSUFFICIENT_CREDITS",
-              cost,
-              available: acc.available,
-              fallbackModel: LOW_CREDIT_MODEL,
-            },
-            { status: 402 },
-          );
-        }
-      }
-
-      const spent = await spendCredits(creditsUser.id, cost);
-      if (!spent) {
-        return NextResponse.json(
-          {
-            error: st(request, "credits.insufficient"),
-            code: "INSUFFICIENT_CREDITS",
-            cost,
-            available: acc.available,
-            fallbackModel: LOW_CREDIT_MODEL,
-          },
-          { status: 402 },
-        );
-      }
+    const rl = await hitChatRateLimit(subject);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        {
+          error: st(request, "err.chatRateLimit", { n: CHAT_RATE_LIMIT_PER_MINUTE }),
+          code: "CHAT_RATE_LIMIT",
+          limit: CHAT_RATE_LIMIT_PER_MINUTE,
+          retryAfter: rl.retryAfter,
+        },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+      );
     }
   }
 

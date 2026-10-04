@@ -40,6 +40,8 @@ export const KEYS = {
   /** 发信限流：同一邮箱 / 同一 IP 的重发间隔 */
   ratelimitVerifyEmail: (email: string) => `ratelimit:verify:email:${email.toLowerCase()}`,
   ratelimitVerifyIp: (ip: string) => `ratelimit:verify:ip:${ip}`,
+  /** 聊天限流：按用户 id 或 IP 计数的固定 60 秒窗口 */
+  ratelimitChat: (subject: string) => `ratelimit:chat:${subject}`,
 } as const;
 
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 天

@@ -252,10 +252,23 @@ export interface EffectiveAccess {
   expiresAt: number | null;
 }
 
+/**
+ * 站长预设档位。
+ *
+ * 管理员不需要给自己买会员 —— 站点额度本来就是站长提供的，
+ * 让站长被自己定的规则挡住没有意义，也会导致无法验收改动。
+ *
+ * 这里走的是「解析时叠加」而不是「写一条 ultra 记录」：
+ *   · 立刻生效，不用迁移历史数据
+ *   · 不污染数据库，卸下会员也不会误伤真正的站长
+ */
+export const ADMIN_PRESET_TIER: Tier = "ultra";
+
 export async function resolveAccess(
   userId: string | null,
   modelId: string,
   providerId: string,
+  baseRole?: string,
 ): Promise<EffectiveAccess> {
   const empty: EffectiveAccess = {
     isMember: false,
@@ -266,6 +279,18 @@ export async function resolveAccess(
     expiresAt: null,
   };
   if (!userId) return empty;
+
+  // 管理员预设：直接按最高档处理，忽略库里的会员记录
+  if (baseRole === "admin") {
+    return {
+      isMember: true,
+      tier: ADMIN_PRESET_TIER,
+      unlimitedForModel: true,
+      adminByMembership: true,
+      banned: false,
+      expiresAt: null,
+    };
+  }
 
   const raw = await getMembership(userId);
   if (!raw) return empty;
