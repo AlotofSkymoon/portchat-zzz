@@ -201,7 +201,30 @@ export const AGNES_MODELS = CHAT_MODELS.filter((m) => m.provider === "agnes");
  */
 /** Agnes 文生图端点 */
 export const AGNES_IMAGE_URL =
-  process.env.AGNES_IMAGE_URL?.trim() || "https://apihub.agnes-ai.com/v1/images/generations";
+  process.env.AGNES_IMAGE_URL?.trim() || "https://api.agnes-ai.cn/v1/images/generations";
+
+/**
+ * 文生图模型名。
+ *
+ * ⚠️ 官方文档写死为 agnes-image-2.5-flash（不带日期后缀），
+ *    写错会直接 404。站长可用 AGNES_IMAGE_MODEL 覆盖。
+ */
+export const AGNES_IMAGE_MODEL =
+  process.env.AGNES_IMAGE_MODEL?.trim() || "agnes-image-2.5-flash";
+
+/**
+ * 生图可选宽高比。
+ *
+ * ⚠️ 与文档一致：1:1 / 3:4 / 4:3 / 16:9 / 9:16 / 2:3 / 3:2 / 21:9。
+ *    注意没有 2:1 —— 横向宽幅要用 21:9 或 16:9。
+ */
+export const IMAGE_RATIOS = ["1:1", "3:4", "4:3", "16:9", "9:16", "2:3", "3:2", "21:9"] as const;
+
+/** 生图尺寸档位（文档推荐值，也兼容 1024x768 这类历史写法） */
+export const IMAGE_SIZES = ["1K", "2K", "3K", "4K"] as const;
+
+/** 单次最多生成张数（文档未明确上限，保守取 4 避免超时） */
+export const IMAGE_MAX_COUNT = 4;
 
 export const DEFAULT_MODEL = process.env.UPSTREAM_MODEL?.trim() || "agnes-3.0-flash";
 

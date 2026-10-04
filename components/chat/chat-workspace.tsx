@@ -94,6 +94,10 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
   const [status, setStatus] = React.useState<"idle" | "streaming">("idle");
   /** 图片生成进行中（与对话流式互不干扰） */
   const [imageBusy, setImageBusy] = React.useState(false);
+  /** 生图参数：张数 / 宽高比 / 尺寸档位 */
+  const [imageCount, setImageCount] = React.useState(1);
+  const [imageRatio, setImageRatio] = React.useState<string>("1:1");
+  const [imageSize, setImageSize] = React.useState<string>("1K");
   const [streamingId, setStreamingId] = React.useState<string | null>(null);
   const [settings, setSettings] = React.useState<ChatSettings>(DEFAULT_SETTINGS);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
@@ -823,7 +827,13 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
       const res = await fetch("/api/images/generations", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ prompt, apiKey: settings.keys.agnes }),
+        body: JSON.stringify({
+        prompt,
+        apiKey: settings.keys.agnes,
+        n: imageCount,
+        ratio: imageRatio,
+        size: imageSize,
+      }),
       });
       const data = (await res.json()) as { images?: string[]; error?: string };
       if (!res.ok || !data.images?.length) {
@@ -862,6 +872,9 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
     currentId,
     ensureConversation,
     imageBusy,
+    imageCount,
+    imageRatio,
+    imageSize,
     input,
     newConversation,
     setMessages,
@@ -1499,6 +1512,12 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   onWebSearchChange={toggleWebSearch}
                   imageBusy={imageBusy}
                   onGenerateImage={() => void generateImage()}
+                  imageCount={imageCount}
+                  onImageCountChange={setImageCount}
+                  imageRatio={imageRatio}
+                  onImageRatioChange={setImageRatio}
+                  imageSize={imageSize}
+                  onImageSizeChange={setImageSize}
                 />
                 <p className="mt-3 text-center text-xs text-fg-quaternary">
                   {t("input.disclaimerHero")}
@@ -1532,6 +1551,12 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   onWebSearchChange={toggleWebSearch}
                   imageBusy={imageBusy}
                   onGenerateImage={() => void generateImage()}
+                  imageCount={imageCount}
+                  onImageCountChange={setImageCount}
+                  imageRatio={imageRatio}
+                  onImageRatioChange={setImageRatio}
+                  imageSize={imageSize}
+                  onImageSizeChange={setImageSize}
                 />
                 <p className="mt-2 text-center text-xs text-fg-quaternary">
                   {t("input.disclaimer")}

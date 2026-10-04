@@ -47,6 +47,11 @@ const DICT: Record<string, Entry> = {
   "image.generating": { "zh-CN": "正在生成图片…", "zh-TW": "正在生成圖片…", en: "Generating image…", fr: "Génération de l'image…" },
   "image.done": { "zh-CN": "图片已生成", "zh-TW": "圖片已生成", en: "Image ready", fr: "Image prête" },
   "image.busy": { "zh-CN": "还有一张图在生成中", "zh-TW": "還有一張圖在生成中", en: "Another image is being generated", fr: "Une autre image est en cours de génération" },
+  "image.count": { "zh-CN": "生成张数", "zh-TW": "生成張數", en: "Count", fr: "Nombre" },
+  "image.ratio": { "zh-CN": "宽高比", "zh-TW": "寬高比", en: "Aspect ratio", fr: "Ratio" },
+  "image.quality": { "zh-CN": "画质档位", "zh-TW": "畫質檔位", en: "Quality", fr: "Qualité" },
+  "image.settings": { "zh-CN": "生图设置", "zh-TW": "生圖設定", en: "Image settings", fr: "Réglages d'image" },
+  "image.settingsTip": { "zh-CN": "调整生成张数、比例和画质", "zh-TW": "調整生成張數、比例和畫質", en: "Adjust count, ratio and quality", fr: "Régler le nombre, le ratio et la qualité" },
   "image.failed": { "zh-CN": "生成失败", "zh-TW": "生成失敗", en: "Generation failed", fr: "Échec de la génération" },
 
   // ---- 聊天输入 ----
