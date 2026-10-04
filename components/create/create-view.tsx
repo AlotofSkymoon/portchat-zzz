@@ -227,8 +227,8 @@ export function CreateView() {
       setResult({ images: data.images, sent: data.sent });
       void persist({
         kind: "image",
-        prompt: data.prompt || prompt.trim(),
-        model: data.sent?.model,
+        prompt: data.sent?.prompt || prompt.trim(),
+        model: data.sent?.model || "",
         urls: data.images || [],
         ratio,
         size,
@@ -266,10 +266,10 @@ export function CreateView() {
         void persist({
           kind: "video",
           prompt: vPromptRef.current,
-          model: vParamsRef.current.model || undefined,
+          model: vParamsRef.current.model || "",
           urls: [data.url],
           ratio: vParamsRef.current.ratio,
-          seconds: Number(vParamsRef.current.seconds) || undefined,
+          seconds: vParamsRef.current.seconds || undefined,
         });
         return true;
       }
@@ -357,10 +357,10 @@ export function CreateView() {
         void persist({
           kind: "video",
           prompt: p,
-          model: data.sent?.model,
+          model: data.sent?.model || "",
           urls: [data.url],
           ratio: vRatio,
-          seconds: Number(vSeconds) || undefined,
+          seconds: vSeconds || undefined,
         });
         return;
       }
@@ -713,6 +713,7 @@ export function CreateView() {
                             model: item.model || "",
                             size: item.size || "",
                             ratio: item.ratio || "",
+                            n: item.urls.length,
                           },
                         });
                         window.scrollTo({ top: 0, behavior: "smooth" });

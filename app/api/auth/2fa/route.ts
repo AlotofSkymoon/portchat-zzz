@@ -149,7 +149,9 @@ export async function DELETE(request: Request) {
 
   if (!ok) return bad(request, "验证码或密码不对", 401);
 
-  await getRedis().hdel(KEYS.user(user.id), "twoFactor");
+  // ⚠️ 统一存储接口（Store）没有 HDEL：Upstash 有，但 Cloudflare KV/D1 实现不出来。
+  // 写成空串等效于删除 —— readTwoFactor() 对空串直接返回 null（见 lib/auth.ts）。
+  await getRedis().hset(KEYS.user(user.id), { twoFactor: "" });
 
   return NextResponse.json({ enabled: false });
 }

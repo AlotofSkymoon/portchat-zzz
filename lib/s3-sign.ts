@@ -88,6 +88,13 @@ export interface S3PresignParams {
   /** 有效期（秒），默认 15 分钟 */
   expiresIn?: number;
   /**
+   * 上传时的 Content-Type。
+   * 传了就会一并写进 SignedHeaders —— SigV4 里签了什么 header，
+   * 实际请求就必须一模一样地带，否则对象存储返回 403。
+   * 不传则只签 host（兼容老调用点）。
+   */
+  contentType?: string;
+  /**
    * 寻址风格：true = path-style（endpoint/bucket/key），
    * false = virtual-host（bucket.endpoint/key）。
    * 不传则按 endpoint 自动推断。
@@ -171,6 +178,7 @@ export async function presignS3Put(params: S3PresignParams): Promise<string> {
     accessKeyId,
     secretAccessKey,
     expiresIn = 900,
+    contentType,
     forcePathStyle,
   } = params;
 
@@ -202,12 +210,21 @@ export async function presignS3Put(params: S3PresignParams): Promise<string> {
   const algorithm = "AWS4-HMAC-SHA256";
   const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
 
+  /**
+   * SigV4 的 SignedHeaders 必须：小写 header 名 + 按字典序用分号连接。
+   * "content-type" < "host"，所以顺序就是这样。
+   * 同时 canonicalHeaders 要按同样的顺序列出 `name:value\n`。
+   */
+  const contentTypeHeader = contentType ? `content-type:${contentType}\n` : "";
+  const signedHeaders = contentType ? "content-type;host" : "host";
+  const canonicalHeaders = `${contentTypeHeader}host:${host}\n`;
+
   const queryParams: Record<string, string> = {
     "X-Amz-Algorithm": algorithm,
     "X-Amz-Credential": `${accessKeyId}/${credentialScope}`,
     "X-Amz-Date": amzDateStr,
     "X-Amz-Expires": String(expiresIn),
-    "X-Amz-SignedHeaders": "host",
+    "X-Amz-SignedHeaders": signedHeaders,
   };
 
   const canonicalQueryString = Object.keys(queryParams)
@@ -215,7 +232,6 @@ export async function presignS3Put(params: S3PresignParams): Promise<string> {
     .map((k) => `${encodeRfc3986(k)}=${encodeRfc3986(queryParams[k])}`)
     .join("&");
 
-  const canonicalHeaders = `host:${host}\n`;
   const payloadHash = "UNSIGNED-PAYLOAD";
 
   const canonicalRequest = [
@@ -223,7 +239,7 @@ export async function presignS3Put(params: S3PresignParams): Promise<string> {
     parsed.pathname,
     canonicalQueryString,
     canonicalHeaders,
-    "host",
+    signedHeaders,
     payloadHash,
   ].join("\n");
 

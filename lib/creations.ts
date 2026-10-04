@@ -27,6 +27,8 @@ export interface CreationRecord {
   createdAt: number;
   /** 是否已转存到对象存储（转存后链接永久有效） */
   persisted?: boolean;
+  /** 转存完成的时间戳，便于事后排查「哪一批链接是永久的」 */
+  persistedAt?: number;
 }
 
 /** 单用户最多保留多少条。超了淘汰最旧的，避免 KV 无限膨胀。 */
