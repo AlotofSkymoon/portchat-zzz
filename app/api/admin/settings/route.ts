@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { hasRedisConfig, storageErrorMessage } from "@/lib/redis";
 import { readSiteSettings, writeSiteSettings } from "@/lib/site-settings-store";
+import { githubOAuthFromEnv } from "@/lib/oauth-config";
 import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/types";
 import { serverT, serverT as st } from "@/lib/i18n/server";
 
@@ -23,6 +24,11 @@ export async function GET(request: Request) {
   return NextResponse.json({
     settings: await readSiteSettings(),
     storage: true,
+    /**
+     * 环境变量一旦配了就压过面板里的值。
+     * 不告诉管理员的话，他会一直疑惑"我明明填了为什么没生效"。
+     */
+    githubFromEnv: githubOAuthFromEnv(),
   });
 }
 
@@ -63,6 +69,13 @@ export async function POST(request: Request) {
         ? body.contactType
         : (current.contactType ?? ""),
     contactValue: String(body.contactValue ?? current.contactValue ?? "").trim().slice(0, 200),
+    /* GitHub OAuth：管理员面板里填，环境变量优先于这里 */
+    githubClientId: String(body.githubClientId ?? current.githubClientId ?? "")
+      .trim()
+      .slice(0, 200),
+    githubClientSecret: String(body.githubClientSecret ?? current.githubClientSecret ?? "")
+      .trim()
+      .slice(0, 300),
   };
 
   // Base URL 做基本校验，避免管理员手滑写坏全站

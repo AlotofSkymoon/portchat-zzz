@@ -22,6 +22,8 @@ export const KEYS = {
   usersCount: "users:count",
   user: (userId: string) => `user:${userId}`,
   userEmail: (email: string) => `user:email:${email.toLowerCase()}`,
+  /** GitHub 用户 id → 本站 userId（OAuth 登录时按 id 直达，避免遍历全部用户） */
+  githubId: (githubId: string) => `user:github:${githubId}`,
   session: (sessionId: string) => `session:${sessionId}`,
   userSessions: (userId: string) => `user:sessions:${userId}`,
   chat: (userId: string, conversationId: string) => `chat:${userId}:${conversationId}`,

@@ -202,7 +202,14 @@ export async function POST(request: Request) {
      */
     const publicUrl = publicBase
       ? `${publicBase}/${key}`
-      : forcePathStyle === false
+      : // 七牛：签名走 path-style，但公开外链必须用「空间域名」风格
+        // https://<空间名称>.s3.<region>.qiniucs.com/<key>
+        endpoint.includes("qiniucs.com")
+        ? (() => {
+            const u = new URL(endpoint);
+            return `https://${cfg.bucket.trim()}.${u.host}/${key}`;
+          })()
+        : forcePathStyle === false
         ? (() => {
             const u = new URL(endpoint);
             return `${u.protocol}//${cfg.bucket.trim()}.${u.host}/${key}`;

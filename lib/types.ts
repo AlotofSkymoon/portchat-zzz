@@ -216,6 +216,16 @@ export interface SiteSettings {
   contactType: "" | "telegram" | "qq";
   /** 联系方式值：Telegram 填频道或群链接，QQ 填号码或群链接 */
   contactValue: string;
+
+  /* ---- GitHub OAuth（管理员面板里填，免去改环境变量）---- */
+
+  /**
+   * GitHub OAuth App 的 Client ID。
+   * 环境变量 GITHUB_CLIENT_ID 优先于此处；两者都为空则不显示 GitHub 登录按钮。
+   */
+  githubClientId: string;
+  /** GitHub OAuth App 的 Client Secret。仅管理员可读写 */
+  githubClientSecret: string;
 }
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -228,4 +238,6 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   footerExtra: "",
   contactType: "",
   contactValue: "",
+  githubClientId: "",
+  githubClientSecret: "",
 };

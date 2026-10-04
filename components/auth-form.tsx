@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, LogIn, Sparkles, UserPlus } from "lucide-react";
+import { Github, Loader2, LogIn, Sparkles, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/components/i18n-provider";
@@ -28,6 +28,28 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+
+  /* ---- 两步验证：登录接口返回 needTwoFactor 时才出现 ---- */
+  const [twoFactor, setTwoFactor] = React.useState("");
+  const [needTwoFactor, setNeedTwoFactor] = React.useState(false);
+
+  /* ---- GitHub 登录：没配 Client ID 就不显示按钮 ---- */
+  const [githubEnabled, setGithubEnabled] = React.useState(false);
+  React.useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/auth/oauth/github?probe=1", { signal: timeoutSignal(8_000) });
+        const data = (await res.json().catch(() => ({}))) as { enabled?: boolean };
+        if (alive) setGithubEnabled(!!data.enabled);
+      } catch {
+        if (alive) setGithubEnabled(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   /* ---- 邮箱验证码（注册时用；未配置邮件服务则整块隐藏）---- */
   const [verifyEnabled, setVerifyEnabled] = React.useState(false);
@@ -118,18 +140,31 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          isLogin ? { email, password } : { email, password, code: needCode ? code.trim() : undefined },
+          isLogin
+            ? { email, password, code: twoFactor.trim() || undefined }
+            : { email, password, code: needCode ? code.trim() : undefined },
         ),
       });
       const data = (await res.json()) as {
         error?: string;
         isFirstUser?: boolean;
         needVerification?: boolean;
+        needTwoFactor?: boolean;
         email?: string;
         mailFailed?: boolean;
       };
 
       if (!res.ok) {
+        /*
+         * 开了两步验证：密码对但还没验码，不发会话。
+         * 这里把验证码框显示出来，用户填完再点一次登录（这次会带上 code）。
+         * 好处是不用多开一个页面，密码也还在输入框里。
+         */
+        if (isLogin && data.needTwoFactor) {
+          setNeedTwoFactor(true);
+          toast.error(data.error ?? t("auth.twoFactorRequired"));
+          return;
+        }
         /*
          * 登录被"邮箱未验证"拦下时，直接把人送到验证页 ——
          * 否则用户只知道登不进去，不知道该去哪补验证。
@@ -275,6 +310,33 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             />
           </div>
 
+          {isLogin && needTwoFactor ? (
+            <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
+              <Label htmlFor="two-factor-code">{t("auth.twoFactorCode")}</Label>
+              <Input
+                id="two-factor-code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder={t("auth.codePlaceholder")}
+                maxLength={10}
+                autoFocus
+                value={twoFactor}
+                onChange={(e) => setTwoFactor(e.target.value.replace(/[^0-9A-Za-z]/g, ""))}
+                onPaste={(e) => {
+                  // 验证器 App 复制出来通常是「123 456」这种带空格的，直接取数字串
+                  const text = e.clipboardData.getData("text") ?? "";
+                  const digits = text.replace(/\D/g, "");
+                  if (digits) {
+                    e.preventDefault();
+                    setTwoFactor(digits);
+                  }
+                }}
+                className="text-center text-lg tracking-[0.4em]"
+              />
+              <p className="text-xs text-muted-foreground">{t("auth.twoFactorHint")}</p>
+            </div>
+          ) : null}
+
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -285,6 +347,29 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             )}
             {isLogin ? t("auth.login") : t("auth.register")}
           </Button>
+
+          {githubEnabled ? (
+            <>
+              <div className="flex items-center gap-3">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">{t("auth.orUse")}</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  // 整页跳转（不是 fetch）：要带着浏览器去 GitHub 授权页
+                  const qs = redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : "";
+                  window.location.href = `/api/auth/oauth/github${qs}`;
+                }}
+              >
+                <Github className="h-4 w-4" />
+                {t("auth.loginWithGithub")}
+              </Button>
+            </>
+          ) : null}
 
           <p className="text-center text-sm text-muted-foreground">
             {isLogin ? t("auth.noAccount") : t("auth.hasAccount")}{" "}

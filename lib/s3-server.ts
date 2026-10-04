@@ -352,6 +352,44 @@ function fromSupabase(): S3Config | null {
   };
 }
 
+/**
+ * 七牛云 Kodo（S3 兼容）配置。
+ *
+ * 七牛的 endpoint 与公开访问域名格式都固定，手填容易错，所以自动拼：
+ *
+ *   上传端点：  https://s3.<region>.qiniucs.com
+ *   空间域名：  https://<空间名称>.s3.<region>.qiniucs.com
+ *
+ * 空间名称（S3 空间名）在空间名全局唯一时等于空间名称本身；
+ * 若不唯一，七牛会另给一个 S3 空间名，此时用 QINIU_PUBLIC_BASE_URL 覆盖即可。
+ *
+ * ⚠️ 空间必须设为「公开」，否则签名链接也是 403；七牛不支持匿名直读。
+ * 签名保持 path-style（官方 s3fs 指南要求 use_path_request_style），
+ * 只有对外访问链接才用虚拟主机风格的空间域名。
+ */
+function fromQiniu(): S3Config | null {
+  const accessKeyId = process.env.QINIU_ACCESS_KEY_ID?.trim();
+  const secretAccessKey = process.env.QINIU_SECRET_ACCESS_KEY?.trim();
+  const bucket = process.env.QINIU_BUCKET?.trim();
+  const region = process.env.QINIU_REGION?.trim();
+  if (!accessKeyId || !secretAccessKey || !bucket || !region) return null;
+
+  const endpoint = `https://s3.${region}.qiniucs.com`;
+
+  return {
+    enabled: true,
+    endpoint,
+    region,
+    bucket,
+    accessKeyId,
+    secretAccessKey,
+    publicBaseUrl:
+      process.env.QINIU_PUBLIC_BASE_URL?.trim() ||
+      `https://${bucket}.s3.${region}.qiniucs.com`,
+    prefix: "agnes-chat",
+  };
+}
+
 /** 读取完整配置（含密钥），只在 API Route 里用 */
 export function getSiteS3Config(): S3Config | null {
   const platform = detectPlatform();
@@ -364,9 +402,9 @@ export function getSiteS3Config(): S3Config | null {
    * 顺序：平台专属（R2 / B2）→ Supabase → 通用 S3_*。
    * 平台专属优先，因为它们能自动拼 endpoint，配置量最少。
    */
-  if (platform === "cloudflare") return fromR2() ?? fromSupabase() ?? fromGenericS3();
-  if (platform === "vercel") return fromB2() ?? fromSupabase() ?? fromGenericS3();
-  return fromR2() ?? fromB2() ?? fromSupabase() ?? fromGenericS3();
+  if (platform === "cloudflare") return fromR2() ?? fromSupabase() ?? fromQiniu() ?? fromGenericS3();
+  if (platform === "vercel") return fromB2() ?? fromSupabase() ?? fromQiniu() ?? fromGenericS3();
+  return fromR2() ?? fromB2() ?? fromSupabase() ?? fromQiniu() ?? fromGenericS3();
 }
 
 /**

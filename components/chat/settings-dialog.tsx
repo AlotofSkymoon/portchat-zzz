@@ -3,6 +3,8 @@
 import * as React from "react";
 import {
   CloudUpload,
+  Loader2,
+  ShieldCheck,
   ExternalLink,
   Eye,
   EyeOff,
@@ -14,7 +16,10 @@ import {
   TriangleAlert,
 } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
+import { timeoutSignal } from "@/lib/fetch-timeout";
 import { useI18n } from "@/components/i18n-provider";
 import { LocalePicker } from "@/components/locale-picker";
 import {
@@ -546,6 +551,196 @@ function CustomProviderEditor({
           {t("common.cancel")}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * 两步验证卡片。
+ *
+ * 流程刻意做成两步：先出密钥 → 用户用验证器输一次码 → 才真正启用。
+ * 直接生成即启用的话，扫码失败的人会被自己的 2FA 锁在门外。
+ */
+function TwoFactorCard() {
+  const { t } = useI18n();
+  const [enabled, setEnabled] = React.useState(false);
+  const [backupRemaining, setBackupRemaining] = React.useState(0);
+  const [loading, setLoading] = React.useState(true);
+  const [busy, setBusy] = React.useState(false);
+
+  // setup 阶段：密钥 + otpauth:// 链接（还没写进账号）
+  const [secret, setSecret] = React.useState("");
+  const [uri, setUri] = React.useState("");
+  const [code, setCode] = React.useState("");
+  const [newCodes, setNewCodes] = React.useState<string[]>([]);
+  const [password, setPassword] = React.useState("");
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/2fa", { signal: timeoutSignal(8_000) });
+      const data = (await res.json().catch(() => ({}))) as {
+        enabled?: boolean;
+        backupRemaining?: number;
+      };
+      setEnabled(!!data.enabled);
+      setBackupRemaining(data.backupRemaining ?? 0);
+    } catch {
+      /* 查不到就当没开 */
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function post(body: Record<string, unknown>, method: "POST" | "DELETE" = "POST") {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/auth/2fa", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        secret?: string;
+        uri?: string;
+        backupCodes?: string[];
+      };
+      if (!res.ok) {
+        toast.error(data.error ?? t("common.retryLater"));
+        return null;
+      }
+      return data;
+    } catch {
+      toast.error(t("common.retryLater"));
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function setup() {
+    const data = await post({ action: "setup" });
+    if (!data) return;
+    setSecret(data.secret ?? "");
+    setUri(data.uri ?? "");
+    setCode("");
+  }
+
+  async function enable() {
+    if (code.trim().length !== 6) {
+      toast.error(t("auth.enterCode"));
+      return;
+    }
+    const data = await post({ action: "enable", secret, code: code.trim() });
+    if (!data) return;
+    setNewCodes(data.backupCodes ?? []);
+    setSecret("");
+    setUri("");
+    setCode("");
+    void load();
+  }
+
+  async function disable() {
+    const data = await post({ code: code.trim() || undefined, password: password || undefined }, "DELETE");
+    if (!data) return;
+    setNewCodes([]);
+    setPassword("");
+    setCode("");
+    void load();
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-card/40 px-3 py-3 text-xs text-muted-foreground">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        {t("common.loading")}
+      </div>
+    );
+  }
+
+  /* 已开启：只显示状态和关闭入口 */
+  if (enabled) {
+    return (
+      <div className="space-y-3 rounded-xl border border-border/70 bg-card/40 px-3 py-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="pr-3">
+            <p className="text-sm font-medium">{t("settings.twoFactor")}</p>
+            <p className="text-xs text-muted-foreground">{t("settings.twoFactorOnDesc")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("settings.twoFactorBackupLeft")}：{backupRemaining}
+            </p>
+          </div>
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+        </div>
+        <div className="flex gap-2">
+          <Input
+            inputMode="numeric"
+            placeholder={t("auth.codePlaceholder")}
+            maxLength={10}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/[^0-9A-Za-z]/g, ""))}
+          />
+          <Button type="button" variant="destructive" size="sm" className="shrink-0" disabled={busy} onClick={() => void disable()}>
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("settings.twoFactorDisable")}
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">{t("settings.twoFactorDisableHint")}</p>
+      </div>
+    );
+  }
+
+  /* 没开启：绑定流程 */
+  return (
+    <div className="space-y-3 rounded-xl border border-border/70 bg-card/40 px-3 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="pr-3">
+          <p className="text-sm font-medium">{t("settings.twoFactor")}</p>
+          <p className="text-xs text-muted-foreground">{t("settings.twoFactorDesc")}</p>
+        </div>
+      </div>
+
+      {!secret ? (
+        <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => void setup()}>
+          {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+          {t("settings.twoFactorSetup")}
+        </Button>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">{t("settings.twoFactorScanHint")}</p>
+          <Input readOnly value={secret} className="font-mono text-xs" />
+          <Input readOnly value={uri} className="font-mono text-[11px]" />
+          <div className="flex gap-2">
+            <Input
+              inputMode="numeric"
+              placeholder={t("auth.codePlaceholder")}
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            />
+            <Button type="button" size="sm" className="shrink-0" disabled={busy} onClick={() => void enable()}>
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("settings.twoFactorEnable")}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {newCodes.length > 0 ? (
+        <div className="space-y-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 px-2.5 py-2">
+          <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+            {t("settings.twoFactorBackupHint")}
+          </p>
+          <div className="grid grid-cols-2 gap-1 font-mono text-xs">
+            {newCodes.map((c) => (
+              <span key={c}>{c}</span>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1307,6 +1502,9 @@ export function SettingsDialog({
               />
             </div>
           ) : null}
+
+          {/* 两步验证（TOTP） */}
+          {user ? <TwoFactorCard /> : null}
 
           {/* 云端保存 —— 仅管理员可见（站点级配置已移到 /admin） */}
           {!isAdmin ? null : user ? (

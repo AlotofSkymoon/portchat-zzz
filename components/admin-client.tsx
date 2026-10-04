@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Github,
   KeyRound,
   Loader2,
   Mail,
@@ -301,6 +302,8 @@ interface SiteSettings {
   footerExtra: string;
   contactType: "" | "telegram" | "qq";
   contactValue: string;
+  githubClientId: string;
+  githubClientSecret: string;
 }
 
 function SiteSettingsCard() {
@@ -315,6 +318,8 @@ function SiteSettingsCard() {
     footerExtra: "",
     contactType: "",
     contactValue: "",
+    githubClientId: "",
+    githubClientSecret: "",
   });
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -326,6 +331,8 @@ function SiteSettingsCard() {
   const [loadError, setLoadError] = React.useState<{ msg: string; fatal: boolean } | null>(
     null,
   );
+  /** 环境变量里已经配了 GitHub OAuth → 面板里填的会被压过，必须告诉管理员 */
+  const [githubFromEnv, setGithubFromEnv] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -345,6 +352,7 @@ function SiteSettingsCard() {
         settings?: SiteSettings;
         error?: string;
         storage?: boolean;
+        githubFromEnv?: boolean;
       };
 
       if (!res.ok) {
@@ -369,8 +377,11 @@ function SiteSettingsCard() {
           footerExtra: data.settings.footerExtra ?? "",
           contactType: (data.settings.contactType ?? "") as "" | "telegram" | "qq",
           contactValue: data.settings.contactValue ?? "",
+          githubClientId: data.settings.githubClientId ?? "",
+          githubClientSecret: data.settings.githubClientSecret ?? "",
         });
       }
+      setGithubFromEnv(Boolean(data.githubFromEnv));
       // storage:false 表示后端没配存储，配置能读但保存会失败，提前告知
       if (data.storage === false) {
         setLoadError({
@@ -657,6 +668,40 @@ function SiteSettingsCard() {
                 </div>
                 {form.contactType ? (
                   <p className="text-xs text-muted-foreground">{t("admin.contactHint")}</p>
+                ) : null}
+              </div>
+
+              {/* GitHub 登录：两个都填了，登录页才显示 GitHub 按钮 */}
+              <div className="space-y-1.5">
+                <Label htmlFor="ss-gh-id" className="flex items-center gap-2">
+                  <Github className="h-4 w-4" />
+                  {t("admin.githubOauth")}
+                </Label>
+                <Input
+                  id="ss-gh-id"
+                  placeholder={t("admin.githubClientIdPlaceholder")}
+                  value={form.githubClientId}
+                  onChange={(e) => setForm((f) => ({ ...f, githubClientId: e.target.value }))}
+                  autoComplete="off"
+                />
+                <Input
+                  id="ss-gh-secret"
+                  type="password"
+                  placeholder={t("admin.githubClientSecretPlaceholder")}
+                  value={form.githubClientSecret}
+                  onChange={(e) => setForm((f) => ({ ...f, githubClientSecret: e.target.value }))}
+                  autoComplete="off"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {t("admin.githubOauthCallback")}{" "}
+                  <code className="rounded bg-muted/50 px-1 py-0.5">
+                    /api/auth/oauth/github/callback
+                  </code>
+                </p>
+                {githubFromEnv ? (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                    {t("admin.githubFromEnv")}
+                  </p>
                 ) : null}
               </div>
 

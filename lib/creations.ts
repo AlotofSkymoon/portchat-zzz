@@ -25,6 +25,8 @@ export interface CreationRecord {
   /** 仅视频：时长（秒） */
   seconds?: string;
   createdAt: number;
+  /** 是否已转存到对象存储（转存后链接永久有效） */
+  persisted?: boolean;
 }
 
 /** 单用户最多保留多少条。超了淘汰最旧的，避免 KV 无限膨胀。 */
@@ -129,6 +131,41 @@ export async function deleteCreation(id: string): Promise<void> {
     /* 忽略：本地仍会清 */
   }
   writeLocal(readLocal().filter((r) => r.id !== id));
+}
+
+/**
+ * 永久保存：把上游链接里的文件抓下来，转存到对象存储。
+ *
+ * 为什么需要单独一步：生成记录里存的是**上游链接**，上游过一段时间可能失效。
+ * 转存之后链接指向我们自己的存储桶，什么时候打开都在。
+ *
+ * 返回 skipped 表示这条已经存过了，不会重复上传。
+ */
+export async function persistCreation(id: string): Promise<{
+  ok: boolean;
+  skipped?: boolean;
+  urls?: string[];
+  error?: string;
+}> {
+  try {
+    const res = await fetch("/api/creations/persist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      ok?: boolean;
+      skipped?: boolean;
+      urls?: string[];
+      error?: string;
+    };
+    if (!res.ok || !data.ok) {
+      return { ok: false, error: data.error ?? "转存失败" };
+    }
+    return { ok: true, skipped: data.skipped, urls: data.urls };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "转存失败" };
+  }
 }
 
 /** 清空全部。 */

@@ -33,6 +33,33 @@ export interface UserRecord {
    * 只有 `=== false` 才算未验证。
    */
   emailVerified?: boolean;
+  /**
+   * 两步验证（TOTP）。
+   *
+   * ⚠️ 存储形态说明：用户记录在 Redis 里是 **hash**，嵌套对象存不进去，
+   * 所以这个字段实际存的是 JSON 字符串。读的时候统一走 `readTwoFactor()`，
+   * 不要直接 `user.twoFactor.secret` —— 那样拿到的是字符串。
+   *
+   * 没有这个字段 / enabledAt 为空都视为未开启，老账号不受影响。
+   */
+  twoFactor?: {
+    /** base32 密钥 */
+    secret: string;
+    enabledAt: string;
+    /** 备份码的 sha256（不存明文，数据库泄露也不能直接用） */
+    backupCodes: string[];
+  };
+  /**
+   * 第三方登录绑定。同一邮箱允许同时存在密码登录和 GitHub 登录：
+   * 先注册了邮箱账号、后来用 GitHub 登录，应该进的是同一个账号。
+   */
+  oauth?: {
+    github?: {
+      /** GitHub 用户 id（数字，永久不变；login 昵称可以改，不能做主键） */
+      id: string;
+      login: string;
+    };
+  };
 }
 
 /** 可以安全返回给前端的用户信息（永远不含 passwordHash） */
@@ -51,6 +78,54 @@ export function toSafeUser(user: UserRecord): SafeUser {
 
 export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+/* -------------------------------------------------------------------------- */
+/*                        嵌套字段的读写（JSON 字段）                          */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * 用户在 Redis 里是 hash，而 twoFactor / oauth 是嵌套对象。
+ * 存的时候序列化成 JSON 字符串，读的时候 JSON.parse。
+ *
+ * 两个函数都同时接受「已经是对象」和「JSON 字符串」两种形态：
+ * 老数据、或将来换成 JSON 存储都不会崩。
+ */
+
+export interface TwoFactorState {
+  secret: string;
+  enabledAt: string;
+  backupCodes: string[];
+}
+
+export interface OAuthBindings {
+  github?: { id: string; login: string };
+}
+
+export function readTwoFactor(user: UserRecord | null | undefined): TwoFactorState | null {
+  const raw: unknown = user?.twoFactor;
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as TwoFactorState;
+    } catch {
+      return null;
+    }
+  }
+  return raw as TwoFactorState;
+}
+
+export function readOAuth(user: UserRecord | null | undefined): OAuthBindings | null {
+  const raw: unknown = user?.oauth;
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as OAuthBindings;
+    } catch {
+      return null;
+    }
+  }
+  return raw as OAuthBindings;
 }
 
 // 密码哈希实现在 ./password（按平台自动选 bcrypt / PBKDF2）

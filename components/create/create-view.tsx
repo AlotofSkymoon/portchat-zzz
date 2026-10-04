@@ -10,6 +10,7 @@ import {
   History,
   ImagePlus,
   Loader2,
+  ShieldCheck,
   Sparkles,
   Trash2,
   X,
@@ -31,6 +32,7 @@ import {
   clearCreations,
   deleteCreation,
   listCreations,
+  persistCreation,
   saveCreation,
   type CreationRecord,
 } from "@/lib/creations";
@@ -120,6 +122,26 @@ export function CreateView() {
     setHNote("");
     void reloadHistory();
   }, [reloadHistory]);
+
+  const [persistingId, setPersistingId] = React.useState("");
+
+  /** 永久保存：把上游链接里的文件转存进对象存储 */
+  const persistOne = React.useCallback(
+    async (id: string) => {
+      setPersistingId(id);
+      const r = await persistCreation(id);
+      setPersistingId("");
+      if (!r.ok) {
+        setHNote(r.error ?? t("create.persistFailed"));
+      } else if (r.skipped) {
+        setHNote(t("create.persistSkipped"));
+      } else {
+        setHNote(t("create.persistDone"));
+      }
+      void reloadHistory();
+    },
+    [reloadHistory, t],
+  );
 
   /*
    * 视频是异步的：轮询回调里拿不到当时的参数（闭包会捕获旧值），
@@ -727,6 +749,26 @@ export function CreateView() {
                   </div>
 
                   <div className="absolute right-1 top-1 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    {item.persisted ? (
+                      <span
+                        title={t("create.persisted")}
+                        className="rounded bg-emerald-600/80 p-1 text-white"
+                      >
+                        <ShieldCheck className="h-3 w-3" />
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        title={t("create.persist")}
+                        disabled={persistingId === item.id}
+                        onClick={() => void persistOne(item.id)}
+                        className="rounded bg-black/60 p-1 text-white hover:bg-black/80 disabled:opacity-50"
+                      >
+                        <ShieldCheck
+                          className={`h-3 w-3 ${persistingId === item.id ? "animate-pulse" : ""}`}
+                        />
+                      </button>
+                    )}
                     <a
                       href={first}
                       target="_blank"

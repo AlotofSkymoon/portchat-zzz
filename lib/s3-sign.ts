@@ -140,6 +140,14 @@ export function inferPathStyle(endpoint: string): boolean {
   if (/supabase\.co$/i.test(host)) return true;
   if (/supabase\.(in|net|org)$/i.test(host)) return true;
 
+  /**
+   * 七牛云 Kodo：官方文档说两种风格都支持，但 virtual-host 需要
+   * <bucket>.s3.<region>.qiniucs.com 这种带地域的泛域名解析，
+   * 实际部署里经常解析不到；path-style 则稳定可用（官方 s3fs 指南
+   * 也明确要求 use_path_request_style）。统一走 path-style 更省心。
+   */
+  if (/qiniucs\.com$/i.test(host)) return true;
+
   // IP 地址或 localhost 无法做 virtual-host（证书和 DNS 都不支持）
   if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return true;
   if (/^(localhost|127\.0\.0\.1)$/i.test(host)) return true;
