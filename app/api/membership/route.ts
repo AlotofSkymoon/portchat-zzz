@@ -20,8 +20,13 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** 档位价格表（前端展示用） */
-export const TIER_PLANS = TIER_ORDER.map((tier) => ({
+/**
+ * 档位价格表（前端展示用，随 GET 一起返回）
+ *
+ * 注意：不要 export。Next.js 对 route 文件有「只允许导出 handler / 配置常量」的
+ * 类型约束，导出额外的具名常量会让 .next/types 里的校验失败（TS2344）。
+ */
+const TIER_PLANS = TIER_ORDER.map((tier) => ({
   tier,
   nameKey: TIERS[tier].nameKey,
   plans: (["monthly", "yearly", "once"] as const)
