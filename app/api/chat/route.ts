@@ -25,6 +25,7 @@ import {
 } from "@/lib/credits";
 
 export const runtime = "nodejs";
+
 export const dynamic = "force-dynamic";
 /** Vercel 函数最长执行时间（Hobby 60s 上限，Pro 可到 300s） */
 export const maxDuration = 60;
@@ -232,9 +233,46 @@ export async function POST(request: Request) {
       );
     }
 
+    // 会员制：先判封禁，再判档位是否覆盖当前模型
+    let memberCover = false;
+    if (chatUser) {
+      const { getMembership, tierAllowsModel } = await import("@/lib/membership");
+      // 用原始记录而不是 getActiveMembership：
+      // 后者在被封禁 / 已过期时都返回 null，封禁就永远查不出来。
+      const ms = await getMembership(chatUser.id);
+
+      if (ms?.banned) {
+        return NextResponse.json(
+          { error: st(request, "membership.banned"), code: "BANNED" },
+          { status: 403 },
+        );
+      }
+
+      const active =
+        !!ms && !ms.banned && (ms.expiresAt === null || ms.expiresAt > Date.now());
+
+      if (active && ms) {
+        if (tierAllowsModel(ms.tier, model, target.providerId)) {
+          // 档位覆盖该模型：免积分、不受降级限制
+          memberCover = true;
+        } else {
+          return NextResponse.json(
+            {
+              error: st(request, "membership.tierNotAllowed"),
+              code: "TIER_NOT_ALLOWED",
+              tier: ms.tier,
+            },
+            { status: 403 },
+          );
+        }
+      }
+    }
+
     // 管理员免积分：站长就是额度的提供者，不该被自己定的规则挡住
     const creditsUser =
-      chatUser && !(CREDITS_ADMIN_BYPASS && chatUser.role === "admin") ? chatUser : null;
+      chatUser && !(memberCover || (CREDITS_ADMIN_BYPASS && chatUser.role === "admin"))
+        ? chatUser
+        : null;
 
     if (creditsUser) {
       const cost = costOfModel(model, target.providerId);
@@ -244,7 +282,7 @@ export async function POST(request: Request) {
         /**
          * 余额不足时的降级：
          *   · 书生 / 第三方（10 分档）直接拒绝 —— 成本太高，不能白送
-         *   · Portchat Low 作为保底档位始终放行（哪怕余额 0），
+         *   · Agnes Low 作为保底档位始终放行（哪怕余额 0），
          *     否则新用户注册完一分没有就完全用不了，等于劝退
          */
         const canFallback = target.providerId === "agnes" && acc.available >= Math.min(cost, 1);

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import {
+  Crown,
   HeartHandshake,
   LogIn,
   MessageSquare,
@@ -284,6 +285,15 @@ export function Sidebar({
                 {t("sidebar.login")}
               </Link>
             )}
+            {/* 会员入口：单独的 /membership 页面，档位与申请都在那边 */}
+            <Link
+              href="/membership"
+              className={`liquid-item ${GLOW_ROW} flex w-full items-center gap-2 px-2.5 py-2 text-sm text-[hsl(var(--sidebar-foreground))]`}
+            >
+              <span className={GLOW_BAR} aria-hidden />
+              <Crown className="h-4 w-4" />
+              {t("sidebar.membership")}
+            </Link>
             {/* 赞助入口：站长可在环境变量里关掉（NEXT_PUBLIC_SPONSOR_ENABLED=false） */}
             {SPONSOR_ENABLED ? (
               <Link

@@ -327,7 +327,7 @@ export async function updateTopup(
  * 降级策略
  * ------------------------------------------------------------------ */
 
-/** 积分见底后仍可使用的模型（Portchat Low） */
+/** 积分见底后仍可使用的模型（Agnes Low） */
 export const LOW_CREDIT_MODEL = "agnes-2.0-flash";
 
 /**

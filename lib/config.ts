@@ -71,7 +71,7 @@ export const CHAT_MODELS: ModelOption[] = [
     id: "agnes-3.0-flash",
     // 面向用户的名字只保留品牌 + 档位：访客不需要知道背后的模型代号，
     // 也能一眼看出三个档位的高低顺序。
-    label: "Portchat Max",
+    label: "Agnes Max",
     desc: "最强档 · 支持识图与思考",
     provider: "agnes",
     vision: true,
@@ -79,7 +79,7 @@ export const CHAT_MODELS: ModelOption[] = [
   },
   {
     id: "agnes-2.5-flash",
-    label: "Portchat Medium",
+    label: "Agnes Medium",
     desc: "均衡档 · 支持识图与思考",
     provider: "agnes",
     vision: true,
@@ -87,7 +87,7 @@ export const CHAT_MODELS: ModelOption[] = [
   },
   {
     id: "agnes-2.0-flash",
-    label: "Portchat Low",
+    label: "Agnes Low",
     desc: "轻量档 · 支持识图",
     provider: "agnes",
     vision: true,

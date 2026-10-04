@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/i18n-provider";
 import { LocalePicker } from "@/components/locale-picker";
 import { CreditsCard } from "@/components/chat/credits-card";
+import { MembershipCard } from "@/components/chat/membership-card";
 import {
   Dialog,
   DialogContent,
@@ -75,7 +76,7 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   settings: ChatSettings;
   onSave: (settings: ChatSettings) => void;
-  user: { email: string; role: string } | null;
+  user: { id: string; email: string; role: string } | null;
   cloudSync: boolean;
   onCloudSyncChange: (value: boolean) => void;
   onClearAll: () => void;
@@ -608,6 +609,8 @@ export function SettingsDialog({
             <LocalePicker />
 
             <CreditsCard user={user} />
+
+            <MembershipCard user={user} />
           </div>
 
           {/* 以下全部为站点级配置，普通用户不可见 */}

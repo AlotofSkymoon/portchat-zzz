@@ -42,6 +42,7 @@ const DEST_LABELS: Record<string, string> = {
   "/chat": "route.chat",
   "/nav": "route.nav",
   "/sponsor": "route.sponsor",
+  "/membership": "route.membership",
   "/admin": "route.admin",
   "/account": "route.account",
   "/login": "route.login",

@@ -165,6 +165,14 @@ export function AdminClient({ me }: { me: AdminUser }) {
           {t("admin.firstAdmin")}
         </div>
 
+        <Link
+          href="/admin/membership"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          <Crown className="h-4 w-4" />
+          {t("membership.title")} →
+        </Link>
+
         <Card>
           <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
             <div className="space-y-1.5">
