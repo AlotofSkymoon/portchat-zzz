@@ -34,21 +34,39 @@ type ProgressFn = (msg: string) => void;
 /* ---------------------------------------------------------------------------
    CDN 源（与播放端共用同一份配置）
 
-   unpkg 偶尔会挂，挂掉之后整个转码就废了，所以配了备用源。
+   unpkg / jsdelivr 都是境外源，国内拉 25~32MB 的 core 经常超时或直接失败，
+   所以把 npmmirror 镜像排在最前面——它同步的是同一个 npm 包，版本一致。
+   全挂才报错，报错信息里带上最后一支源的域名，方便定位是网络还是版本问题。
    --------------------------------------------------------------------------- */
 const CDN_SOURCES = [
   {
-    core: "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd",
-    js: "https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js",
+    core: "https://registry.npmmirror.com/@ffmpeg/core/0.12.10/files/dist/umd",
+    js: "https://registry.npmmirror.com/@ffmpeg/ffmpeg/0.12.15/files/dist/umd/ffmpeg.js",
   },
   {
     core: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd",
     js: "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js",
   },
+  {
+    core: "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd",
+    js: "https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js",
+  },
 ];
+
+/** 从 URL 里取域名，失败信息里带上，好判断是哪一源挂了 */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
 
 /** ffmpeg 原始输出，失败时给用户看，否则无法定位 */
 let recentLogs: string[] = [];
+
+/** 加载失败的源域名，报错时一并给出 */
+const failedHosts: string[] = [];
 
 function pushLog(msg: string): void {
   if (!msg) return;
@@ -127,6 +145,7 @@ export async function loadFFmpeg(onProgress: ProgressFn, t: TFn): Promise<any> {
         return ffmpeg;
       } catch (err) {
         lastErr = err;
+        failedHosts.push(hostOf(cdn.core));
         // 换源前清掉上一支遗留的 script，避免命中同一个 UMD 全局
         // @ts-expect-error - UMD 全局
         try { delete window.FFmpegWASM; } catch { /* 忽略 */ }
@@ -137,7 +156,7 @@ export async function loadFFmpeg(onProgress: ProgressFn, t: TFn): Promise<any> {
       t("video.loadFailed", {
         n: CDN_SOURCES.length,
         msg: lastErr instanceof Error ? lastErr.message : t("video.unknownError"),
-      }),
+      }) + (failedHosts.length ? ` [${failedHosts.join(", ")}]` : ""),
     );
   })();
 

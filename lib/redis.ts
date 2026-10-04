@@ -42,6 +42,13 @@ export const KEYS = {
   ratelimitVerifyIp: (ip: string) => `ratelimit:verify:ip:${ip}`,
   /** 聊天限流：按用户 id 或 IP 计数的固定 60 秒窗口 */
   ratelimitChat: (subject: string) => `ratelimit:chat:${subject}`,
+  /**
+   * 竞技场限流。
+   *
+   * 单独计数、且比聊天宽松：一局辩论/狼人杀会连打几十次模型，
+   * 若和普通聊天共用一个 30 次/分钟的窗口，开局没多久就被自己限死了。
+   */
+  ratelimitArena: (subject: string) => `ratelimit:arena:${subject}`,
 } as const;
 
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 天
