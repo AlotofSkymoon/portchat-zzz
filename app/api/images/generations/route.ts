@@ -16,8 +16,8 @@ export const maxDuration = 60;
  * 通常不给跨域。这里统一代转，Key 用户优先、回落服务端预设。
  */
 export async function POST(request: Request) {
-  const t = await st(request);
-  const denied = REQUIRE_LOGIN && !(await getCurrentUser(request));
+  const t = (k: string, vars?: Record<string, string | number>) => st(request, k, vars);
+  const denied = REQUIRE_LOGIN && !(await getCurrentUser());
   if (denied) {
     return NextResponse.json({ error: t("api.notLoggedIn") }, { status: 401 });
   }
