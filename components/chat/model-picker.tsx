@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 
@@ -11,6 +12,7 @@ import {
   type ProviderId,
 } from "@/lib/config";
 import { useI18n } from "@/components/i18n-provider";
+import { SPONSOR_ENABLED } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 interface ModelPickerProps {
@@ -236,6 +238,17 @@ export function ModelPicker({ value, onChange, className, customProviders = [] }
                   })}
                 </div>
               ))}
+
+              {/* 想要更多模型：赞助站长，由站长去接新的 API */}
+              <div className="mt-1 border-t border-border/60 px-2 py-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                {SPONSOR_ENABLED ? (
+                  <Link href="/sponsor" className="underline-offset-2 hover:underline hover:text-foreground">
+                    {t("model.moreHint")}
+                  </Link>
+                ) : (
+                  t("model.moreHint")
+                )}
+              </div>
             </div>,
             document.body,
           )

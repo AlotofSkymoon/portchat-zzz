@@ -69,9 +69,9 @@ export const CHAT_MODELS: ModelOption[] = [
     // 官方主打 Agent 执行链路（工具编排、长任务上下文、可信交付），当前全免费。
     // 纯聊天同样可用，故设为默认。
     id: "agnes-3.0-flash",
-    // 面向用户的名字只保留品牌 + 档位：访客不需要知道背后的模型代号，
-    // 也能一眼看出三个档位的高低顺序。
-    label: "Agnes Max",
+    // 显示名直接用模型代号：熟悉模型的人一眼知道在用哪个，
+    // 不熟悉的照着代号去搜也有据可查。
+    label: "agnes-3.0-flash",
     desc: "最强档 · 支持识图与思考",
     provider: "agnes",
     vision: true,
@@ -79,7 +79,7 @@ export const CHAT_MODELS: ModelOption[] = [
   },
   {
     id: "agnes-2.5-flash",
-    label: "Agnes Medium",
+    label: "agnes-2.5-flash",
     desc: "均衡档 · 支持识图与思考",
     provider: "agnes",
     vision: true,
@@ -87,7 +87,7 @@ export const CHAT_MODELS: ModelOption[] = [
   },
   {
     id: "agnes-2.0-flash",
-    label: "Agnes Low",
+    label: "agnes-2.0-flash",
     desc: "轻量档 · 支持识图",
     provider: "agnes",
     vision: true,
@@ -115,42 +115,42 @@ export const CHAT_MODELS: ModelOption[] = [
 
   {
     id: "intern-s2",
-    label: "intern-s2",
+    label: "Intern S2",
     desc: "书生 S2 · 397B 科学多模态，限时免费",
     provider: "inkstone",
     vision: true,
   },
   {
     id: "atria-dawn-preview",
-    label: "atria-dawn-preview",
+    label: "Atria Dawn",
     desc: "Atria Dawn · 512K 科学推理，限时免费",
     provider: "inkstone",
     vision: false,
   },
   {
     id: "agents-a1",
-    label: "agents-a1",
+    label: "Agents A1",
     desc: "Agents A1 · 多模态 Agent，限时免费",
     provider: "inkstone",
     vision: true,
   },
   {
     id: "deepseek-v4-flash-0731",
-    label: "deepseek-v4-flash-0731",
+    label: "DeepSeek V4 Flash",
     desc: "DeepSeek V4 Flash · 1M 上下文，性价比高",
     provider: "inkstone",
     vision: false,
   },
   {
     id: "deepseek-v4-flash-vision",
-    label: "deepseek-v4-flash-vision",
+    label: "DeepSeek V4 Flash Vision",
     desc: "DeepSeek V4 Flash · 1M 上下文，支持识图",
     provider: "inkstone",
     vision: true,
   },
   {
     id: "deepseek-v4-pro-0813",
-    label: "deepseek-v4-pro-0813",
+    label: "DeepSeek V4 Pro",
     desc: "DeepSeek V4 Pro · 1M 上下文，能力更强",
     provider: "inkstone",
     vision: false,
@@ -163,28 +163,28 @@ export const CHAT_MODELS: ModelOption[] = [
      *    chat_template_kwargs，端砚不一定认，多一个字段多一份风险。
      */
     id: "glm-5.3",
-    label: "glm-5.3",
+    label: "GLM 5.3",
     desc: "GLM 5.3 · 1M 上下文，始终深度推理",
     provider: "inkstone",
     vision: false,
   },
   {
     id: "kimi-k2.6",
-    label: "kimi-k2.6",
+    label: "Kimi K2.6",
     desc: "Kimi K2.6 · 1M 上下文",
     provider: "inkstone",
     vision: false,
   },
   {
     id: "minimax-m3",
-    label: "minimax-m3",
+    label: "MiniMax M3",
     desc: "MiniMax M3 · 1M 上下文",
     provider: "inkstone",
     vision: false,
   },
   {
     id: "qwen3.8-27b",
-    label: "qwen3.8-27b",
+    label: "Qwen3.8 27B",
     desc: "Qwen3.8 27B · 轻量通用",
     provider: "inkstone",
     vision: false,

@@ -165,21 +165,6 @@ export async function requireAdmin(): Promise<SafeUser> {
     throw err;
   }
   if (user.role !== "admin") {
-    // 高级会员（ultra）同样拥有管理员权限。
-    // 这里用动态 import 而不是顶层 import：membership 依赖 redis，
-    // 避免与 auth 形成模块循环。
-    // 判定走「有效会员」，所以站长卸下或封禁后权限**立刻**失效，
-    // 不需要等 token 过期、也不需要用户重新登录。
-    try {
-      const { getActiveMembership, tierGrantsAdmin } = await import("@/lib/membership");
-      const m = await getActiveMembership(user.id);
-      if (m && tierGrantsAdmin(m.tier)) {
-        return toSafeUser(user);
-      }
-    } catch {
-      /* 会员查询失败就当不是管理员，不放行 */
-    }
-
     const err = new Error("FORBIDDEN") as Error & { status?: number };
     err.status = 403;
     throw err;

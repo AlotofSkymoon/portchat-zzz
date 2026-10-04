@@ -208,60 +208,21 @@ export async function POST(request: Request) {
     );
   }
 
-  /* --------------------- 会员闸门 + 聊天频率限制 --------------------- */
+  /* --------------------- 聊天频率限制 --------------------- */
   /**
-   * 积分制已移除，改用两条更容易理解的规则：
+   * 会员制与积分制均已移除，只保留一条最容易理解的规则：
    *
-   *   1. 会员制：先判封禁，再判档位是否覆盖当前模型
-   *   2. 频率限制：非会员每分钟 N 次
+   *   普通用户每分钟 N 次（CHAT_RATE_LIMIT_PER_MINUTE），管理员不限。
    *
-   * 是否自带 Key 不影响这两条 —— 统一规则才好解释，
+   * 是否自带 Key 不影响这条 —— 统一规则才好解释，
    * 否则用户会问"我明明填了自己的 Key 为什么还受限"。
    */
   const chatUser = await getCurrentUser();
 
-  // 管理员预设为最高级会员：站长不该被自己定的规则挡住
+  // 管理员不受限：站长不该被自己定的规则挡住
   const isAdminUser = chatUser?.role === "admin";
 
-  let memberCover = false;
-  if (chatUser && !isAdminUser) {
-    const { getMembership, tierAllowsModel } = await import("@/lib/membership");
-    // 用原始记录而不是 getActiveMembership：
-    // 后者在被封禁 / 已过期时都返回 null，封禁就永远查不出来。
-    const ms = await getMembership(chatUser.id);
-
-    if (ms?.banned) {
-      return NextResponse.json(
-        { error: st(request, "membership.banned"), code: "BANNED" },
-        { status: 403 },
-      );
-    }
-
-    const active = !!ms && !ms.banned && (ms.expiresAt === null || ms.expiresAt > Date.now());
-
-    if (active && ms) {
-      if (tierAllowsModel(ms.tier, model, target.providerId)) {
-        memberCover = true;
-      } else {
-        return NextResponse.json(
-          {
-            error: st(request, "membership.tierNotAllowed"),
-            code: "TIER_NOT_ALLOWED",
-            tier: ms.tier,
-          },
-          { status: 403 },
-        );
-      }
-    }
-  }
-
-  if (isAdminUser) {
-    // 管理员按 ADMIN_PRESET_TIER 处理，等价于全档位覆盖
-    memberCover = true;
-  }
-
-  // 频率限制：会员（含管理员预设）不受限，其余按每分钟 N 次计数
-  if (!memberCover) {
+  if (!isAdminUser) {
     const fwd = request.headers.get("x-forwarded-for") ?? "";
     const clientIp =
       fwd.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim() || "unknown";

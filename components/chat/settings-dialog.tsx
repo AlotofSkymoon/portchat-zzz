@@ -16,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/i18n-provider";
 import { LocalePicker } from "@/components/locale-picker";
-import { MembershipCard } from "@/components/chat/membership-card";
 import {
   Dialog,
   DialogContent,
@@ -606,8 +605,6 @@ export function SettingsDialog({
           {/* 界面语言：简体 → 繁体 → 英文 → 法文 */}
           <div className="rounded-xl border border-border/70 bg-card/40 p-3">
             <LocalePicker />
-
-            <MembershipCard user={user} />
           </div>
 
           {/* 以下全部为站点级配置，普通用户不可见 */}
