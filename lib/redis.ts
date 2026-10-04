@@ -42,6 +42,10 @@ export const KEYS = {
   ratelimitVerifyIp: (ip: string) => `ratelimit:verify:ip:${ip}`,
   /** 聊天限流：按用户 id 或 IP 计数的固定 60 秒窗口 */
   ratelimitChat: (subject: string) => `ratelimit:chat:${subject}`,
+  /** 创作记录（生图 / 生影片）本体 */
+  creation: (userId: string, id: string) => `create:${userId}:${id}`,
+  /** 创作记录索引：只存 id，取列表时不加载全部内容 */
+  creationIndex: (userId: string) => `create:index:${userId}`,
   /**
    * 竞技场限流。
    *
