@@ -258,8 +258,12 @@ export function videoNeedsTranscode(file: File): boolean {
 
   try {
     const v = document.createElement("video");
+    /**
+     * canPlayType 的返回只有 "" / "maybe" / "probably" 三种，
+     * 空串即"不支持"。TS 的类型定义里没有 "no"，直接比会报 TS2367。
+     */
     const answer = v.canPlayType(probe);
-    return !answer || answer === "no";
+    return !answer;
   } catch {
     // 拿不到结论就按"能播"处理，别为了转码拖慢正常上传
     return false;
@@ -322,7 +326,18 @@ export async function transcodeToMp4(
       continue;
     }
 
-    const data = (await ffmpeg.readFile(outName)) as Uint8Array | string;
+    /**
+     * readFile 的返回类型是 Uint8Array | string。
+     * 字符串那支没有 byteLength，不能直接访问（TS2339）。
+     */
+    const raw: unknown = await ffmpeg.readFile(outName);
+    const data: Uint8Array | null =
+      raw instanceof Uint8Array
+        ? raw
+        : typeof raw === "string"
+          ? new TextEncoder().encode(raw)
+          : null;
+
     if (!data || data.byteLength === 0) {
       lastErr = t("video.emptyOutput");
       continue;
