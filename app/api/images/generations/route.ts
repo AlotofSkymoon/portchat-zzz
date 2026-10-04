@@ -28,7 +28,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: t("api.notLoggedIn") }, { status: 401 });
   }
 
-  let body: { prompt?: string; apiKey?: string; size?: string; ratio?: string; n?: number };
+  let body: {
+    prompt?: string;
+    apiKey?: string;
+    size?: string;
+    ratio?: string;
+    n?: number;
+    image?: string;
+  };
   try {
     body = await request.json();
   } catch {
@@ -67,6 +74,11 @@ export async function POST(request: Request) {
 
   const n = Math.min(Math.max(Math.trunc(Number(body.n) || 1), 1), IMAGE_MAX_COUNT);
 
+  // 参考图（图生图）。只接受 http(s) 链接或 data:image Base64，其余忽略。
+  const rawRef = (body.image ?? "").trim();
+  const refImage =
+    rawRef.startsWith("data:image/") || /^https?:\/\//i.test(rawRef) ? rawRef : "";
+
   /**
    * 发一次上游请求。
    *
@@ -74,14 +86,27 @@ export async function POST(request: Request) {
    *    数量不够再并发补齐（见下方 fallback），这样两种上游都能出满 n 张。
    */
   async function callOnce(count: number): Promise<string[]> {
-    const upstream = await fetch(AGNES_IMAGE_URL, {
-      method: "POST",
-      signal: timeoutSignal(50_000),
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${finalKey}`,
-      },
-      body: JSON.stringify({ model: AGNES_IMAGE_MODEL, prompt, size, ratio, n: count }),
+      /*
+       * 参考图走文档里的 extra_body.image（数组，支持 URL 或 Data URI）。
+       * 顶层只放文档明确列出的参数，避免多余字段被上游拒绝。
+       */
+      const payload: Record<string, unknown> = {
+        model: AGNES_IMAGE_MODEL,
+        prompt,
+        size,
+        ratio,
+        n: count,
+      };
+      if (refImage) payload.extra_body = { image: [refImage] };
+
+      const upstream = await fetch(AGNES_IMAGE_URL, {
+        method: "POST",
+        signal: timeoutSignal(50_000),
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${finalKey}`,
+        },
+        body: JSON.stringify(payload),
     });
 
     const raw = await upstream.text();
@@ -151,7 +176,12 @@ export async function POST(request: Request) {
       for (const arr of extra) images.push(...arr);
     }
 
-    return NextResponse.json({ images });
+    /*
+     * 把实际发给上游的内容回传，前端原样展示。
+     * 出怪图时这是唯一的定责依据：到底是提示词被改了，还是上游理解歪了。
+     */
+    const sent = { prompt, model: AGNES_IMAGE_MODEL, size, ratio, n };
+    return NextResponse.json({ images, sent });
   } catch (err) {
     const aborted = err instanceof Error && err.name === "AbortError";
     return NextResponse.json(
