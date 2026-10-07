@@ -86,6 +86,8 @@ export const ROLE_NAMES: Record<WerewolfRole, Record<string, string>> = {
   werewolf: { "zh-CN": "狼人", "zh-TW": "狼人", en: "Werewolf", fr: "Loup-garou" },
   seer: { "zh-CN": "预言家", "zh-TW": "預言家", en: "Seer", fr: "Voyante" },
   witch: { "zh-CN": "女巫", "zh-TW": "女巫", en: "Witch", fr: "Sorcière" },
+  hunter: { "zh-CN": "猎人", "zh-TW": "獵人", en: "Hunter", fr: "Chasseur" },
+  idiot: { "zh-CN": "白神", "zh-TW": "白神", en: "White Knight", fr: "Chevalier blanc" },
   villager: { "zh-CN": "平民", "zh-TW": "平民", en: "Villager", fr: "Villageois" },
 };
 
@@ -148,6 +150,18 @@ export function werewolfSystem(opts: {
         opts.witchUsed?.poison ? "（已用）" : "（可用）"
       }。`,
     );
+  } else if (me.role === "hunter") {
+    head.push(
+      me.shot
+        ? `你是猎人，你的枪已经用过了。`
+        : `你是猎人。你出局时可以开枪带走一名玩家（被女巫毒杀则不能开枪）。`,
+    );
+  } else if (me.role === "idiot") {
+    head.push(
+      me.revealed
+        ? `你是白神，你已经翻牌了：不会被放逐出局，但从此不能再投票。`
+        : `你是白神。若你在白天被投票放逐，你会翻牌并留在场上，但从此不能再投票（也不能再被投票放逐）。`,
+    );
   } else {
     head.push(`你是平民，没有特殊能力，靠发言和投票找出狼人。`);
   }
@@ -197,6 +211,13 @@ export function werewolfSystem(opts: {
         `前面可以有一句简短理由（40 字内）。`,
       );
       break;
+    case "hunter-shot":
+      tail.push(
+        `【猎人开枪】你出局了，现在可以开枪带走一名存活玩家。`,
+        `在最后一行输出目标，格式严格为：[[SHOOT:#座位号]]`,
+        `前面可以有一句简短理由（40 字内）。`,
+      );
+      break;
   }
 
   return [...head, ...tail].join("\n");
@@ -211,7 +232,7 @@ export function werewolfSystem(opts: {
  */
 export function parseTag(
   text: string,
-  kind: "KILL" | "CHECK" | "VOTE" | "HEAL" | "POISON" | "PASS",
+  kind: "KILL" | "CHECK" | "VOTE" | "HEAL" | "POISON" | "PASS" | "SHOOT",
 ): number | "PASS" | "HEAL" | null {
   const clean = text.replace(/`/g, "").replace(/\s+/g, "");
   const re = new RegExp(`\\[\\[${kind}(?::#?(\\d+))?\\]\\]`);

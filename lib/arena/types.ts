@@ -56,20 +56,30 @@ export type DebateStage = "opening" | "rebuttal" | "closing" | "verdict";
 /* -------------------------------- 狼人杀 -------------------------------- */
 
 /** 狼人杀身份 */
-export type WerewolfRole = "werewolf" | "seer" | "witch" | "villager";
+export type WerewolfRole =
+  | "werewolf"
+  | "seer"
+  | "witch"
+  | "hunter"
+  | "idiot"
+  | "villager";
 
 export interface WerewolfConfig {
   mode: "werewolf";
   lang: string;
   transport: ArenaTransport;
-  /** 座位数（6~9） */
+  /** 座位数（6~12） */
   seats: number;
   /** 每个座位用的模型 id，长度 = seats */
   models: string[];
   /** 狼人数量（默认 2） */
   wolves: number;
-  /** 是否含女巫（含则多一个神职） */
+  /** 是否含女巫 */
   withWitch: boolean;
+  /** 是否含猎人（死亡时可开枪带走一人） */
+  withHunter: boolean;
+  /** 是否含白神（被投票放逐时翻牌免死，但从此不能投票） */
+  withIdiot: boolean;
   /** 最大天数，到顶判定平局/狼人赢，防死循环 */
   maxDays: number;
 }
@@ -81,6 +91,7 @@ export type WerewolfStage =
   | "night-witch"
   | "day-speech"
   | "day-vote"
+  | "hunter-shot"
   | "settle"
   | "result";
 
@@ -92,6 +103,10 @@ export interface PlayerState {
   alive: boolean;
   /** 存活玩家在白天看到的名字（就是座位号，跨语言通用） */
   name: string;
+  /** 白神是否已翻牌：翻牌后免死，但失去投票权 */
+  revealed?: boolean;
+  /** 猎人是否已开过枪 */
+  shot?: boolean;
 }
 
 /* -------------------------------- 通用 -------------------------------- */

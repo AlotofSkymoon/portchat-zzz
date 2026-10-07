@@ -296,11 +296,42 @@ export async function runDebate(
 
 /* ============================= 狼人杀 ============================= */
 
-function dealRoles(seats: number, wolves: number, withWitch: boolean): WerewolfRole[] {
+/**
+ * 发牌。
+ *
+ * 必发：预言家。可选：女巫 / 猎人 / 白神。
+ * 座位不够时按「白神 → 猎人 → 女巫」倒序砍掉可选神职 ——
+ * 预言家是必须的，没有查验好人就只剩瞎投，整局会退化成纯嘴炮。
+ */
+function dealRoles(
+  seats: number,
+  wolves: number,
+  withWitch: boolean,
+  withHunter: boolean,
+  withIdiot: boolean,
+): WerewolfRole[] {
+  const w = Math.max(1, Math.min(wolves, seats - 1));
   const roles: WerewolfRole[] = [];
-  for (let i = 0; i < wolves; i++) roles.push("werewolf");
+  for (let i = 0; i < w; i++) roles.push("werewolf");
   roles.push("seer");
-  if (withWitch) roles.push("witch");
+  const optional: Array<[boolean, WerewolfRole]> = [
+    [withWitch, "witch"],
+    [withHunter, "hunter"],
+    [withIdiot, "idiot"],
+  ];
+  for (const [on, role] of optional) if (on) roles.push(role);
+  // 砍到装得下为止（倒序砍可选神职；狼人数量已单独夹过，预言家保留）
+  while (roles.length > seats) {
+    let cut = -1;
+    for (let i = roles.length - 1; i >= 0; i--) {
+      if (roles[i] !== "werewolf" && roles[i] !== "seer") {
+        cut = i;
+        break;
+      }
+    }
+    if (cut < 0) break;
+    roles.splice(cut, 1);
+  }
   while (roles.length < seats) roles.push("villager");
   return shuffle(roles);
 }
@@ -315,7 +346,7 @@ export async function runWerewolf(
   signal?: AbortSignal,
 ): Promise<ArenaResult> {
   const lang = cfg.lang;
-  const roles = dealRoles(cfg.seats, cfg.wolves, cfg.withWitch);
+  const roles = dealRoles(cfg.seats, cfg.wolves, cfg.withWitch, cfg.withHunter, cfg.withIdiot);
 
   const players: PlayerState[] = roles.map((role, i) => ({
     seat: i + 1,
@@ -330,8 +361,10 @@ export async function runWerewolf(
   const publicLog: string[] = [];
   const seen: Record<number, string> = {};
   const witchUsed = { heal: false, poison: false };
+  /** 当前天数，供 kill() 里的猎人开枪使用（kill 定义在循环外，拿不到循环变量 day） */
+  let currentDay = 1;
 
-  const total = cfg.seats * cfg.maxDays + cfg.maxDays * 4;
+  const total = (cfg.seats + 6) * cfg.maxDays;
   let done = 0;
 
   const emit = (l: ArenaLine) => {
@@ -342,8 +375,9 @@ export async function runWerewolf(
 
   const alivePlayers = () => players.filter((p) => p.alive);
   const bySeat = (n: number) => players.find((p) => p.seat === n);
+  /** 已翻牌的白神不再被投票放逐（规则：翻牌后免疫放逐） */
   const validTarget = (n: number | null): boolean =>
-    typeof n === "number" && !!bySeat(n)?.alive;
+    typeof n === "number" && !!bySeat(n)?.alive && !bySeat(n)?.revealed;
 
   const say = async (
     p: PlayerState,
@@ -393,6 +427,7 @@ export async function runWerewolf(
 
   for (let day = 1; day <= cfg.maxDays; day++) {
     check(signal);
+    currentDay = day;
 
     /* ---------------- 夜晚 ---------------- */
     hooks.onStatus?.("arena.status.night");
@@ -458,12 +493,12 @@ export async function runWerewolf(
         attacked = null; // 救活
       } else if (typeof poison === "number" && !witchUsed.poison && validTarget(poison)) {
         witchUsed.poison = true;
-        kill(poison);
+        await kill(poison, "poison");
       }
     }
 
     // 结算夜晚死亡
-    if (attacked != null) kill(attacked);
+    if (attacked != null) await kill(attacked, "wolf");
 
     /* ---------------- 白天 ---------------- */
     check(signal);
@@ -472,7 +507,9 @@ export async function runWerewolf(
     hooks.onStatus?.("arena.status.day");
     publicLog.push(`—— 第 ${day} 天白天 ——`);
 
-    const speakers = alivePlayers();
+    // 已翻牌的白神失去投票权
+    const speakers = alivePlayers().filter((p) => !p.revealed);
+    const voters = speakers.length ? speakers : alivePlayers();
     const sl = await mapPool(
       speakers,
       POOL,
@@ -501,12 +538,14 @@ export async function runWerewolf(
     // 投票：从发言里取标记，取不到就随机
     const votes = sl.map((l, i) => {
       const v = parseTag(l.text, "VOTE");
-      return typeof v === "number" ? v : randomAlive([speakers[i]?.seat ?? 0]);
+      return typeof v === "number" ? v : randomAlive([voters[i]?.seat ?? 0]);
     });
     const voted = majority(votes, validTarget);
     if (voted != null) {
-      kill(voted);
-      publicLog.push(`#${voted} 被投票放逐。`);
+      await kill(voted, "vote");
+      publicLog.push(
+        bySeat(voted)!.alive ? `#${voted} 翻牌免死（白神）。` : `#${voted} 被投票放逐。`,
+      );
     } else {
       publicLog.push(`本轮无人出局。`);
     }
@@ -527,14 +566,56 @@ export async function runWerewolf(
   return { lines, players };
 
   /* ---- 内部工具 ---- */
-  function kill(seat: number) {
+
+  /**
+   * 让一名玩家出局。
+   *
+   * 死因会影响两个角色的技能，所以必须传 cause：
+   * - 白神只在「被投票放逐」时翻牌免死，夜晚被杀/被毒都不能免
+   * - 猎人被女巫毒杀时不能开枪（标准规则），其余死法都能
+   */
+  async function kill(
+    seat: number,
+    cause: "wolf" | "poison" | "vote" | "hunt",
+  ): Promise<void> {
     const p = bySeat(seat);
     if (!p || !p.alive) return;
+
+    if (cause === "vote" && p.role === "idiot" && !p.revealed) {
+      p.revealed = true;
+      return;
+    }
+
     p.alive = false;
+
+    if (p.role === "hunter" && !p.shot && (cause === "wolf" || cause === "vote")) {
+      p.shot = true;
+      await hunterShoot(p);
+    }
+  }
+
+  async function hunterShoot(hunter: PlayerState): Promise<void> {
+    if (alivePlayers().length <= 1) return;
+    check(signal);
+    const l = await say(
+      hunter,
+      "hunter-shot",
+      `${contextFor(hunter)}\n\n你出局了，可以开枪带走一名存活玩家。最后一行输出 [[SHOOT:#座位号]]。`,
+      { day: currentDay },
+      120,
+    );
+    emit(l);
+    let target = parseTag(l.text, "SHOOT");
+    if (typeof target !== "number" || !validTarget(target)) target = randomAlive([]);
+    await kill(target, "hunt");
+    publicLog.push(`#${hunter.seat}（猎人）开枪带走 #${target}。`);
   }
 
   function randomAlive(exclude: number[]): number {
-    const pool = alivePlayers().filter((p) => !exclude.includes(p.seat)).map((p) => p.seat);
+    const ok = alivePlayers()
+      .filter((p) => !exclude.includes(p.seat) && !p.revealed)
+      .map((p) => p.seat);
+    const pool = ok.length ? ok : alivePlayers().filter((p) => !exclude.includes(p.seat)).map((p) => p.seat);
     if (!pool.length) return 1;
     return pool[Math.floor(Math.random() * pool.length)];
   }
@@ -558,7 +639,7 @@ export async function runWerewolf(
 /** 展示时去掉行尾的结构化标记，别让用户看到 [[VOTE:#3]] 这种东西 */
 export function stripTag(text: string): string {
   return text
-    .replace(/\[\[(KILL|CHECK|VOTE|POISON)(?::\s*#?\d+)?\]\]/gi, "")
+    .replace(/\[\[(KILL|CHECK|VOTE|POISON|SHOOT)(?::\s*#?\d+)?\]\]/gi, "")
     .replace(/\[\[(HEAL|PASS)\]\]/gi, "")
     .replace(/`+/g, "")
     .trim();

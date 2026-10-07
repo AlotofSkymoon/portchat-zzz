@@ -97,6 +97,62 @@ function useModelOptions(
 
 /* -------------------------------- 主组件 -------------------------------- */
 
+/**
+ * 把座位用的模型尽量均匀地轮换分配，避免 12 个座位默认塞满同一个模型。
+ * 已选过且仍然可用的模型会保留，只补齐缺的那几个。
+ */
+function spreadSeatModels(prev: string[], count: number, ids: string[]): string[] {
+  if (!ids.length) return Array.from({ length: count }, () => "");
+  const next = prev.filter((x) => ids.includes(x));
+  for (let i = next.length; i < count; i++) {
+    const used = ids.map((id) => next.filter((x) => x === id).length);
+    const min = Math.min(...used);
+    next.push(ids[used.indexOf(min)]);
+  }
+  return next.slice(0, count);
+}
+
+/** 狼人数量可选范围：至少 1 个，最多留够 3 个好人位，否则一开局好人就没得玩 */
+function wolfOptions(seats: number): number[] {
+  const max = Math.max(1, seats - 3);
+  return Array.from({ length: max }, (_, i) => i + 1);
+}
+
+/**
+ * 牌桌上的一个座位：圆形编号头像 + 模型名 + 身份。
+ * 出局的会整体变暗并打叉。
+ */
+function SeatBadge({
+  seat,
+  label,
+  roleText,
+  dim,
+}: {
+  seat: number;
+  label: string;
+  roleText: string;
+  dim: boolean;
+}) {
+  return (
+    <div
+      className={`flex w-20 flex-col items-center gap-1 ${dim ? "opacity-40" : ""}`}
+    >
+      <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border bg-muted/40 text-sm font-semibold">
+        {seat}
+        {dim ? (
+          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] leading-none text-white">
+            ✕
+          </span>
+        ) : null}
+      </div>
+      <span className="w-full truncate text-center text-[11px] text-fg-secondary">
+        {label}
+      </span>
+      <span className="text-[10px] text-fg-tertiary">{roleText}</span>
+    </div>
+  );
+}
+
 export function ArenaView() {
   const { t, locale } = useI18n();
 
@@ -121,11 +177,13 @@ export function ArenaView() {
   );
 
   // 狼人杀配置
-  const [seats, setSeats] = React.useState(6);
-  const [wolves, setWolves] = React.useState(2);
+  const [seats, setSeats] = React.useState(12);
+  const [wolves, setWolves] = React.useState(4);
   const [withWitch, setWithWitch] = React.useState(true);
+  const [withHunter, setWithHunter] = React.useState(true);
+  const [withIdiot, setWithIdiot] = React.useState(true);
   const [seatModels, setSeatModels] = React.useState<string[]>(() =>
-    Array.from({ length: 6 }, () => CHAT_MODELS[0]?.id ?? ""),
+    spreadSeatModels([], 12, CHAT_MODELS.map((m) => m.id)),
   );
 
   const [lines, setLines] = React.useState<ArenaLine[]>([]);
@@ -143,19 +201,21 @@ export function ArenaView() {
     transport.keys,
   );
 
+  // 座位数调小后，原来选的狼人数可能超限，这里夹到合法范围再显示
+  const wolvesClamped = Math.min(wolves, Math.max(1, seats - 3));
+
   React.useEffect(() => {
     setTransport(readTransport());
   }, []);
 
   React.useEffect(() => {
-    setSeatModels((prev) => {
-      const next = [...prev];
-      while (next.length < seats) next.push(options[0]?.id ?? next[0] ?? "");
-      return next.slice(0, seats);
-    });
-    // options 变化时也可能需要修正不存在的模型，这里只在座位数变化时补齐
+    const ids = options.map((o) => o.id);
+    if (!ids.length) return;
+    setSeatModels((prev) => spreadSeatModels(prev, seats, ids));
+    // 依赖里刻意只放 ids.length：座位数变了、或可用模型数量变了才重排，
+    // 避免因 options 每次渲染都是新数组而无限触发
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seats]);
+  }, [seats, options.length]);
 
   React.useEffect(() => {
     outRef.current?.scrollTo({
@@ -169,7 +229,7 @@ export function ArenaView() {
       const ms = debateModels.filter(Boolean);
       return ms.length >= 2 && topic.trim().length > 0;
     }
-    return seatModels.filter(Boolean).length === seats && seats >= 6 && seats <= 9;
+    return seatModels.filter(Boolean).length === seats && seats >= 6 && seats <= 12;
   }, [mode, debateModels, topic, seatModels, seats]);
 
   async function start() {
@@ -213,6 +273,8 @@ export function ArenaView() {
             models: seatModels,
             wolves: Math.min(wolves, Math.max(1, seats - 3)),
             withWitch,
+            withHunter,
+            withIdiot,
             maxDays: 5,
           },
           hooks,
@@ -238,6 +300,18 @@ export function ArenaView() {
 
   const modelLabel = (id: string) =>
     options.find((o) => o.id === id)?.label ?? id;
+
+  // 牌桌数据：一选好座位就铺出来，跑完（players 有值）才揭晓身份
+  const board: { seat: number; model: string; role: string; alive: boolean }[] =
+    players.length
+      ? players
+      : seatModels.map((m, i) => ({
+          seat: i + 1,
+          model: m,
+          role: "",
+          alive: true,
+        }));
+  const revealed = players.length > 0;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -410,7 +484,7 @@ export function ArenaView() {
                   disabled={running}
                   className="rounded-lg border border-border bg-transparent px-2 py-1"
                 >
-                  {[6, 7, 8, 9].map((n) => (
+                  {[6, 7, 8, 9, 10, 11, 12].map((n) => (
                     <option key={n} value={n}>
                       {n}
                     </option>
@@ -420,12 +494,12 @@ export function ArenaView() {
               <label className="flex items-center gap-2">
                 {t("arena.wolves")}
                 <select
-                  value={wolves}
+                  value={wolvesClamped}
                   onChange={(e) => setWolves(Number(e.target.value))}
                   disabled={running}
                   className="rounded-lg border border-border bg-transparent px-2 py-1"
                 >
-                  {[1, 2, 3].map((n) => (
+                  {wolfOptions(seats).map((n) => (
                     <option key={n} value={n}>
                       {n}
                     </option>
@@ -440,6 +514,24 @@ export function ArenaView() {
                   disabled={running}
                 />
                 {t("arena.withWitch")}
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={withHunter}
+                  onChange={(e) => setWithHunter(e.target.checked)}
+                  disabled={running}
+                />
+                {t("arena.withHunter")}
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={withIdiot}
+                  onChange={(e) => setWithIdiot(e.target.checked)}
+                  disabled={running}
+                />
+                {t("arena.withIdiot")}
               </label>
             </div>
 
@@ -503,6 +595,48 @@ export function ArenaView() {
         <p className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-500">
           {err}
         </p>
+      ) : null}
+
+      {/* -------- 狼人杀牌桌 -------- */}
+      {mode === "werewolf" && board.length > 0 ? (
+        <section className="mt-6 rounded-2xl border border-red-500/25 bg-gradient-to-b from-red-950/30 via-muted/10 to-transparent p-5">
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-center">
+            <div className="grid grid-cols-3 gap-x-4 gap-y-4 sm:grid-cols-2">
+              {board.slice(0, Math.ceil(board.length / 2)).map((p) => (
+                <SeatBadge
+                  key={p.seat}
+                  seat={p.seat}
+                  label={modelLabel(p.model)}
+                  roleText={revealed ? t(`arena.role.${p.role}`) : "?"}
+                  dim={revealed && !p.alive}
+                />
+              ))}
+            </div>
+
+            {/* 中央发光核心：两个菱形叠成八面体感，外圈光晕负责"发光" */}
+            <div className="relative flex h-32 w-32 shrink-0 items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-red-500/25 blur-2xl" />
+              <div className="h-20 w-20 animate-pulse rotate-45 rounded-2xl border border-red-400/60 bg-gradient-to-br from-red-500/80 via-red-600/40 to-red-900/60 shadow-[0_0_50px_rgba(239,68,68,0.55)]" />
+              <div className="absolute h-20 w-20 -rotate-45 rounded-2xl border border-red-300/30" />
+            </div>
+
+            <div className="grid grid-cols-3 gap-x-4 gap-y-4 sm:grid-cols-2">
+              {board.slice(Math.ceil(board.length / 2)).map((p) => (
+                <SeatBadge
+                  key={p.seat}
+                  seat={p.seat}
+                  label={modelLabel(p.model)}
+                  roleText={revealed ? t(`arena.role.${p.role}`) : "?"}
+                  dim={revealed && !p.alive}
+                />
+              ))}
+            </div>
+          </div>
+
+          <p className="mt-5 text-center text-sm font-medium text-amber-400">
+            {t("arena.tableSlogan", { n: board.length })}
+          </p>
+        </section>
       ) : null}
 
       {/* -------- 输出区 -------- */}
