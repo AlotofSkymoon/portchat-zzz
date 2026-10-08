@@ -1,21 +1,14 @@
-import type { Metadata } from "next";
-
-import { LandingContent } from "@/components/landing/landing-content";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/lib/site";
+import { redirect } from "next/navigation";
 
 /**
- * 落地页（首页）。
+ * 根路径直达聊天。
  *
- * ⚠️ 为什么聊天界面不再是首页：
- * 直接把聊天界面放在 `/`，新访客第一眼只看到一个空输入框 ——
- * 不知道这站能干什么、要不要注册、要不要自备 API Key。
- * 首页先讲清楚「免费、开箱即用、能做什么、怎么联系站长」，再点进 `/chat`。
+ * ⚠️ 为什么这里没有落地页了：
+ * 原来的落地页（components/landing/landing-content.tsx）已移除，
+ * 那份介绍页改由一个独立的静态 HTML 承载（可部署到任意静态托管），
+ * 所有入口按钮指向 https://chat.xyz.ci/chat。
+ * 本项目只保留聊天本身，访问 `/` 直接进 `/chat`，少一次跳转犹豫。
  */
-export const metadata: Metadata = {
-  title: `${SITE_NAME} · ${SITE_TAGLINE}`,
-  description: SITE_DESCRIPTION,
-};
-
 export default function HomePage() {
-  return <LandingContent />;
+  redirect("/chat");
 }
