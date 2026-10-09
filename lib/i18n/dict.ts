@@ -29,6 +29,11 @@ const DICT: Record<string, Entry> = {
   // ---- 侧边栏 ----
   "sidebar.newChat": { "zh-CN": "开启新对话", "zh-TW": "開啟新對話", en: "New chat", fr: "Nouvelle discussion" },
   "sidebar.history": { "zh-CN": "历史对话", "zh-TW": "歷史對話", en: "History", fr: "Historique" },
+  "sidebar.groupToday": { "zh-CN": "今天", "zh-TW": "今天", en: "Today", fr: "Aujourd'hui" },
+  "sidebar.groupYesterday": { "zh-CN": "昨天", "zh-TW": "昨天", en: "Yesterday", fr: "Hier" },
+  "sidebar.groupWeek": { "zh-CN": "7 天内", "zh-TW": "7 天內", en: "Previous 7 days", fr: "7 derniers jours" },
+  "sidebar.groupMonth": { "zh-CN": "30 天内", "zh-TW": "30 天內", en: "Previous 30 days", fr: "30 derniers jours" },
+  "sidebar.groupEarlier": { "zh-CN": "更早", "zh-TW": "更早", en: "Earlier", fr: "Plus ancien" },
   "sidebar.empty": { "zh-CN": "还没有对话", "zh-TW": "還沒有對話", en: "No conversations yet", fr: "Aucune discussion" },
   "sidebar.settings": { "zh-CN": "设置", "zh-TW": "設定", en: "Settings", fr: "Paramètres" },
   "sidebar.admin": { "zh-CN": "管理员面板", "zh-TW": "管理員面板", en: "Admin panel", fr: "Panneau d'administration" },

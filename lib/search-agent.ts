@@ -30,6 +30,14 @@
 import { resolveTarget } from "@/lib/config";
 import { configValue } from "@/lib/runtime-config";
 import { webSearch, formatSearchContext, type SearchResult } from "@/lib/web-search";
+import {
+  openAITools,
+  parseToolCalls,
+  markToolsUnsupported,
+  toolsLikelySupported,
+  isToolsRejection,
+  type ToolSpec,
+} from "@/lib/agent-toolcall";
 
 /** 单步决策：继续搜，还是够了 */
 interface AgentDecision {
@@ -91,6 +99,139 @@ const STEP_SYSTEM = [
   "- 已经搜过 2 轮还没有更好的结果 → 倾向 answer，不要为了完美一直搜",
 ].join("\n");
 
+/** 用过 tools 但上游不支持的「provider+model」，进程内记一次，别每次都白试 */
+function toolCapabilityKey(baseUrl: string, model: string): string {
+  return `${baseUrl}::${model}`;
+}
+
+/**
+ * 走**原生 function calling** 问下一步。
+ *
+ * 这是「AI 自己调接口」的正路：不靠提示词哄模型吐 JSON，而是把工具
+ * 声明交给上游，让模型真的产出 `tool_calls`。
+ *
+ * 返回 null 表示这条路走不通（调用方会降级到 JSON 引导模式）。
+ */
+async function askNextStepWithTools(
+  baseUrl: string,
+  model: string,
+  presetKey: string,
+  messages: { role: string; content: string }[],
+  signal?: AbortSignal,
+): Promise<AgentDecision | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), STEP_TIMEOUT);
+  const onAbort = () => controller.abort();
+  signal?.addEventListener("abort", onAbort);
+
+  try {
+    const res = await fetch(`${baseUrl.replace(/\/+$/, "")}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${presetKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        stream: false,
+        temperature: 0,
+        max_tokens: 200,
+        messages,
+        // 不传 tool_choice：默认 auto，且绕开 DeepSeek thinking 模式下
+        // 「required / 指定函数名 → 400」的限制
+        tools: openAITools([WEB_SEARCH_TOOL]),
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      // 确实是「不认 tools」→ 拉黑，后续走 JSON 引导，别每轮都白试一次
+      if (isToolsRejection(res.status, body)) {
+        markToolsUnsupported(toolCapabilityKey(baseUrl, model));
+        return null;
+      }
+      return null;
+    }
+
+    const data = (await res.json()) as {
+      choices?: { message?: Record<string, unknown> }[];
+    };
+    const message = data.choices?.[0]?.message ?? {};
+
+    const calls = parseToolCalls(message);
+    if (calls.length > 0) {
+      const call = calls.find((c) => c.name === WEB_SEARCH_TOOL.name);
+      if (!call) return { action: "answer", query: "" };
+      const query = typeof call.args.query === "string" ? call.args.query.trim() : "";
+      // 模型调了工具却没给词 —— 当成「够了」，免得搜出空结果
+      return query ? { action: "search", query } : { action: "answer", query: "" };
+    }
+
+    // 没返回 tool_calls：两种可能
+    //   1. 模型认为信息够了，直接说话了（正常）
+    //   2. 上游把 tools 字段忽略了（兼容度不够）
+    const content = typeof message.content === "string" ? message.content : "";
+    const asJson = parseDecision(content);
+    if (asJson) {
+      // 它其实在按 JSON 引导回答（说明上游忽略 tools），从此改走 JSON 模式
+      markToolsUnsupported(toolCapabilityKey(baseUrl, model));
+      return asJson;
+    }
+    // 有话但没法解析 —— 按「够了」处理，让它收尾
+    return { action: "answer", query: "" };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
+  }
+}
+
+/**
+ * 给上游声明的搜索工具。
+ *
+ * 只声明**一个**工具是刻意的：兼容度最差的网关往往只支持单工具，
+ * 而且我们也不需要更多。"够了就别搜"用「不调用工具」表达，
+ * 而不是再加一个 finish 工具 —— 少一个工具就少一处不兼容。
+ */
+const WEB_SEARCH_TOOL: ToolSpec = {
+  name: "web_search",
+  description:
+    "联网搜索。当你判断现有证据不足以回答用户的问题时调用它。如果证据已经够了，什么都不要调用，直接回答即可。",
+  parameters: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description:
+          "搜索引擎友好的关键词，不是完整句子。和已搜过的词必须有实质区别（换角度、加时间限定、加具体方面）。",
+      },
+    },
+    required: ["query"],
+  },
+};
+
+/** 原生 function calling 模式下的提示词（不要求输出 JSON，靠工具表达意图） */
+const STEP_SYSTEM_TOOLS = [
+  "你是一个联网搜索 Agent。用户会给你一个问题和已经搜到的证据。",
+  "",
+  "你需要判断：现有证据是否足够回答用户的问题。",
+  "- 不够 → 调用 web_search 工具，给出一个新的搜索关键词",
+  "- 够了 → 不要调用任何工具，直接回答「可以回答了」",
+  "",
+  "关键词要求：",
+  "- 搜索引擎友好的关键词，不是完整句子；去掉「请问」「帮我」这类客套",
+  "- 只给 1 个词；和已搜过的词必须有实质区别（换角度、加时间限定、加具体方面）",
+  "- 用户提到的专名、产品名、地名保留原样",
+  "",
+  "判断准则：",
+  "- 用户问近况/最新/现在，而证据里没有时间信息 → 继续搜，加上「现状」「最新」等词",
+  "- 用户问的是对比/多个方面，而证据只覆盖了一部分 → 继续搜剩下的方面",
+  "- 只是简单的事实问答，证据已经回答了 → 直接回答",
+  "- 已经搜过 2 轮还没有更好的结果 → 倾向回答，不要为了完美一直搜",
+].join("\n");
+
 /** 从模型输出里抠出第一个 JSON 对象（模型爱加解释文字） */
 function parseDecision(raw: string): AgentDecision | null {
   const text = (raw ?? "").trim();
@@ -145,16 +286,42 @@ async function askNextStep(
   const target = resolveTarget(model, []);
   if (!target) return null;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), STEP_TIMEOUT);
-  const onAbort = () => controller.abort();
-  signal?.addEventListener("abort", onAbort);
-
   const searched = queries.length > 0 ? `\n已经搜过的词：${queries.join(" / ")}` : "";
   const evidence =
     evidenceBlocks.length > 0
       ? `\n\n已经搜到的证据：\n${evidenceBlocks.join("\n\n")}`
       : "\n\n（还没有任何证据）";
+  const userContent = `用户的问题：${question}${searched}${evidence}`;
+
+  /*
+   * ---- 首选：原生 function calling ----
+   *
+   * 这才是「AI 自己调接口」该有的样子：工具声明交给上游，模型产出真的
+   * tool_calls，不靠提示词哄它吐 JSON。
+   * 但兼容度各家不一，走不通会自动落到下面的 JSON 引导。
+   */
+  const capKey = toolCapabilityKey(target.baseUrl, model);
+  if (toolsLikelySupported(capKey)) {
+    const viaTools = await askNextStepWithTools(
+      target.baseUrl,
+      model,
+      presetKey,
+      [
+        { role: "system", content: STEP_SYSTEM_TOOLS },
+        { role: "user", content: userContent },
+      ],
+      signal,
+    );
+    if (viaTools) return viaTools;
+    // 返回 null = 这条路不通（已拉黑或本次异常），继续走 JSON 引导
+  }
+
+  /* ---- 兜底：提示词要求输出 JSON ---- */
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), STEP_TIMEOUT);
+  const onAbort = () => controller.abort();
+  signal?.addEventListener("abort", onAbort);
 
   try {
     const res = await fetch(`${target.baseUrl.replace(/\/+$/, "")}/chat/completions`, {

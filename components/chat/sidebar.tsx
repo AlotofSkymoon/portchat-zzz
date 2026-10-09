@@ -24,6 +24,32 @@ import { Button } from "@/components/ui/button";
 import type { Conversation } from "@/lib/use-conversations";
 import { cn } from "@/lib/utils";
 
+/**
+ * 按更新时间倒序（新的在前）。
+ *
+ * 分组依赖顺序 —— 如果列表本身乱序，"今天 / 昨天"的标题会反复出现。
+ */
+function sortConversations(list: Conversation[]): Conversation[] {
+  return [...list].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+}
+
+/**
+ * 归到「今天 / 昨天 / 7 天内 / 30 天内 / 更早」，返回词典键。
+ *
+ * 分界用的是**自然日**（今天 0 点），不是"过去 24 小时"——
+ * 后者会让昨天深夜的对话在今天早上被算进"今天"，跟直觉不符。
+ */
+function groupKeyOf(ts: number): string {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const DAY = 86_400_000;
+  if (!ts || ts >= startOfToday) return "sidebar.groupToday";
+  if (ts >= startOfToday - DAY) return "sidebar.groupYesterday";
+  if (ts >= startOfToday - 7 * DAY) return "sidebar.groupWeek";
+  if (ts >= startOfToday - 30 * DAY) return "sidebar.groupMonth";
+  return "sidebar.groupEarlier";
+}
+
 interface SidebarProps {
   conversations: Conversation[];
   currentId: string;
@@ -71,6 +97,10 @@ export function Sidebar({
   const { t } = useI18n();
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [draft, setDraft] = React.useState("");
+  const sortedConversations = React.useMemo(
+    () => sortConversations(conversations),
+    [conversations],
+  );
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   // 进入编辑后自动聚焦并全选，直接打字覆盖最顺手
@@ -181,9 +211,20 @@ export function Sidebar({
                 </p>
               ) : (
                 <div className="space-y-0.5">
-                  {conversations.map((c) => (
+                  {sortedConversations.map((c, ci) => {
+                    const key = groupKeyOf(c.updatedAt ?? 0);
+                    const prevKey =
+                      ci > 0
+                        ? groupKeyOf(sortedConversations[ci - 1]?.updatedAt ?? 0)
+                        : null;
+                    return (
+                    <React.Fragment key={c.id}>
+                    {key !== prevKey ? (
+                      <p className="px-2.5 pb-1 pt-3 text-[11px] font-medium text-fg-tertiary">
+                        {t(key)}
+                      </p>
+                    ) : null}
                     <div
-                      key={c.id}
                       data-active={c.id === currentId}
                       className={cn(
                         "liquid-item group flex items-center gap-2 px-2.5 py-2 text-sm",
@@ -238,7 +279,9 @@ export function Sidebar({
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                  ))}
+                    </React.Fragment>
+                    );
+                  })}
                 </div>
               )}
             </div>
