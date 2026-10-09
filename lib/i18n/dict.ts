@@ -760,6 +760,8 @@ const DICT: Record<string, Entry> = {
   "input.effortOff": { "zh-CN": "关", "zh-TW": "關", en: "Off", fr: "Off" },
   "input.effortMax": { "zh-CN": "最高", "zh-TW": "最高", en: "Max", fr: "Max" },
   "input.effortHint": { "zh-CN": "等级越高，模型想得越久，消耗的 token 越多", "zh-TW": "等級越高，模型想得越久，消耗的 token 越多", en: "Higher levels make the model think longer and burn far more tokens", fr: "Plus le niveau est élevé, plus le modèle réfléchit longtemps et consomme de tokens" },
+  "input.effortCost": { "zh-CN": "{x} 倍用量", "zh-TW": "{x} 倍用量", en: "{x}× usage", fr: "{x}× de consommation" },
+  "input.effortCostMax": { "zh-CN": "更快消耗使用额度", "zh-TW": "更快消耗使用額度", en: "Burns credit faster", fr: "Épuise le crédit plus vite" },
   "settings.clearAllTitle": { "zh-CN": "清空全部数据", "zh-TW": "清空全部資料", en: "Clear all data", fr: "Effacer toutes les données" },
   "settings.clearAllDesc": { "zh-CN": "清除本地保存的 API Key、模型选择与全部聊天记录（不可恢复）。", "zh-TW": "清除本地保存的 API Key、模型選擇與全部聊天記錄（無法復原）。", en: "Deletes locally stored API keys, the model choice and every chat (cannot be undone).", fr: "Supprime les clés API locales, le choix du modèle et toutes les discussions (irréversible)." },
 

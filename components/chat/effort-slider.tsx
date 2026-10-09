@@ -101,15 +101,22 @@ export function EffortSlider({
   level,
   onChange,
   height = TRACK_HEIGHT,
+  costLabel,
+  costMaxLabel,
 }: {
   level: EffortLevel;
   onChange: (next: EffortLevel) => void;
   height?: number;
+  /** 当前档位的消耗倍率文案，形如「1.6 倍用量」；不传则不显示消耗行 */
+  costLabel?: string;
+  /** 拉满时的额外提示，形如「更快消耗使用额度」 */
+  costMaxLabel?: string;
 }) {
   const count = EFFORT_LEVELS.length;
   const rawIndex = EFFORT_LEVELS.indexOf(level);
   const index = rawIndex < 0 ? 1 : rawIndex;
   const pct = pctFromIndex(index, count);
+  const showCost = Boolean(costLabel || (level === "max" && costMaxLabel));
 
   // 旋钮直径 = 轨道高度（参考实现的几何前提）
   const r = height / 2;
@@ -131,6 +138,25 @@ export function EffortSlider({
 
   return (
     <div className="ces-inline">
+      {showCost ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 8,
+            marginBottom: 6,
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: "0.01em",
+            color: valueColorFor(pct, level) || "#8b5cf6",
+          }}
+          aria-hidden="true"
+        >
+          <span style={{ opacity: 0.72, fontWeight: 500 }}>{costLabel}</span>
+          {level === "max" && costMaxLabel ? <span>{costMaxLabel}</span> : null}
+        </div>
+      ) : null}
       <div className="ces-track" style={{ height }} role="group" aria-label="thinking-effort">
         <div className="ces-fill" style={fillStyle}>
           <div

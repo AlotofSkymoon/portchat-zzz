@@ -8,6 +8,7 @@ import { Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   CHAT_MODELS,
   EFFORT_LEVELS,
+  EFFORT_TOKEN_BUDGET,
   PROVIDERS,
   type CustomProviderConfig,
   type EffortLevel,
@@ -366,7 +367,14 @@ export function ModelPicker({
                     </div>
                     {onEffortChange ? (
                       <>
-                        <EffortSlider level={effort} onChange={onEffortChange} />
+                        <EffortSlider
+                          level={effort}
+                          onChange={onEffortChange}
+                          costLabel={t("input.effortCost", {
+                            x: String(EFFORT_TOKEN_BUDGET[effort] ?? 1),
+                          })}
+                          costMaxLabel={t("input.effortCostMax")}
+                        />
                         <p className="mt-1.5 text-[10px] leading-snug text-muted-foreground">
                           {t("input.effortHint")}
                         </p>
