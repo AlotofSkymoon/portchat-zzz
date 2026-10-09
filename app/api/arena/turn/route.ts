@@ -2,11 +2,18 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
 import { hitArenaRateLimit } from "@/lib/arena-rate-limit";
-import { isAllowedModelWith, resolveTarget, sanitizeCustomProviders } from "@/lib/config";
+import {
+  isAllowedModelWith,
+  isCustomProviderId,
+  type ProviderId,
+  resolveTarget,
+  sanitizeCustomProviders,
+} from "@/lib/config";
 import { timeoutSignal } from "@/lib/fetch-timeout";
 import { serverT as st } from "@/lib/i18n/server";
 import { REQUIRE_LOGIN } from "@/lib/site";
-import { configValue } from "@/lib/runtime-config";
+import { loadStoredPresetKeys, resolvePresetKey } from "@/lib/preset-keys";
+import { loadSiteProviderModels } from "@/lib/site-models";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,19 +75,23 @@ export async function POST(request: Request) {
   }
 
   const custom = sanitizeCustomProviders(customProviders);
-  if (!isAllowedModelWith(model, custom)) {
+  const siteModels = await loadSiteProviderModels();
+  if (!isAllowedModelWith(model, custom, siteModels)) {
     return err(400, "BAD_MODEL", st(request, "err.badModel"));
   }
 
-  const target = resolveTarget(model, custom, baseUrls);
+  const target = resolveTarget(model, custom, baseUrls, siteModels);
   if (!target) return err(400, "BAD_MODEL", st(request, "err.noProvider"));
 
-  // Key 规则与聊天一致：agnes 可用服务端预设，其余必须用用户自己的
+  // Key 规则与聊天一致：内置服务商用户 Key 优先、回落站点预设；自定义只能用用户自己的
+  const storedPresetKeys = await loadStoredPresetKeys();
   let finalKey = "";
-  if (target.providerId === "agnes") {
-    finalKey = (keys?.agnes ?? "").trim() || configValue("PRESET_AGNES_API_KEY");
-  } else {
+  if (isCustomProviderId(target.providerId)) {
     finalKey = (keys?.[target.providerId] ?? "").trim();
+  } else {
+    finalKey =
+      (keys?.[target.providerId] ?? "").trim() ||
+      resolvePresetKey(target.providerId as ProviderId, storedPresetKeys);
   }
   if (!finalKey) {
     return err(

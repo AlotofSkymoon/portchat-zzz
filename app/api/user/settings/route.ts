@@ -20,7 +20,11 @@ export const dynamic = "force-dynamic";
  */
 
 /** 允许同步的字段白名单 —— 防止把任意东西塞进服务端 */
-const SYNC_FIELDS = ["keys", "baseUrls", "customProviders", "model", "s3"] as const;
+/**
+ * ⚠️ extraModels 也要同步：用户自己探测追加的模型之前只在本地，
+ * 换设备就没了（且服务端还不认，调一次报一次 BAD_MODEL）。
+ */
+const SYNC_FIELDS = ["keys", "baseUrls", "customProviders", "model", "s3", "extraModels"] as const;
 
 type SyncField = (typeof SYNC_FIELDS)[number];
 

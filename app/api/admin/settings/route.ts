@@ -5,6 +5,8 @@ import { hasRedisConfig, storageErrorMessage } from "@/lib/redis";
 import { readSiteSettings, writeSiteSettings } from "@/lib/site-settings-store";
 import { githubOAuthFromEnv } from "@/lib/oauth-config";
 import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/types";
+import { presetProvidersFromEnv, sanitizePresetKeys } from "@/lib/preset-keys";
+import { sanitizeProviderModels } from "@/lib/config";
 import { serverT, serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
@@ -24,6 +26,8 @@ export async function GET(request: Request) {
   return NextResponse.json({
     settings: await readSiteSettings(),
     storage: true,
+    /** 环境变量里已配预设 Key 的服务商 —— 面板里填的会被压过，必须告诉管理员 */
+    presetFromEnv: presetProvidersFromEnv(),
     /**
      * 环境变量一旦配了就压过面板里的值。
      * 不告诉管理员的话，他会一直疑惑"我明明填了为什么没生效"。
@@ -76,6 +80,17 @@ export async function POST(request: Request) {
     githubClientSecret: String(body.githubClientSecret ?? current.githubClientSecret ?? "")
       .trim()
       .slice(0, 300),
+    /* 站点预设 Key：按服务商存，值不对外下发 */
+    presetKeys: sanitizePresetKeys(body.presetKeys ?? current.presetKeys ?? {}),
+    /**
+     * 站点级模型清单：管理员在内置供应商下追加的模型，全站可见。
+     *
+     * 之前管理员追加的模型只写进自己浏览器的 localStorage，
+     * 其他用户完全看不到 —— 现在存到这里，所有人都能用。
+     */
+    providerModels: sanitizeProviderModels(
+      (body.providerModels ?? current.providerModels ?? {}) as Record<string, unknown>,
+    ),
   };
 
   // Base URL 做基本校验，避免管理员手滑写坏全站

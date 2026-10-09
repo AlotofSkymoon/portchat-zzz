@@ -226,6 +226,29 @@ export interface SiteSettings {
   githubClientId: string;
   /** GitHub OAuth App 的 Client Secret。仅管理员可读写 */
   githubClientSecret: string;
+
+  /* ---- 站点预设 API Key（管理员面板里填，免去改环境变量）---- */
+
+  /**
+   * 全站共用的 API Key，键是服务商 id（agnes / deepseek / inkstone / atriasi）。
+   *
+   * 配了之后，所有访客都能看到并使用该服务商的模型 ——
+   * 不需要每个人自己去填 Key。仅管理员可读写，公开接口不下发值。
+   */
+  presetKeys: Record<string, string>;
+
+  /* ---- 站点级模型清单（管理员追加，全站可见）---- */
+
+  /**
+   * 管理员给内置服务商追加的模型 id，键是服务商 id。
+   *
+   * 为什么需要：以前管理员在自己设置里追加的模型只写进 localStorage，
+   * 只有他自己这台浏览器看得到，其他用户一个都看不到。
+   * 存到这里之后，所有访客的模型菜单里都会出现这些模型。
+   *
+   * ⚠️ 要真正能用，该服务商还得有「站点预设 Key」，否则用户没 Key 调不通。
+   */
+  providerModels: Record<string, string[]>;
 }
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -240,4 +263,6 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   contactValue: "",
   githubClientId: "",
   githubClientSecret: "",
+  presetKeys: {},
+  providerModels: {},
 };

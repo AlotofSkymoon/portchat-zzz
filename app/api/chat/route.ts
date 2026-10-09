@@ -8,13 +8,16 @@ import {
   PROVIDERS,
   isAllowedModelWith,
   isBlockedBaseUrl,
+  isCustomProviderId,
+  type ProviderId,
   resolveTarget,
   sanitizeCustomProviders,
 } from "@/lib/config";
 import { detectPlatform } from "@/lib/platform";
 import { getRedis, hasRedisConfig, KEYS } from "@/lib/redis";
 import { REQUIRE_LOGIN } from "@/lib/site";
-import { configValue } from "@/lib/runtime-config";
+import { loadStoredPresetKeys, resolvePresetKey } from "@/lib/preset-keys";
+import { loadSiteProviderModels } from "@/lib/site-models";
 import { serverT as st } from "@/lib/i18n/server";
 import { CHAT_RATE_LIMIT_PER_MINUTE, hitChatRateLimit } from "@/lib/chat-rate-limit";
 
@@ -242,8 +245,10 @@ export async function POST(request: Request) {
     }
   }
   const custom = sanitizeCustomProviders(customProviders);
+  // 管理员追加的站点级模型：所有用户都能用，这里要一并放行
+  const siteModels = await loadSiteProviderModels();
 
-  if (!isAllowedModelWith(model, custom)) {
+  if (!isAllowedModelWith(model, custom, siteModels)) {
     return errorResponse(400, "BAD_MODEL", st(request, "err.badModel"));
   }
 
@@ -277,24 +282,33 @@ export async function POST(request: Request) {
   }
 
   // 解析：这个模型属于哪个供应商、该打哪个地址
-  const target = resolveTarget(model, custom, baseUrls);
+  const target = resolveTarget(model, custom, baseUrls, siteModels);
   if (!target) {
     return errorResponse(400, "BAD_MODEL", st(request, "err.noProvider"));
   }
 
-  // Key 严格按供应商取，绝不串台
-  // - agnes：用户 Key 优先，回落服务端预设
-  // - deepseek / 自定义：必须用用户自己的 Key
+  /**
+   * Key 严格按供应商取，绝不串台：
+   * - 内置服务商：用户 Key 优先，回落该服务商的**站点预设 Key**
+   * - 自定义供应商：只能用用户自己的 Key（站点不会替自定义地址垫 Key）
+   *
+   * ⚠️ 以前只有 agnes 有预设 Key，其余三家一律要求用户自备，
+   * 于是站长配了端砚/浦语的 Key，访客还是用不了。现在四家一视同仁。
+   */
+  const storedPresetKeys = await loadStoredPresetKeys();
   let finalKey = "";
   /** 用户是否填了自己的 Key（用于判断这次请求花的是谁的钱） */
   let finalKeyOwnerSupplied = false;
-  if (target.providerId === "agnes") {
-    const presetKey = configValue("PRESET_AGNES_API_KEY");
-    const own = (keys?.agnes ?? apiKey ?? "").trim();
-    finalKeyOwnerSupplied = own.length > 0;
-    finalKey = own || presetKey;
-  } else {
+  if (isCustomProviderId(target.providerId)) {
     finalKey = (keys?.[target.providerId] ?? "").trim();
+    finalKeyOwnerSupplied = finalKey.length > 0;
+  } else {
+    const own =
+      target.providerId === "agnes"
+        ? (keys?.agnes ?? apiKey ?? "").trim()
+        : (keys?.[target.providerId] ?? "").trim();
+    finalKeyOwnerSupplied = own.length > 0;
+    finalKey = own || resolvePresetKey(target.providerId as ProviderId, storedPresetKeys);
   }
 
   if (!finalKey) {

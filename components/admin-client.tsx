@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 
 import { useI18n } from "@/components/i18n-provider";
+import { PROVIDERS } from "@/lib/config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -304,6 +305,8 @@ interface SiteSettings {
   contactValue: string;
   githubClientId: string;
   githubClientSecret: string;
+  /** 站点预设 API Key：内置服务商 → Key。填了所有用户都能用，不用自己填 */
+  presetKeys: Record<string, string>;
 }
 
 function SiteSettingsCard() {
@@ -320,6 +323,7 @@ function SiteSettingsCard() {
     contactValue: "",
     githubClientId: "",
     githubClientSecret: "",
+    presetKeys: {},
   });
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -333,6 +337,8 @@ function SiteSettingsCard() {
   );
   /** 环境变量里已经配了 GitHub OAuth → 面板里填的会被压过，必须告诉管理员 */
   const [githubFromEnv, setGithubFromEnv] = React.useState(false);
+  /** 环境变量里已配了预设 Key 的服务商 → 面板里填的会被压过 */
+  const [presetFromEnv, setPresetFromEnv] = React.useState<string[]>([]);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -353,6 +359,7 @@ function SiteSettingsCard() {
         error?: string;
         storage?: boolean;
         githubFromEnv?: boolean;
+        presetFromEnv?: string[];
       };
 
       if (!res.ok) {
@@ -379,9 +386,11 @@ function SiteSettingsCard() {
           contactValue: data.settings.contactValue ?? "",
           githubClientId: data.settings.githubClientId ?? "",
           githubClientSecret: data.settings.githubClientSecret ?? "",
+          presetKeys: data.settings.presetKeys ?? {},
         });
       }
       setGithubFromEnv(Boolean(data.githubFromEnv));
+      setPresetFromEnv(Array.isArray(data.presetFromEnv) ? data.presetFromEnv : []);
       // storage:false 表示后端没配存储，配置能读但保存会失败，提前告知
       if (data.storage === false) {
         setLoadError({
@@ -703,6 +712,38 @@ function SiteSettingsCard() {
                     {t("admin.githubFromEnv")}
                   </p>
                 ) : null}
+              </div>
+
+              {/* 站点预设 API Key：填了以后所有用户都能直接用这些服务商的模型 */}
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4" />
+                  {t("admin.presetKeys")}
+                </Label>
+                <p className="text-[11px] text-muted-foreground">{t("admin.presetKeysHint")}</p>
+                {(Object.keys(PROVIDERS) as string[]).map((pid) => (
+                  <div key={pid} className="space-y-1">
+                    <Label
+                      htmlFor={`ss-pk-${pid}`}
+                      className="text-[11px] text-muted-foreground"
+                    >
+                      {PROVIDERS[pid as keyof typeof PROVIDERS]?.label ?? pid}
+                    </Label>
+                    <Input
+                      id={`ss-pk-${pid}`}
+                      type="password"
+                      placeholder={presetFromEnv.includes(pid) ? t("admin.presetFromEnv") : "sk-…"}
+                      value={form.presetKeys[pid] ?? ""}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          presetKeys: { ...f.presetKeys, [pid]: e.target.value },
+                        }))
+                      }
+                      autoComplete="off"
+                    />
+                  </div>
+                ))}
               </div>
 
               <div className="space-y-1.5">

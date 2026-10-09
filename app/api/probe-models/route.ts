@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { isBlockedBaseUrl } from "@/lib/config";
+import { isBlockedBaseUrl, PROVIDERS, type ProviderId } from "@/lib/config";
 import { isTimeoutError, timeoutSignal } from "@/lib/fetch-timeout";
 import { serverT } from "@/lib/i18n/server";
+import { loadStoredPresetKeys, resolvePresetKey } from "@/lib/preset-keys";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +21,8 @@ export const dynamic = "force-dynamic";
 interface ProbeBody {
   baseUrl?: string;
   apiKey?: string;
+  /** 内置服务商 id。没填 Key 时，若地址与该服务商地址一致就用站点预设 Key 探测 */
+  providerId?: string;
 }
 
 /** 从 /models 的响应里抽出模型 id 列表，兼容几种常见结构 */
@@ -67,9 +70,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: t("api.probe.noInternal") }, { status: 400 });
   }
 
+  /**
+   * 没填用户 Key 时，若探测地址正好是某个内置服务商的地址，就用它的站点预设 Key。
+   *
+   * ⚠️ 这里必须比对地址：地址必须与该服务商自己的地址一致才垫 Key。
+   * 否则任何人都能拿任意 baseUrl 来探测，把站点 Key 发到他自己的服务器上。
+   */
+  let effectiveKey = key;
+  if (!effectiveKey && body.providerId && body.providerId in PROVIDERS) {
+    const pid = body.providerId as ProviderId;
+    const ownBase = PROVIDERS[pid].baseUrl.replace(/\/+$/, "");
+    if (base === ownBase) {
+      effectiveKey = resolvePresetKey(pid, await loadStoredPresetKeys());
+    }
+  }
+
   const headers: Record<string, string> = { Accept: "application/json" };
   // 没填 Key 也照样探测：不少中转站的 /models 是公开的
-  if (key) headers.Authorization = `Bearer ${key}`;
+  if (effectiveKey) headers.Authorization = `Bearer ${effectiveKey}`;
 
   try {
     const res = await fetch(`${base}/models`, {

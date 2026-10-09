@@ -390,6 +390,24 @@ export interface CustomProviderConfig {
 /** 内置服务商 id 不能占用 */
 export const BUILTIN_PROVIDER_IDS = ["agnes", "deepseek", "inkstone", "atriasi"] as const;
 
+/**
+ * 各内置服务商「站点预设 Key」对应的环境变量名。
+ *
+ * 之前只有 Agnes 有预设 Key（PRESET_AGNES_API_KEY），其余三家在服务端
+ * 一律只认用户自己填的 Key。后果是：站长配了端砚/浦语的 Key，
+ * 只有站长自己的浏览器（localStorage 里有 Key）能看到那些模型，
+ * 其他访客一个都看不到。
+ *
+ * 现在四家都支持：配了对应环境变量即全站可用。
+ * 端砚/浦语的 Key **不通用**，必须分别配。
+ */
+export const PRESET_KEY_ENV: Record<ProviderId, string> = {
+  agnes: "PRESET_AGNES_API_KEY",
+  deepseek: "PRESET_DEEPSEEK_API_KEY",
+  inkstone: "PRESET_INKSTONE_API_KEY",
+  atriasi: "PRESET_ATRIASI_API_KEY",
+};
+
 /** 自定义供应商 id 必须以 custom: 开头，避免与内置 id 冲突 */
 export const CUSTOM_PROVIDER_PREFIX = "custom:";
 
@@ -455,6 +473,36 @@ export function sanitizeCustomProviders(input: unknown): CustomProviderConfig[] 
   return out.slice(0, 10);
 }
 
+/* -------------------------- 站点级模型清单（全站可见） -------------------------- */
+
+/**
+ * 清洗「管理员追加的站点级模型」。
+ *
+ * 键只认内置服务商 id（agnes / deepseek / inkstone / atriasi），
+ * 值只保留非空字符串、去重、每家最多 50 个，超过的直接丢弃 ——
+ * 这是管理员自己填的数据，仍要防脏数据把全站模型菜单撑爆。
+ */
+export function sanitizeProviderModels(raw: unknown): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  for (const [pid, list] of Object.entries(raw as Record<string, unknown>)) {
+    if (!(BUILTIN_PROVIDER_IDS as readonly string[]).includes(pid)) continue;
+    if (!Array.isArray(list)) continue;
+    const seen = new Set<string>();
+    const models: string[] = [];
+    for (const m of list) {
+      if (typeof m !== "string") continue;
+      const id = m.trim();
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      models.push(id.slice(0, 200));
+      if (models.length >= 50) break;
+    }
+    if (models.length > 0) out[pid] = models;
+  }
+  return out;
+}
+
 /* ---------------------------- 按供应商解析模型 ---------------------------- */
 
 export interface ResolvedTarget {
@@ -474,11 +522,13 @@ export interface ResolvedTarget {
  * @param modelId    模型 id
  * @param custom     请求携带的自定义供应商
  * @param baseUrls   用户为各供应商单独配置的 Base URL 覆盖值
+ * @param siteModels 管理员追加的站点级模型（按服务商分组）
  */
 export function resolveTarget(
   modelId: string,
   custom: CustomProviderConfig[],
   baseUrls: Record<string, string> = {},
+  siteModels: Record<string, string[]> = {},
 ): ResolvedTarget | null {
   // 1) 先在内置模型里找
   const builtin = CHAT_MODELS.find((m) => m.id === modelId);
@@ -509,16 +559,35 @@ export function resolveTarget(
     };
   }
 
+  // 3) 最后查管理员追加的站点级模型
+  for (const [pid, list] of Object.entries(siteModels)) {
+    if (!list.includes(modelId)) continue;
+    const cfg = PROVIDERS[pid as ProviderId];
+    if (!cfg) continue;
+    const override = (baseUrls[pid] ?? "").trim().replace(/\/+$/, "");
+    return {
+      providerId: pid,
+      label: cfg.label,
+      baseUrl: override || cfg.baseUrl,
+      // 管理员追加时不知道上游是否支持视觉/思考，保守按不支持处理
+      vision: false,
+      thinking: false,
+      isCustom: false,
+    };
+  }
+
   return null;
 }
 
-/** 模型是否可用（内置 + 自定义） */
+/** 模型是否可用（内置 + 自定义 + 站点级） */
 export function isAllowedModelWith(
   modelId: string,
   custom: CustomProviderConfig[],
+  siteModels: Record<string, string[]> = {},
 ): boolean {
   if (CHAT_MODELS.some((m) => m.id === modelId)) return true;
-  return custom.some((c) => c.models.includes(modelId));
+  if (custom.some((c) => c.models.includes(modelId))) return true;
+  return Object.values(siteModels).some((list) => list.includes(modelId));
 }
 
 /* ------------------------------ SSRF 防护 ------------------------------ */

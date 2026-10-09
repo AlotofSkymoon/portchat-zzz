@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { timeoutSignal } from "@/lib/fetch-timeout";
 import { EmailCard, GithubBindCard, NicknameCard, TwoFactorCard } from "@/components/account-cards";
 import { useI18n } from "@/components/i18n-provider";
+import { usePresetProviders } from "@/lib/use-preset-providers";
 import { LocalePicker } from "@/components/locale-picker";
 import {
   Dialog,
@@ -319,6 +320,7 @@ function BuiltinProviderModelManager({
   baseUrl,
   apiKey,
   extra,
+  isAdmin = false,
   onChange,
 }: {
   pid: string;
@@ -326,6 +328,7 @@ function BuiltinProviderModelManager({
   baseUrl: string;
   apiKey: string;
   extra: string[];
+  isAdmin?: boolean;
   onChange: (models: string[]) => void;
 }) {
   const { t } = useI18n();
@@ -334,8 +337,40 @@ function BuiltinProviderModelManager({
   const [candidates, setCandidates] = React.useState<string[]>([]);
   const [picked, setPicked] = React.useState<Set<string>>(new Set());
   const [manual, setManual] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
 
   const owned = new Set(extra);
+
+  /**
+   * 把当前这家供应商下的模型保存到站点上。
+   *
+   * 不保存的话，管理员在这里追加的模型只存在自己浏览器里，
+   * 其他用户一个都看不到 —— 页面上也查不出原因。
+   * 前提：该供应商要有站点预设 Key，否则没填 Key 的用户仍然看不到整组。
+   */
+  async function saveToSite() {
+    setSaving(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/admin/settings", { cache: "no-store" });
+      const data = (await res.json()) as {
+        settings?: { providerModels?: Record<string, string[]> };
+      };
+      const current = data.settings?.providerModels ?? {};
+      const merged = Array.from(new Set([...(current[pid] ?? []), ...extra]));
+      const post = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ providerModels: { ...current, [pid]: merged } }),
+      });
+      const out = (await post.json()) as { ok?: boolean; error?: string };
+      setMsg(out.ok ? t("settings.savedToSite") : (out.error ?? t("settings.saveToSiteFailed")));
+    } catch {
+      setMsg(t("settings.saveToSiteFailed"));
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function probe() {
     setProbing(true);
@@ -346,7 +381,7 @@ function BuiltinProviderModelManager({
       const res = await fetch("/api/probe-models", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ baseUrl, apiKey }),
+        body: JSON.stringify({ baseUrl, apiKey, providerId: pid }),
       });
       const data = (await res.json()) as { ok?: boolean; models?: string[]; error?: string };
       if (!data.ok || !data.models?.length) {
@@ -414,6 +449,25 @@ function BuiltinProviderModelManager({
           {probing ? t("settings.probing") : t("settings.probeNew")}
         </button>
       </div>
+
+      {isAdmin ? (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] text-fg-tertiary">{t("settings.siteModelsHint")}</span>
+          <button
+            type="button"
+            onClick={() => void saveToSite()}
+            disabled={saving || extra.length === 0}
+            className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline disabled:opacity-50"
+          >
+            {saving ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <CloudUpload className="h-3 w-3" />
+            )}
+            {t("settings.saveToSite")}
+          </button>
+        </div>
+      ) : null}
 
       {extra.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
@@ -771,6 +825,7 @@ export function SettingsDialog({
   onUserChanged,
 }: SettingsDialogProps) {
   const { t } = useI18n();
+  const presetProviders = usePresetProviders();
   const [form, setForm] = React.useState<ChatSettings>(settings);
   const [showKey, setShowKey] = React.useState<Record<string, boolean>>({});
   const [showSecret, setShowSecret] = React.useState(false);
@@ -1114,7 +1169,7 @@ export function SettingsDialog({
                     <Input
                       type={showKey[pid] ? "text" : "password"}
                       placeholder={
-                        p.hasPreset
+                        presetProviders.has(pid)
                           ? t("settings.keyPresetPlaceholder")
                           : t("settings.keyRequiredPlaceholder", { name: p.label })
                       }
@@ -1137,7 +1192,7 @@ export function SettingsDialog({
                   <p className="text-[11px] text-muted-foreground">
                     {isCustom
                       ? t("settings.sendTo", { url: p.baseUrl })
-                      : p.hasPreset
+                      : presetProviders.has(pid)
                         ? t("settings.storedLocal")
                         : t("settings.requireKeyNote")}
                   </p>
@@ -1174,13 +1229,14 @@ export function SettingsDialog({
                   ) : null}
 
                   {/* 上游上架新模型后在这里增量追加，不用删掉整条重加 */}
-                  {!isCustom && !p.hasPreset ? (
+                  {!isCustom ? (
                     <BuiltinProviderModelManager
                       pid={pid}
                       label={p.label}
                       baseUrl={form.baseUrls[pid] || p.baseUrl}
                       apiKey={form.keys[pid] ?? ""}
                       extra={form.extraModels?.[pid] ?? []}
+                      isAdmin={isAdmin}
                       onChange={(models) =>
                         setForm((f) => ({
                           ...f,

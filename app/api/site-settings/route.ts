@@ -12,6 +12,8 @@ import {
 import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/types";
 import { hasRedisConfig } from "@/lib/redis";
 import { readSiteSettings } from "@/lib/site-settings-store";
+import { presetProvidersFromEnv, sanitizePresetKeys } from "@/lib/preset-keys";
+import { sanitizeProviderModels, type ProviderId } from "@/lib/config";
 
 /**
  * 站点设置的默认值。
@@ -36,6 +38,23 @@ function fallbackSettings(): SiteSettings {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** 去掉密钥字段，只保留可以公开的部分 */
+function publicSettings(settings: SiteSettings): SiteSettings {
+  return { ...settings, githubClientSecret: "", presetKeys: {} };
+}
+
+/**
+ * 哪些服务商有「站点预设 Key」。
+ *
+ * 这个值决定了访客能不能看到某个服务商的模型：
+ * 之前客户端只看写死的 hasPreset（只有 agnes 是 true），
+ * 于是站长配了端砚/浦语的 Key，访客依然一个模型都看不到。
+ */
+function presetProviders(stored: SiteSettings): ProviderId[] {
+  const fromStore = Object.keys(sanitizePresetKeys(stored.presetKeys)) as ProviderId[];
+  return Array.from(new Set([...presetProvidersFromEnv(), ...fromStore]));
+}
+
 /**
  * GET /api/site-settings —— 公开读取站点级配置。
  *
@@ -44,7 +63,12 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   if (!hasRedisConfig()) {
-    return NextResponse.json({ settings: fallbackSettings(), requireLogin: REQUIRE_LOGIN });
+    const fallback = fallbackSettings();
+    return NextResponse.json({
+      settings: publicSettings(fallback),
+      requireLogin: REQUIRE_LOGIN,
+      presetProviders: presetProviders(fallback),
+    });
   }
 
   try {
@@ -69,9 +93,19 @@ export async function GET() {
       footerExtra: stored.footerExtra || base.footerExtra,
       contactType: stored.contactType || base.contactType,
       contactValue: stored.contactValue || base.contactValue,
+      providerModels: sanitizeProviderModels(stored.providerModels),
     };
-    return NextResponse.json({ settings, requireLogin: REQUIRE_LOGIN });
+    return NextResponse.json({
+      settings: publicSettings(settings),
+      requireLogin: REQUIRE_LOGIN,
+      presetProviders: presetProviders(stored),
+    });
   } catch {
-    return NextResponse.json({ settings: fallbackSettings(), requireLogin: REQUIRE_LOGIN });
+    const fallback = fallbackSettings();
+    return NextResponse.json({
+      settings: publicSettings(fallback),
+      requireLogin: REQUIRE_LOGIN,
+      presetProviders: presetProviders(fallback),
+    });
   }
 }

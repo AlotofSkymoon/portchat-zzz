@@ -12,6 +12,8 @@ import {
   type ProviderId,
 } from "@/lib/config";
 import { useI18n } from "@/components/i18n-provider";
+import { usePresetProviders } from "@/lib/use-preset-providers";
+import { useSiteProviderModels } from "@/lib/use-site-models";
 import { SPONSOR_ENABLED } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +69,9 @@ export function ModelPicker({
   extraModels = {},
 }: ModelPickerProps) {
   const { t } = useI18n();
+  const presetProviders = usePresetProviders();
+  /** 管理员添加到站点上的模型 —— 全站可见，不用每人自己加一遍 */
+  const siteModels = useSiteProviderModels();
   const [open, setOpen] = React.useState(false);
   const [placement, setPlacement] = React.useState<Placement | null>(null);
   const wrapRef = React.useRef<HTMLDivElement>(null);
@@ -77,15 +82,15 @@ export function ModelPicker({
   const groups = React.useMemo(() => {
     const builtin = PROVIDER_ORDER
       // 没填 Key 的内置供应商整个不显示 —— 列出来也调不通，点了就是报错
-      .filter((pid) => PROVIDERS[pid].hasPreset || Boolean((keys[pid] ?? "").trim()))
+      .filter((pid) => presetProviders.has(pid) || Boolean((keys[pid] ?? "").trim()))
       .map((pid) => {
         const base = CHAT_MODELS.filter((m) => m.provider === pid).map((m) => ({
           id: m.id,
           label: m.label,
           desc: m.desc,
         }));
-        // 用户自己探测/手填追加的模型，去掉与内置重复的再并进去
-        const extras = (extraModels[pid] ?? [])
+        // 用户自己探测/手填追加的模型 + 管理员加到站点上的，去掉与内置重复的再并进去
+        const extras = Array.from(new Set([...(extraModels[pid] ?? []), ...(siteModels[pid] ?? [])]))
           .filter((id) => !base.some((m) => m.id === id))
           .map((id) => ({ id, label: id, desc: t("model.customProvider") }));
         return {
@@ -100,7 +105,7 @@ export function ModelPicker({
       items: c.models.map((id) => ({ id, label: id, desc: t("model.customProvider") })),
     }));
     return [...builtin, ...custom].filter((g) => g.items.length > 0);
-  }, [customProviders, keys, extraModels, t]);
+  }, [customProviders, keys, extraModels, siteModels, t]);
 
   const allModels = React.useMemo(() => groups.flatMap((g) => g.items), [groups]);
   const current = allModels.find((m) => m.id === value) ?? allModels[0] ?? CHAT_MODELS[0];

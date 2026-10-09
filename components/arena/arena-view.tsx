@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ArrowLeft, Play, Square, Swords, Users } from "lucide-react";
 
 import { useI18n } from "@/components/i18n-provider";
+import { usePresetProviders } from "@/lib/use-preset-providers";
+import { useSiteProviderModels } from "@/lib/use-site-models";
 import { Button } from "@/components/ui/button";
 import {
   CHAT_MODELS,
@@ -74,16 +76,18 @@ function useModelOptions(
   customProviders: CustomProviderConfig[],
   extraModels: Record<string, string[]>,
   keys: Record<string, string>,
+  presetProviders: Set<string>,
+  siteModels: Record<string, string[]>,
 ) {
   return React.useMemo(() => {
     const builtin = PROVIDER_ORDER.flatMap((pid) => {
-      // 没填 Key 的内置供应商（且无站点内置 Key）整组不显示
-      if (!PROVIDERS[pid].hasPreset && !(keys[pid] ?? "").trim()) return [];
+      // 没填 Key 的内置供应商（且站点也没配 Key）整组不显示
+      if (!presetProviders.has(pid) && !(keys[pid] ?? "").trim()) return [];
       const own = CHAT_MODELS.filter((m) => m.provider === pid).map((m) => ({
         id: m.id,
         label: `${PROVIDERS[pid].label} · ${m.label}`,
       }));
-      const extra = (extraModels[pid] ?? [])
+      const extra = Array.from(new Set([...(extraModels[pid] ?? []), ...(siteModels[pid] ?? [])]))
         .filter((id) => !own.some((o) => o.id === id))
         .map((id) => ({ id, label: `${PROVIDERS[pid].label} · ${id}` }));
       return [...own, ...extra];
@@ -92,7 +96,7 @@ function useModelOptions(
       (c.models ?? []).map((id) => ({ id, label: `${c.label} · ${id}` })),
     );
     return [...builtin, ...custom];
-  }, [customProviders, extraModels, keys]);
+  }, [customProviders, extraModels, keys, presetProviders, siteModels]);
 }
 
 /* -------------------------------- 主组件 -------------------------------- */
@@ -195,10 +199,14 @@ export function ArenaView() {
   const abortRef = React.useRef<AbortController | null>(null);
   const outRef = React.useRef<HTMLDivElement>(null);
 
+  const presetProviders = usePresetProviders();
+  const siteModels = useSiteProviderModels();
   const options = useModelOptions(
     transport.customProviders,
     transport.extraModels,
     transport.keys,
+    presetProviders,
+    siteModels,
   );
 
   // 座位数调小后，原来选的狼人数可能超限，这里夹到合法范围再显示
