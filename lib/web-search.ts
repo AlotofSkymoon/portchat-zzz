@@ -478,20 +478,34 @@ function compress(s: string, max: number): string {
   return t.length <= max ? t : t.slice(0, max) + "…";
 }
 
+/**
+ * 喂给模型的证据上限。
+ *
+ * 以前是把搜到的 30 条全塞进去，模型被这坨东西淹没，最常见的反应就是
+ * **把检索结果原样复读一遍**——用户看到的回答就是一串带 URL 的编号列表，
+ * 而不是答案。条数压到 10 条以内，模型才会真的去"读"而不是"抄"。
+ *
+ * 其余命中条目仍然会通过 results 回传给前端，在回答下方以来源卡片展示，
+ * 用户照样点得到，只是不再占模型的上下文。
+ */
+const EVIDENCE_CAP = 10;
+
 export function formatSearchContext(query: string, results: SearchResult[]): string {
-  const cap = snippetLimit(results.length);
-  const lines = results.map(
-    (r, i) => `[${i + 1}] ${r.title}\n${r.url}\n${compress(r.snippet || "（无摘要）", cap)}`,
+  // 只取前 10 条喂模型；URL 不进去（模型用不上，还会诱导它照抄）
+  const evidence = results.slice(0, EVIDENCE_CAP);
+  const cap = snippetLimit(evidence.length);
+  const lines = evidence.map(
+    (r, i) => `[${i + 1}] ${r.title}：${compress(r.snippet || "（无摘要）", cap)}`,
   );
 
   return [
-    `以下是联网搜索「${query}」得到的结果（共 ${results.length} 条，摘要已压缩）：`,
-    "",
+    `【联网检索到的资料，共 ${results.length} 条，以下是最相关的 ${evidence.length} 条】`,
     ...lines,
     "",
-    "要求：",
-    "1. 基于以上检索结果回答，提及相关信息时标注来源编号，如 [3]。",
-    "2. 结果较多时优先采信相关度高的，不要逐条罗列。",
-    "3. 检索结果不足以回答就明说，不要编造。",
+    "【怎么用这些资料】",
+    "- 把它当作你已经查过的背景知识，直接回答用户的问题。",
+    "- 提到具体事实、数字、时间时在句末标注来源编号，例如：……[3]。",
+    "- 禁止复述或罗列检索结果本身，禁止输出网址，禁止用编号列表当答案。",
+    "- 资料里没有的就直说没有，不要编。",
   ].join("\n");
 }

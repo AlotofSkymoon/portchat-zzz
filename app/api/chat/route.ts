@@ -77,6 +77,13 @@ interface ChatRequestBody {
   conversationId?: string;
   saveToCloud?: boolean;
   /**
+   * 联网搜索拿到的证据文本。
+   *
+   * 单独一个字段、由服务端拼成独立的 system 消息，而不是前端塞进用户消息里。
+   * 这样它**不会被写进会话历史**——刷新后那一大坨检索结果不会跟着消息一起回来。
+   */
+  searchContext?: string;
+  /**
    * 会话标题（云端保存时用）。
    * 之前云端只存消息不存标题，拉回本地时只能显示「新对话」。
    */
@@ -226,6 +233,7 @@ export async function POST(request: Request) {
     conversationTitle,
     thinking,
     effort,
+    searchContext,
   } = body;
 
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -433,8 +441,18 @@ export async function POST(request: Request) {
   const persona = isGreetingOnly(messages)
     ? st(request, "chat.coffingPersona")
     : st(request, "chat.coffingBase");
+  /**
+   * 检索资料作为**独立的 system 消息**注入，紧跟 persona 之后。
+   *
+   * 为什么不拼进用户消息：那样它会被写进云端/本地会话历史，刷新后整屏都是
+   * 检索摘要，而且模型容易把"用户说过的话"当引用对象原样复读。
+   * 放 system 层 = 这是给你的背景知识，不是用户说的话。
+   */
+  const trimmedSearch =
+    typeof searchContext === "string" ? searchContext.trim() : "";
   const outboundWithPersona = [
     { role: "system" as const, content: persona },
+    ...(trimmedSearch ? [{ role: "system" as const, content: trimmedSearch }] : []),
     ...outbound,
   ];
 

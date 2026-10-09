@@ -45,27 +45,49 @@ function SearchSources({ sources }: { sources: { title: string; url: string }[] 
   const shown = expanded ? sources : sources.slice(0, PREVIEW);
   const hidden = sources.length - shown.length;
 
+  /** 取域名做副标题，比整条 URL 好认得多 */
+  const hostOf = (url: string) => {
+    try {
+      return new URL(url).hostname.replace(/^www\./, "");
+    } catch {
+      return "";
+    }
+  };
+
   return (
     <div className="mb-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
-      <p className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-fg-tertiary">
+      <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-fg-tertiary">
         <Globe className="h-3 w-3" />
         {t("chat.sources")}（{sources.length}）
       </p>
 
-      <ol className="space-y-0.5">
-        {shown.map((src, i) => (
-          <li key={src.url} className="truncate text-[11px] leading-relaxed">
-            <a
-              href={src.url}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-primary hover:underline"
-              title={src.title || src.url}
-            >
-              [{i + 1}] {src.title || src.url}
-            </a>
-          </li>
-        ))}
+      <ol className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+        {shown.map((src, i) => {
+          const host = hostOf(src.url);
+          return (
+            <li key={src.url}>
+              <a
+                href={src.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                title={src.title || src.url}
+                className="group block rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/50"
+              >
+                <span className="flex items-center gap-1.5 text-[11px] leading-relaxed text-fg-secondary group-hover:text-primary">
+                  <span className="shrink-0 font-mono text-[10px] text-fg-tertiary">
+                    {i + 1}
+                  </span>
+                  <span className="line-clamp-2">{src.title || src.url}</span>
+                </span>
+                {host ? (
+                  <span className="mt-0.5 block truncate pl-[18px] text-[10px] text-fg-tertiary">
+                    {host}
+                  </span>
+                ) : null}
+              </a>
+            </li>
+          );
+        })}
       </ol>
 
       {hidden > 0 || expanded ? (

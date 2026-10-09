@@ -611,33 +611,15 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
         }
       }
 
-      /** 把搜索上下文附到最后一条用户消息上 */
-      const finalMessages = searchNote
-        ? outboundMessages.map((m, idx) => {
-            const isLastUser =
-              m.role === "user" &&
-              idx ===
-                outboundMessages.reduce(
-                  (acc, mm, i) => (mm.role === "user" ? i : acc),
-                  -1,
-                );
-            if (!isLastUser) return m;
-
-            if (typeof m.content === "string") {
-              return { ...m, content: `${m.content}\n\n${searchNote}` };
-            }
-            if (Array.isArray(m.content)) {
-              return {
-                ...m,
-                content: [
-                  ...m.content,
-                  { type: "text" as const, text: searchNote },
-                ],
-              };
-            }
-            return m;
-          })
-        : outboundMessages;
+      /**
+       * 检索资料**不再拼进用户消息**。
+       *
+       * 以前的做法是把整坨检索结果追加到最后一条用户消息末尾，结果：
+       * 1. 它被写进会话历史，刷新后满屏都是检索摘要；
+       * 2. 模型把"用户说的话"当引用对象，最常见的反应就是原样复读。
+       * 现在通过独立的 searchContext 字段交给服务端，由它拼成 system 消息。
+       */
+      const finalMessages = outboundMessages;
 
       // ---- 发送前体积预检 ----
       // Vercel Serverless 请求体硬上限 4.5MB，超出会在平台层直接被拒，
@@ -656,6 +638,8 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
           conversations.find((c) => c.id === conversationId)?.title ?? "",
         thinking: thinkingRef.current,
         effort,
+        // 检索证据走独立字段，服务端拼成 system 消息，不进会话历史
+        ...(searchNote ? { searchContext: searchNote } : {}),
       };
       const bodyBytes = new TextEncoder().encode(JSON.stringify(bodyObj)).length;
       const PLATFORM_BODY_LIMIT =
