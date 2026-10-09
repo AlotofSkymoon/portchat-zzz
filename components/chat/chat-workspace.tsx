@@ -39,6 +39,7 @@ import {
 } from "@/lib/config";
 import { EMAIL_POLICY_DEADLINE } from "@/lib/email-policy";
 import { IMAGE_TARGET_BASE64, compressImageToDataUrl } from "@/lib/image-compress";
+import { extractVideoFrames } from "@/lib/video-frames";
 import { DEFAULT_S3_CONFIG, type S3Config } from "@/lib/s3-presets";
 import {
   createId,
@@ -1160,6 +1161,9 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
     // 图片经压缩后一般远低于此值，触发说明图确实太大或压缩没生效。
     const INLINE_LIMIT = IMAGE_TARGET_BASE64;
 
+    /** 视频抽帧得到的额外图片附件：不能在 map 回调里直接 push 进 parsed（那时它还在 TDZ） */
+    const extraFrames: Attachment[] = [];
+
     const parsed = await Promise.all(
       picked.map(async (f) => {
         if (storageAvailable && needsRemote(f)) {
@@ -1202,6 +1206,38 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
             const att = storageBoundRef.current
               ? await uploadViaBinding(target)
               : await uploadViaS3(target);
+
+            /**
+             * 视频模型是"看不见"的：聊天接口只认 image_url 这一种媒体，
+             * 视频一律降级成「【视频：xxx.mp4】<链接>」的纯文本，
+             * 而那个链接上游往往拉不到（私有桶或跨域不通），等于给了个死链。
+             *
+             * 所以在这里本地截几帧当图片一起发 —— 视觉模型才读得到内容。
+             * 只对当前模型支持视觉时做，否则这几张图纯属浪费请求体。
+             */
+            if (
+              att.kind === "video" &&
+              visionEnabled(settings.model, settings.customProviders)
+            ) {
+              try {
+                const shots = await extractVideoFrames(target);
+                const room = Math.max(
+                  0,
+                  MAX_FILES - attachments.length - parsed.length,
+                );
+                if (shots.length > 0 && room > 0) extraFrames.push(
+                  ...shots.slice(0, room).map((content, i) => ({
+                    id: `frame-${att.id}-${i}`,
+                    name: `${f.name} 帧${i + 1}`,
+                    kind: "image" as const,
+                    content,
+                    note: undefined,
+                  })),
+                );
+              } catch {
+                /* 抽帧失败不影响上传本身，静默跳过 */
+              }
+            }
 
             /**
              * 上传"成功"不等于 AI 看得到。
@@ -1299,10 +1335,14 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
       else toast.dismiss(toastId);
     }
 
-    setAttachments((prev) => [...prev, ...parsed]);
+    setAttachments((prev) => [
+      ...prev,
+      ...parsed,
+      ...extraFrames.slice(0, Math.max(0, MAX_FILES - attachments.length - parsed.length)),
+    ]);
     const failed = parsed.filter((a) => a.note);
     if (failed.length) toast.warning(failed[0].note);
-  }, [attachments.length, uploadViaS3, uploadViaBinding]);
+  }, [attachments.length, uploadViaS3, uploadViaBinding, settings]);
 
   const removeAttachment = React.useCallback((id: string) => {
     setAttachments((prev) => prev.filter((a) => a.id !== id));

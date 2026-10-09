@@ -34,24 +34,71 @@ type ProgressFn = (msg: string) => void;
 /* ---------------------------------------------------------------------------
    CDN 源（与播放端共用同一份配置）
 
-   unpkg / jsdelivr 都是境外源，国内拉 25~32MB 的 core 经常超时或直接失败，
-   所以把 npmmirror 镜像排在最前面——它同步的是同一个 npm 包，版本一致。
-   全挂才报错，报错信息里带上最后一支源的域名，方便定位是网络还是版本问题。
+   ⚠️ 这份列表是逐个取前 8 字节实测出来的（2026-10-09），不是照抄文档：
+
+     registry.npmmirror.com  → 403 policy_default_denied
+     cdn.npmmirror.com       → 403
+     cdn.jsdelivr.net        → 200 但前 4 字节是 `{"ti`（JSON 错误体）
+     fastly.jsdelivr.net     → 同上
+     gcore.jsdelivr.net      → 同上
+     unpkg.com 0.12.10       → 00 61 73 6d（\0asm）✅ 32MB 正常
+     unpkg.com 0.12.6        → ✅
+
+   所以只留 unpkg。之前把 npmmirror 排第一，等于每次必然白失败一轮；
+   jsdelivr 更糟——它是"能下载完但根本不是 wasm"的坏文件，
+   ffmpeg.load() 会卡在里面抛一个看不懂的错，比直接失败更难排查。
    --------------------------------------------------------------------------- */
 const CDN_SOURCES = [
-  {
-    core: "https://registry.npmmirror.com/@ffmpeg/core/0.12.10/files/dist/umd",
-    js: "https://registry.npmmirror.com/@ffmpeg/ffmpeg/0.12.15/files/dist/umd/ffmpeg.js",
-  },
-  {
-    core: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd",
-    js: "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js",
-  },
   {
     core: "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd",
     js: "https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js",
   },
+  {
+    core: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd",
+    js: "https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.js",
+  },
 ];
+
+/** 单个源的兜底时限：32MB 再慢也不该无限等，否则界面永远转圈没有反馈 */
+const LOAD_TIMEOUT_MS = 180_000;
+
+/**
+ * 正式下载前先验魔数。
+ *
+ * wasm 文件前 4 字节必须是 `\0asm`（00 61 73 6d）。CDN 抽风时会返回
+ * JSON 错误体或 HTML，HTTP 状态码却是 200 —— 不验就白白下载 32MB 再炸，
+ * 用户只看到一句"解码器加载失败"，根本看不出是源坏了还是网络差。
+ */
+async function verifyWasm(url: string): Promise<boolean> {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15_000);
+    const res = await fetch(url, {
+      headers: { Range: "bytes=0-7" },
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok && res.status !== 206) return false;
+    const buf = new Uint8Array(await res.arrayBuffer());
+    return buf[0] === 0x00 && buf[1] === 0x61 && buf[2] === 0x73 && buf[3] === 0x6d;
+  } catch {
+    return false;
+  }
+}
+
+/** 给任意 promise 套一个硬超时，超时就 reject，不让界面卡死 */
+function withTimeout<T>(p: Promise<T>, ms: number, msg: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(msg)), ms);
+    p.then((v) => {
+      clearTimeout(timer);
+      resolve(v);
+    }).catch((e: unknown) => {
+      clearTimeout(timer);
+      reject(e);
+    });
+  });
+}
 
 /** 从 URL 里取域名，失败信息里带上，好判断是哪一源挂了 */
 function hostOf(url: string): string {
@@ -122,6 +169,18 @@ export async function loadFFmpeg(onProgress: ProgressFn, t: TFn): Promise<any> {
             : t("video.retrySource", { i: i + 1, n: CDN_SOURCES.length }),
         );
 
+        /**
+         * 先花几十毫秒验一下这源给的是不是真 wasm。
+         * 不是就直接换源，别傻乎乎把 32MB 拉完再炸。
+         */
+        if (!(await verifyWasm(`${cdn.core}/ffmpeg-core.wasm`))) {
+          lastErr = new Error(`${hostOf(cdn.core)} 返回的不是有效 wasm 文件`);
+          failedHosts.push(hostOf(cdn.core));
+          // @ts-expect-error - UMD 全局
+          try { delete window.FFmpegWASM; } catch { /* 忽略 */ }
+          continue;
+        }
+
         // @ts-expect-error - UMD 包没有类型声明
         if (!window.FFmpegWASM) {
           await new Promise<void>((resolve, reject) => {
@@ -138,10 +197,18 @@ export async function loadFFmpeg(onProgress: ProgressFn, t: TFn): Promise<any> {
         const ffmpeg = new FFmpeg();
         ffmpeg.on("log", ({ message }: { message: string }) => pushLog(message ?? ""));
 
-        await ffmpeg.load({
-          coreURL: `${cdn.core}/ffmpeg-core.js`,
-          wasmURL: `${cdn.core}/ffmpeg-core.wasm`,
-        });
+        /**
+         * 32MB 的下载没有任何超时保护，网络一抽就永远转圈。
+         * 这里给个硬上限，超时就换源 / 报错，至少用户知道卡在哪。
+         */
+        await withTimeout(
+          ffmpeg.load({
+            coreURL: `${cdn.core}/ffmpeg-core.js`,
+            wasmURL: `${cdn.core}/ffmpeg-core.wasm`,
+          }),
+          LOAD_TIMEOUT_MS,
+          `${hostOf(cdn.core)} 加载超时（超过 ${Math.round(LOAD_TIMEOUT_MS / 1000)} 秒）`,
+        );
         return ffmpeg;
       } catch (err) {
         lastErr = err;
