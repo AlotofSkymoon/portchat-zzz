@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import {
   HeartHandshake,
+  History,
   LogIn,
   MessageSquare,
   PanelLeftClose,
@@ -295,6 +296,15 @@ export function Sidebar({
                 {t("sidebar.sponsor")}
               </Link>
             ) : null}
+            {/* 更新日志：10-09 起连载 */}
+            <Link
+              href="/changelog"
+              className={`liquid-item ${GLOW_ROW} flex w-full items-center gap-2 px-2.5 py-2 text-sm text-[hsl(var(--sidebar-foreground))]`}
+            >
+              <span className={GLOW_BAR} aria-hidden />
+              <History className="h-4 w-4" />
+              {t("sidebar.changelog")}
+            </Link>
             {/* 署名标识：按 LICENSE 要求保留 */}
             <p className="px-2.5 pt-1.5 text-[10px] text-fg-quaternary">{BY_LINE}</p>
           </div>

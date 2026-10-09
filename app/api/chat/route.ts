@@ -6,9 +6,13 @@ import { timeoutSignal } from "@/lib/fetch-timeout";
 import {
   DEFAULT_MODEL,
   PROVIDERS,
+  EFFORT_TOKEN_BUDGET,
+  effortToUpstream,
   isAllowedModelWith,
   isBlockedBaseUrl,
   isCustomProviderId,
+  normalizeEffort,
+  type EffortLevel,
   type ProviderId,
   resolveTarget,
   sanitizeCustomProviders,
@@ -59,14 +63,16 @@ interface ChatRequestBody {
   /** 思考模式：让模型先输出推理过程，再给答案 */
   thinking?: boolean;
   /**
-   * 思考强度：low / medium / high。
+   * 思考强度：off / low / high / max。
    *
    * 走 OpenAI 标准字段 `reasoning_effort` 透传给上游。
+   * 档位越高，模型想得越久、**烧掉的 token 越多**。
+   *
    * 支持强度调节的模型（DeepSeek R1 系、GLM 5.3 等）会真的变深/变浅；
    * 不支持的（Agnes 是 llama.cpp 服务端，只有布尔开关）会忽略这个字段，
    * 退回由 enable_thinking 决定开不开 —— 不会报错。
    */
-  effort?: "low" | "medium" | "high";
+  effort?: EffortLevel | "medium";
   /** 云端保存开关打开时才传 */
   conversationId?: string;
   saveToCloud?: boolean;
@@ -440,6 +446,14 @@ export async function POST(request: Request) {
    */
   const thinkingOn = thinking === true && target.thinking;
 
+  /**
+   * 档位归一化：旧版本存过 medium，直接透传会给上游发非法值。
+   * off 档不发强度字段，等于彻底关掉推理。
+   */
+  const effortLevel = normalizeEffort(effort);
+  const upstreamEffort = effortToUpstream(effortLevel);
+  const effortBudget = EFFORT_TOKEN_BUDGET[effortLevel];
+
   const buildUpstreamRequest = (): RequestInit => ({
     method: "POST",
     headers: {
@@ -463,11 +477,25 @@ export async function POST(request: Request) {
        * 只在真的开了思考时才发 —— 没开思考却带强度字段，
        * 部分上游会直接 400。
        *
+       * off 档不发任何强度字段，等于彻底关掉推理，最省 token。
+       *
        * Agnes（llama.cpp 服务端）不认这个字段，会忽略，
        * 强度对它就只是 UI 上的选择而不生效 —— 可接受，
        * 总比给不支持的服务带字段导致报错好。
        */
-      ...(thinkingOn && effort ? { reasoning_effort: effort } : {}),
+      ...(thinkingOn && upstreamEffort
+        ? { reasoning_effort: upstreamEffort }
+        : {}),
+      /**
+       * 高強度档位放宽输出预算。
+       *
+       * 推理越长，最终答案前吐掉的 token 越多，预算给少了会被截断 ——
+       * 表现为「想到了一半就没了」。所以只在 high / max 时放宽，
+       * off / low 保持原样，不给上游添额外的字段。
+       */
+      ...(thinkingOn && effortBudget > 1
+        ? { max_tokens: Math.round(4096 * effortBudget) }
+        : {}),
     }),
     signal: request.signal,
   });

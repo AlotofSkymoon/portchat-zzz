@@ -2926,3 +2926,52 @@ body {
     animation: none !important;
   }
 }
+
+/* ==========================================================================
+   思考强度滑块（Off / Low / High / Max）
+   ========================================================================== */
+
+/**
+ * 原生 range 的轨道在这里完全重画：
+ * 已划过的部分用渐变填色（Max 档带紫色星点），未划过的留暗色底。
+ * 具体渐变更改由 JS 通过内联 style 传入，这里只负责把手（thumb）。
+ */
+.effort-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.effort-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid rgba(139, 92, 246, 0.9);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.18);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.effort-slider:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+.effort-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid rgba(139, 92, 246, 0.9);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.18);
+  cursor: pointer;
+}
+
+.effort-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.4);
+}

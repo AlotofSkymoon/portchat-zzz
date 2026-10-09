@@ -125,6 +125,20 @@ async function grab(video: HTMLVideoElement, at: number): Promise<string> {
   }
 }
 
+/**
+ * 估算 data URL 解码后的字节数。
+ *
+ * 抽出来的帧不是 File，没有 .size，而 Attachment 要求这个字段 ——
+ * 这里按 base64 的体积反推，够用来显示和做上限判断。
+ */
+export function dataUrlBytes(dataUrl: string): number {
+  const comma = dataUrl.indexOf(",");
+  const b64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+  const padding = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
+  const bytes = Math.floor((b64.length * 3) / 4) - padding;
+  return bytes > 0 ? bytes : 0;
+}
+
 /** 这个浏览器大概能不能解码该视频（能不能抽帧，只有试了才知道，这里只做粗判） */
 export function canDecodeVideo(file: File): boolean {
   if (typeof document === "undefined") return false;

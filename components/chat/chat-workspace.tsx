@@ -33,13 +33,15 @@ import {
   CHAT_MODELS,
   DEFAULT_MODEL,
   LS_KEYS,
+  normalizeEffort,
   supportsThinking,
   supportsVision,
   type CustomProviderConfig,
+  type EffortLevel,
 } from "@/lib/config";
 import { EMAIL_POLICY_DEADLINE } from "@/lib/email-policy";
 import { IMAGE_TARGET_BASE64, compressImageToDataUrl } from "@/lib/image-compress";
-import { extractVideoFrames } from "@/lib/video-frames";
+import { extractVideoFrames, dataUrlBytes } from "@/lib/video-frames";
 import { DEFAULT_S3_CONFIG, type S3Config } from "@/lib/s3-presets";
 import {
   createId,
@@ -220,10 +222,8 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
       };
       setSettings(saved);
       setWebSearch(localStorage.getItem(LS_KEYS.webSearch) === "true");
-    const rawEffort = localStorage.getItem(LS_KEYS.effort);
-    setEffort(
-      rawEffort === "low" || rawEffort === "high" ? rawEffort : "medium",
-    );
+    /* 旧版本存的是 medium，normalizeEffort 会归并成 high */
+    setEffort(normalizeEffort(localStorage.getItem(LS_KEYS.effort)));
       setCloudSync(localStorage.getItem(LS_KEYS.cloudSync) === "true");
       setSidebarCollapsed(localStorage.getItem(LS_KEYS.sidebarCollapsed) === "1");
     } catch {
@@ -999,8 +999,8 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
   /** 联网搜索开关（同样用 ref，理由同上：避免重建 useCallback） */
   const webSearchRef = React.useRef(false);
   const [webSearch, setWebSearch] = React.useState(false);
-  /** 思考强度：low / medium / high */
-  const [effort, setEffort] = React.useState<"low" | "medium" | "high">("medium");
+  /** 思考强度：off / low / high / max，越高越费 token */
+  const [effort, setEffort] = React.useState<EffortLevel>("low");
 
   React.useEffect(() => {
     webSearchRef.current = webSearch;
@@ -1231,6 +1231,8 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                     name: `${f.name} 帧${i + 1}`,
                     kind: "image" as const,
                     content,
+                    size: dataUrlBytes(content),
+                    mime: "image/jpeg",
                     note: undefined,
                   })),
                 );

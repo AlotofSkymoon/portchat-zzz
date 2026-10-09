@@ -35,6 +35,7 @@ const DICT: Record<string, Entry> = {
   "sidebar.account": { "zh-CN": "账户", "zh-TW": "帳戶", en: "Account", fr: "Compte" },
   "sidebar.login": { "zh-CN": "登录 / 注册", "zh-TW": "登入 / 註冊", en: "Log in / Sign up", fr: "Connexion / Inscription" },
   "sidebar.sponsor": { "zh-CN": "赞助支持", "zh-TW": "贊助支持", en: "Sponsor", fr: "Soutenir" },
+  "sidebar.changelog": { "zh-CN": "更新日志", "zh-TW": "更新日誌", en: "Changelog", fr: "Journal des versions" },
   "sidebar.arena": { "zh-CN": "竞技场", "zh-TW": "競技場", en: "Arena", fr: "Arène" },
   "sidebar.clearAll": { "zh-CN": "清空全部对话", "zh-TW": "清空全部對話", en: "Clear all", fr: "Tout effacer" },
   "sidebar.collapse": { "zh-CN": "收起侧边栏", "zh-TW": "收起側邊欄", en: "Collapse sidebar", fr: "Réduire la barre" },
@@ -426,6 +427,7 @@ const DICT: Record<string, Entry> = {
 
   /* ---- 落地页 ---- */
   "route.sponsor": { "zh-CN": "赞助支持", "zh-TW": "贊助支持", en: "Sponsor", fr: "Soutenir" },
+  "route.changelog": { "zh-CN": "更新日志", "zh-TW": "更新日誌", en: "Changelog", fr: "Journal des versions" },
   "route.admin": { "zh-CN": "管理员面板", "zh-TW": "管理員面板", en: "Admin panel", fr: "Panneau d'administration" },
   "route.account": { "zh-CN": "账户设置", "zh-TW": "帳戶設定", en: "Account", fr: "Compte" },
   "route.login": { "zh-CN": "登录", "zh-TW": "登入", en: "Log in", fr: "Connexion" },
@@ -749,6 +751,10 @@ const DICT: Record<string, Entry> = {
   "input.effortLow": { "zh-CN": "低", "zh-TW": "低", en: "Low", fr: "Faible" },
   "input.effortMedium": { "zh-CN": "中", "zh-TW": "中", en: "Medium", fr: "Moyen" },
   "input.effortHigh": { "zh-CN": "高", "zh-TW": "高", en: "High", fr: "Élevé" },
+  "input.effort": { "zh-CN": "推理等级", "zh-TW": "推理等級", en: "Reasoning", fr: "Raisonnement" },
+  "input.effortOff": { "zh-CN": "关", "zh-TW": "關", en: "Off", fr: "Off" },
+  "input.effortMax": { "zh-CN": "最高", "zh-TW": "最高", en: "Max", fr: "Max" },
+  "input.effortHint": { "zh-CN": "等级越高，模型想得越久，消耗的 token 越多", "zh-TW": "等級越高，模型想得越久，消耗的 token 越多", en: "Higher levels make the model think longer and burn far more tokens", fr: "Plus le niveau est élevé, plus le modèle réfléchit longtemps et consomme de tokens" },
   "settings.clearAllTitle": { "zh-CN": "清空全部数据", "zh-TW": "清空全部資料", en: "Clear all data", fr: "Effacer toutes les données" },
   "settings.clearAllDesc": { "zh-CN": "清除本地保存的 API Key、模型选择与全部聊天记录（不可恢复）。", "zh-TW": "清除本地保存的 API Key、模型選擇與全部聊天記錄（無法復原）。", en: "Deletes locally stored API keys, the model choice and every chat (cannot be undone).", fr: "Supprime les clés API locales, le choix du modèle et toutes les discussions (irréversible)." },
 

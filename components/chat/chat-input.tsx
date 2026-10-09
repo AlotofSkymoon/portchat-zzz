@@ -18,10 +18,12 @@ import {
 import { useI18n } from "@/components/i18n-provider";
 import { ModelPicker } from "@/components/chat/model-picker";
 import {
+  EFFORT_LEVELS,
   IMAGE_MAX_COUNT,
   IMAGE_RATIOS,
   IMAGE_SIZES,
   type CustomProviderConfig,
+  type EffortLevel,
 } from "@/lib/config";
 import { formatBytes, type Attachment } from "@/lib/types";
 
@@ -51,9 +53,9 @@ interface ChatInputProps {
   thinkingSupported?: boolean;
   thinking?: boolean;
   onThinkingChange?: (on: boolean) => void;
-  /** 思考强度（OpenAI 标准 reasoning_effort；Agnes 服务端会忽略） */
-  effort?: "low" | "medium" | "high";
-  onEffortChange?: (v: "low" | "medium" | "high") => void;
+  /** 思考强度（档位越高，模型想得越久、烧掉的 token 越多） */
+  effort?: EffortLevel;
+  onEffortChange?: (v: EffortLevel) => void;
   /* ---- 联网搜索 ---- */
   /** 站点是否开放联网搜索（站长可关） */
   webSearchSupported?: boolean;
@@ -72,6 +74,81 @@ interface ChatInputProps {
   onImageRatioChange?: (r: string) => void;
   imageSize?: string;
   onImageSizeChange?: (s: string) => void;
+}
+
+/**
+ * 思考强度滑块：Off → Low → High → Max。
+ *
+ * 越往右，模型想得越久、烧掉的 token 越多 ——
+ * 所以轨道会随档位一路点亮，Max 档换成紫色星点渐变，
+ * 让人一眼看出「现在很贵」。
+ */
+function EffortSlider({
+  value,
+  onChange,
+}: {
+  value: EffortLevel;
+  onChange: (v: EffortLevel) => void;
+}) {
+  const { t } = useI18n();
+
+  const idx = Math.max(0, EFFORT_LEVELS.indexOf(value));
+  const last = EFFORT_LEVELS.length - 1;
+  const pct = last > 0 ? (idx / last) * 100 : 0;
+
+  /** 未点亮部分的颜色 */
+  const dim = "rgba(127,127,127,0.30)";
+
+  /**
+   * 点亮部分的色标。
+   * Max 用五段跳色模拟「星点闪烁」，High 三段，Low 两段 —— 档位越高越花哨，
+   * 是在暗示「这里在烧更多算力」。
+   */
+  const stops =
+    idx >= 3
+      ? ["#6d28d9", "#8b5cf6", "#c4b5fd", "#a78bfa", "#8b5cf6"]
+      : idx === 2
+        ? ["#7c3aed", "#a78bfa", "#c4b5fd"]
+        : idx === 1
+          ? ["rgba(139,92,246,0.55)", "#8b5cf6"]
+          : [dim];
+
+  const filled = stops
+    .map((c, i) => `${c} ${stops.length > 1 ? (i / (stops.length - 1)) * pct : 0}%`)
+    .join(", ");
+
+  const background =
+    idx === 0
+      ? dim
+      : `linear-gradient(90deg, ${filled}, ${dim} ${pct}%, ${dim} 100%)`;
+
+  const levelKey =
+    `input.effort${value[0].toUpperCase()}${value.slice(1)}` as never;
+
+  return (
+    <div className="flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-border px-2 text-[11px]">
+      <span className="shrink-0 text-fg-tertiary">{t("input.effort")}</span>
+      <input
+        type="range"
+        className="effort-slider w-[84px]"
+        min={0}
+        max={last}
+        step={1}
+        value={idx}
+        onChange={(e) => {
+          const next = EFFORT_LEVELS[Number(e.target.value)];
+          if (next) onChange(next);
+        }}
+        aria-label={t("input.effort")}
+        aria-valuetext={t(levelKey)}
+        title={t("input.effortHint")}
+        style={{ background }}
+      />
+      <span className="w-8 shrink-0 text-right font-medium text-primary">
+        {t(levelKey)}
+      </span>
+    </div>
+  );
 }
 
 export function ChatInput({
@@ -93,7 +170,7 @@ export function ChatInput({
   thinkingSupported = false,
   thinking = false,
   onThinkingChange,
-  effort = "medium",
+  effort = "low",
   onEffortChange,
   webSearchSupported = false,
   webSearch = false,
@@ -258,24 +335,7 @@ export function ChatInput({
             </button>
           ) : null}
           {thinking && thinkingSupported && onEffortChange ? (
-            <div className="flex h-7 shrink-0 items-center rounded-full border border-border px-0.5 text-[11px]">
-              {(["low", "medium", "high"] as const).map((lv) => (
-                <button
-                  key={lv}
-                  type="button"
-                  onClick={() => onEffortChange(lv)}
-                  title={t(`input.effort${lv[0].toUpperCase()}${lv.slice(1)}` as never)}
-                  aria-pressed={effort === lv}
-                  className={
-                    effort === lv
-                      ? "h-6 rounded-full bg-primary/12 px-2 font-medium text-primary transition-colors"
-                      : "h-6 rounded-full px-2 text-fg-tertiary transition-colors hover:text-foreground"
-                  }
-                >
-                  {t(`input.effort${lv[0].toUpperCase()}${lv.slice(1)}` as never)}
-                </button>
-              ))}
-            </div>
+            <EffortSlider value={effort} onChange={onEffortChange} />
           ) : null}
           {webSearchSupported && onWebSearchChange ? (
             <button

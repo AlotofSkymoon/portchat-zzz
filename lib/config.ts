@@ -366,6 +366,56 @@ export function isAlwaysThinking(modelId: string): boolean {
   return getModel(modelId)?.alwaysThinking ?? false;
 }
 
+/* ------------------------------ 思考强度 ------------------------------ */
+
+/**
+ * 思考强度档位，从左到右由弱到强。
+ *
+ * 档位越高，模型推理得越久、**消耗的 token 越多** ——
+ * 这不是 UI 上的装饰，是真实计费差异，所以界面上必须写清楚。
+ */
+export const EFFORT_LEVELS = ["off", "low", "high", "max"] as const;
+
+export type EffortLevel = (typeof EFFORT_LEVELS)[number];
+
+/** 旧版本存的是 medium，读到这里要归并掉，否则滑块找不到位置 */
+export function normalizeEffort(raw: unknown): EffortLevel {
+  const v = typeof raw === "string" ? raw : "";
+  if (v === "off" || v === "low" || v === "high" || v === "max") return v;
+  if (v === "medium") return "high";
+  return "low";
+}
+
+/**
+ * 档位 → 上游 `reasoning_effort` 字段。
+ *
+ * OpenAI 只认 minimal / low / medium / high 四个值，
+ * 所以四档 UI 要落到这上面：
+ *   off  → 不发（等于彻底关掉思考，最省）
+ *   low  → low
+ *   high → high
+ *   max  → high，同时由调用方放宽 token 预算（见 EFFORT_TOKEN_BUDGET）
+ *
+ * 不认识这个字段的上游（Agnes 是 llama.cpp 服务端）会忽略，不报错。
+ */
+export function effortToUpstream(level: EffortLevel): "low" | "high" | null {
+  if (level === "off") return null;
+  return level === "low" ? "low" : "high";
+}
+
+/**
+ * 各档位额外放宽的输出预算倍数。
+ *
+ * 高強度思考会先吐一大段推理再给答案，预算给少了会被截断 ——
+ * 表现为「想到了一半就没了」。所以档位越高，允许输出得越多。
+ */
+export const EFFORT_TOKEN_BUDGET: Record<EffortLevel, number> = {
+  off: 1,
+  low: 1.25,
+  high: 1.6,
+  max: 2.2,
+};
+
 /* --------------------------- 自定义供应商（用户自建） --------------------------- */
 
 /**
