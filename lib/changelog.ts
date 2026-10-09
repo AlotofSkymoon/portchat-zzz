@@ -98,6 +98,16 @@ export const CHANGELOG: ChangelogDay[] = [
         zh: "修复视频抽帧附件缺少字段导致的构建失败",
         en: "Fixed a build failure caused by missing fields on video frame attachments",
       },
+      {
+        tag: "new",
+        zh: "联网搜索升级为 Agent 模式：模型自己决定搜什么、还要不要再搜，最多三轮并串成关键词链（例：问「孙楠最近在做什么」会先搜「孙楠」再搜「孙楠 现状」）",
+        en: "Web search is now agentic: the model decides what to search and whether to search again, chaining up to three queries (asking about someone's latest news searches the name, then the name plus \"current\")",
+      },
+      {
+        tag: "improve",
+        zh: "思考强度滑块移进模型菜单，模型与推理等级同屏调节，按钮上直接显示当前档位",
+        en: "The reasoning slider moved into the model menu — model and effort level in one view, with the level shown on the button",
+      },
     ],
   },
 ];

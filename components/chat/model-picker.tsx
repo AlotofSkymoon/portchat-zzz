@@ -3,14 +3,17 @@
 import * as React from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 import {
   CHAT_MODELS,
+  EFFORT_LEVELS,
   PROVIDERS,
   type CustomProviderConfig,
+  type EffortLevel,
   type ProviderId,
 } from "@/lib/config";
+import { EffortSlider, effortValueColor } from "@/components/chat/effort-slider";
 import { useI18n } from "@/components/i18n-provider";
 import { usePresetProviders } from "@/lib/use-preset-providers";
 import { useSiteProviderModels } from "@/lib/use-site-models";
@@ -27,7 +30,18 @@ interface ModelPickerProps {
   keys?: Record<string, string>;
   /** 内置供应商额外追加的模型 id（探测 / 手填），会并进对应分组 */
   extraModels?: Record<string, string[]>;
+  /** 推理等级：菜单里第二行可拖，收起时显示在按钮上 */
+  effort?: EffortLevel;
+  onEffortChange?: (next: EffortLevel) => void;
 }
+
+/** 四档对应的词条，缺省按 low 处理 */
+const EFFORT_KEY: Record<EffortLevel, string> = {
+  off: "input.effortOff",
+  low: "input.effortLow",
+  high: "input.effortHigh",
+  max: "input.effortMax",
+};
 
 // DeepSeek 入口已移除：站点不提供 DeepSeek Key，界面不再列出
 const PROVIDER_ORDER: ProviderId[] = ["agnes", "atriasi", "inkstone"];
@@ -67,12 +81,16 @@ export function ModelPicker({
   customProviders = [],
   keys = {},
   extraModels = {},
+  effort = "low",
+  onEffortChange,
 }: ModelPickerProps) {
   const { t } = useI18n();
   const presetProviders = usePresetProviders();
   /** 管理员添加到站点上的模型 —— 全站可见，不用每人自己加一遍 */
   const siteModels = useSiteProviderModels();
   const [open, setOpen] = React.useState(false);
+  /** root = 模型行 + 推理等级滑条；list = 展开的模型列表 */
+  const [view, setView] = React.useState<"root" | "list">("root");
   const [placement, setPlacement] = React.useState<Placement | null>(null);
   const wrapRef = React.useRef<HTMLDivElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -134,11 +152,16 @@ export function ModelPicker({
   }, []);
 
   function toggle() {
-    setOpen((v) => {
-      if (!v) measure();
-      return !v;
-    });
+    if (!open) {
+      measure();
+      // 每次打开都回到「模型 + 推理等级」那一页，不残留上次的列表
+      setView("root");
+    }
+    setOpen(!open);
   }
+
+  const effortLabel = t(EFFORT_KEY[effort] ?? "input.effortLow");
+  const effortColor = effortValueColor(effort);
 
   // 打开后把当前项滚进视野，长列表里不用自己找
   React.useEffect(() => {
@@ -202,6 +225,15 @@ export function ModelPicker({
         )}
       >
         <span className="truncate">{current.label}</span>
+        {/* 收起态也带档位，跟菜单里那一行对得上；Off 不显示，免得按钮太长 */}
+        {effort !== "off" ? (
+          <span
+            className="shrink-0 text-[11px] opacity-80"
+            style={effortColor ? { color: effortColor } : undefined}
+          >
+            {effortLabel}
+          </span>
+        ) : null}
         <ChevronDown className={cn("h-3 w-3 shrink-0 transition-transform", open && "rotate-180")} />
       </button>
 
@@ -220,8 +252,19 @@ export function ModelPicker({
               }}
               className="z-[100] overflow-y-auto overscroll-contain rounded-xl border border-border bg-popover p-1 font-sans shadow-xl shadow-black/10 animate-fade-in"
             >
-              {groups.map((g) => (
-                <div key={g.key} className="mb-1 last:mb-0">
+              {view === "list" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setView("root")}
+                    className="mb-1 flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{t("model.switch")}</span>
+                  </button>
+
+                  {groups.map((g) => (
+                    <div key={g.key} className="mb-1 last:mb-0">
                   <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {g.label}
                   </div>
@@ -275,6 +318,44 @@ export function ModelPicker({
                   t("model.moreHint")
                 )}
               </div>
+                </>
+              ) : (
+                <>
+                  {/* 行 1 —— 模型：点进去才展开列表，菜单一开不会就是一长条 */}
+                  <button
+                    type="button"
+                    onClick={() => setView("list")}
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-muted"
+                  >
+                    <span className="shrink-0 text-sm text-foreground">{t("model.switch")}</span>
+                    <span className="min-w-0 flex-1 truncate text-right text-sm text-muted-foreground">
+                      {current.label}
+                    </span>
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  </button>
+
+                  {/* 行 2 —— 推理等级：数值 + 滑条折到第二行铺满整行 */}
+                  <div className="px-2 pb-1 pt-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="shrink-0 text-sm text-foreground">{t("input.effort")}</span>
+                      <span
+                        className="min-w-0 flex-1 truncate text-right text-sm font-medium"
+                        style={effortColor ? { color: effortColor } : undefined}
+                      >
+                        {effortLabel}
+                      </span>
+                    </div>
+                    {onEffortChange ? (
+                      <>
+                        <EffortSlider level={effort} onChange={onEffortChange} />
+                        <p className="mt-1.5 text-[10px] leading-snug text-muted-foreground">
+                          {t("input.effortHint")}
+                        </p>
+                      </>
+                    ) : null}
+                  </div>
+                </>
+              )}
             </div>,
             document.body,
           )

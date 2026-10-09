@@ -2,12 +2,8 @@ import { NextResponse } from "next/server";
 
 import { serverT } from "@/lib/i18n/server";
 import { planSearch } from "@/lib/search-planner";
-import {
-  MAX_SEARCH_RESULTS,
-  configuredKeyedSources,
-  formatSearchContext,
-  webSearch,
-} from "@/lib/web-search";
+import { runAgenticSearch } from "@/lib/search-agent";
+import { MAX_SEARCH_RESULTS, configuredKeyedSources } from "@/lib/web-search";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,18 +70,30 @@ export async function POST(request: Request) {
 
   /* ---------------------------- 真正开搜 ---------------------------- */
 
-  const outcome = await webSearch(query, limit, plan.queries);
+  const agent = await runAgenticSearch({
+    question: query,
+    limit,
+    // 决策器已经想好的关键词直接当首轮用，省一次往返
+    seedQueries: plan.queries,
+    signal: request.signal,
+  });
+
+  // 多轮时把关键词链告诉模型：它自己搜过什么，不该再重复追问
+  const chain =
+    agent.queries.length > 1 ? `搜索过程：${agent.queries.join(" → ")}\n\n` : "";
 
   return NextResponse.json({
-    ok: outcome.ok,
-    error: outcome.error,
-    results: outcome.results,
-    context: outcome.ok ? formatSearchContext(plan.queries[0] ?? query, outcome.results) : "",
+    ok: agent.ok,
+    error: agent.error,
+    results: agent.results,
+    context: agent.ok ? chain + agent.context : "",
     // 实际命中的源 + 各源尝试情况，便于排查"搜不到/搜不准"
-    via: outcome.via ?? null,
-    attempts: outcome.attempts ?? [],
+    via: agent.via ?? null,
+    attempts: agent.attempts,
     // 决策依据，排查"为什么搜了 / 为什么没搜"
     decision: { need: true, via: plan.via, reason: plan.reason, queries: plan.queries },
+    // Agent 自己走的每一步（关键词链 + 每轮命中数），前端可展示"AI 搜了哪些词"
+    agent: { queries: agent.queries, steps: agent.steps, rounds: agent.rounds, finished: agent.finished },
     // 当前配置了哪些 Key 源（只给标识，不含密钥）
     keyedSources: configuredKeyedSources(),
   });
