@@ -1,10 +1,11 @@
 /**
  * 邮箱白名单策略。
  *
- * 站点只接受本人经营的邮箱系统 + Gmail + QQ：
- *   - Hypermail（@hypermail.kdns.fr）
+ * 站点接受：
+ *   - Hypermail（@hypermail.kdns.fr，站长自家）
  *   - Gmail（含 googlemail.com）
  *   - QQ（含 foxmail.com）
+ *   - 教育邮箱：任意带 edu 段的域名，如 xxx.edu、xxx.edu.hk、xxx.edu.kg、xxx.edu.cn
  *
  * 微软邮箱（outlook / hotmail / live / msn …）与各类临时邮箱一律禁止。
  * 老用户若用了其它邮箱，需要在 EMAIL_POLICY_DEADLINE 之前换绑，
@@ -22,6 +23,55 @@ export const ALLOWED_EMAIL_DOMAINS = [
 
 /** 推荐邮箱域名：换绑时优先推荐站长的 Hypermail */
 export const RECOMMENDED_EMAIL_DOMAIN = "hypermail.kdns.fr";
+
+/**
+ * 通用商业后缀。域名里就算夹着 edu 段，只要以这些结尾就不算教育邮箱，
+ * 用来挡住 "1secmail.edu.com" 这类伪装域名。
+ */
+const COMMERCIAL_TLDS = [
+  "com", "net", "org", "info", "biz", "xyz", "top", "club", "online", "site",
+  "tech", "store", "shop", "live", "me", "io", "co", "dev", "app", "ai",
+  "cc", "tk", "ml", "ga", "cf", "gq", "space", "website", "fun", "press",
+  "host", "link", "click", "icu", "cyou", "buzz", "work", "loan", "men",
+  "date", "stream", "download", "racing", "win", "review", "party", "trade",
+  "bid", "rest", "lol", "life", "world", "today", "guru", "email", "cloud",
+  "digital", "media", "agency", "solutions", "services", "network", "center",
+  "company", "team", "systems", "group", "zone", "city", "wiki", "plus",
+  "run", "show", "cool", "wtf", "art", "photo", "pink", "red", "blue",
+  "black", "green", "asia", "mobi", "name", "pro", "tel", "tv", "xxx",
+  "money", "fit", "golf", "law", "shopping", "storage", "studio", "vip",
+  "weibo", "xin", "yoga", "design", "education",
+] as const;
+
+/**
+ * 判断是否为教育邮箱域名（小写输入）。
+ *
+ * 放行三类：
+ *   1) xxx.edu                 —— mit.edu、berkeley.edu
+ *   2) xxx.edu.<国家或地区码>   —— hku.edu.hk、xxx.edu.kg、xxx.edu.cn
+ *   3) edu.<国家或地区码>       —— edu.hk、edu.kg 这类 edu 本身作二级域
+ *
+ * 第 2、3 类要求末尾不是商业后缀，避免 `xxx.edu.com` 被误放行。
+ */
+export function isEducationDomain(domain: string): boolean {
+  if (!domain) return false;
+  const parts = domain.split(".").filter(Boolean);
+  if (parts.length < 2) return false;
+
+  // 1) xxx.edu
+  if (domain.endsWith(".edu")) return true;
+
+  // 2) xxx.edu.<ccTLD>
+  const m = /\.edu\.([a-z]{2,3})$/.exec(domain);
+  if (m && !(COMMERCIAL_TLDS as readonly string[]).includes(m[1])) return true;
+
+  // 3) edu.<ccTLD>
+  if (parts.length === 2 && parts[0] === "edu") {
+    return !(COMMERCIAL_TLDS as readonly string[]).includes(parts[1]);
+  }
+
+  return false;
+}
 
 /** 微软系邮箱：单独识别，给出更明确的提示 */
 export const MICROSOFT_EMAIL_DOMAINS = [
@@ -420,6 +470,10 @@ export function checkEmailAllowed(email: string): EmailPolicyResult {
   if (!domain) return { ok: false, domain, reason: "invalid" };
 
   if ((ALLOWED_EMAIL_DOMAINS as readonly string[]).includes(domain)) {
+    return { ok: true, domain };
+  }
+  // 教育邮箱：放在临时邮箱判定之前，nus.edu.sg 之类被误列进临时表的真大学域名也能放行
+  if (isEducationDomain(domain)) {
     return { ok: true, domain };
   }
   if ((MICROSOFT_EMAIL_DOMAINS as readonly string[]).includes(domain)) {
