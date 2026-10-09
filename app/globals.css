@@ -2981,39 +2981,89 @@ body {
    ========================================================================== */
 
 .ces-inline {
-  box-sizing: border-box;
-  flex-basis: 100%;
   width: 100%;
-  min-width: 0;
 }
 
 .ces-track {
   position: relative;
-  box-sizing: border-box;
-  margin-top: 2px;
+  width: 100%;
   border-radius: 999px;
-  /* 中性灰在浅色/深色主题下都能看清，不依赖外部设计令牌 */
-  background: rgba(128, 128, 128, 0.22);
-  cursor: pointer;
+  background: color-mix(in srgb, var(--muted) 50%, transparent);
+  isolation: isolate;
   touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
+  /* 去 AI 味：hairline 内描边替代发光投影 */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border) 60%, transparent);
 }
 
 .ces-track:focus-within {
-  outline: 2px solid rgba(139, 92, 246, 0.55);
-  outline-offset: 2px;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--border) 80%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
 }
 
 .ces-fill {
   position: absolute;
+  left: 0;
   top: 0;
   bottom: 0;
-  left: 0;
   border-radius: 999px;
-  pointer-events: none;
-  transition: width 0.16s ease, background 0.16s ease;
   overflow: hidden;
+  /* width 由内联 style 给出到「旋钮圆心」，不是 pct*100% */
+  transition:
+    width 320ms var(--ease-out-expo),
+    background 320ms linear;
+}
+
+/* 能量层只在已填充段内可见 —— Max 时铺满整轨 */
+.ces-energy {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(147, 51, 234, 0), rgba(147, 51, 234, 0.28));
+  opacity: var(--ces-energy, 0);
+  transition: opacity 320ms linear;
+}
+
+.ces-stars {
+  position: absolute;
+  inset: 0;
+  container-type: inline-size;
+}
+
+.ces-star {
+  position: absolute;
+  top: var(--star-top);
+  width: 2px;
+  height: 2px;
+  border-radius: 999px;
+  background: #fff;
+  will-change: transform, opacity;
+  animation: ces-star-sweep var(--star-dur) linear var(--star-delay) infinite;
+}
+
+@keyframes ces-star-sweep {
+  from { transform: translateX(-2cqw); opacity: 0; }
+  10%  { opacity: 1; }
+  86%  { opacity: 1; }
+  to   { transform: translateX(102cqw); opacity: 0; }
+}
+
+.ces-energy__sweep {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.22) 48%,
+    transparent 76%
+  );
+  animation: ces-sweep 2.8s var(--ease-in-out-soft) infinite;
+}
+
+@keyframes ces-sweep {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
 }
 
 .ces-tick {
@@ -3021,43 +3071,54 @@ body {
   top: 50%;
   width: 3px;
   height: 3px;
-  margin: -1.5px 0 0 -1.5px;
-  border-radius: 50%;
-  background: rgba(127, 127, 127, 0.5);
-  pointer-events: none;
-  transition: background 0.16s ease;
+  margin-left: -1.5px;
+  margin-top: -1.5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fg) 22%, transparent);
+  transition: background 240ms linear, transform 240ms var(--ease-out-expo);
 }
 
 .ces-tick[data-on="1"] {
   background: rgba(255, 255, 255, 0.55);
 }
 
-/* 旋钮直径 = 轨道高度：圆完整填满管口，不会被裁出平边 */
 .ces-knob {
   position: absolute;
   top: 50%;
-  border-radius: 50%;
+  border-radius: 999px;
   background: #fff;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.34), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  /* 实心白 + 一圈极细的暗环，避免"塑料感" */
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.14),
+    0 1px 2px rgba(0, 0, 0, 0.22);
+  transition: left 320ms var(--ease-out-expo), box-shadow 200ms linear;
   pointer-events: none;
-  transition: left 0.16s ease;
-  z-index: 3;
+  z-index: 2;
 }
 
-/* 原生 range 铺满轨道但完全透明：保留键盘与读屏支持，外观由上面的层负责 */
+.ces-knob::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /* 当前档位色微微透到旋钮上 */
+  background: var(--ces-knob-tint, transparent);
+  opacity: 0.18;
+  transition: background 320ms linear;
+}
+
 .ces-input {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   margin: 0;
-  padding: 0;
   opacity: 0;
+  cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
-  cursor: pointer;
-  z-index: 4;
+  z-index: 3;
 }
 
 .ces-input::-webkit-slider-thumb {
@@ -3065,76 +3126,51 @@ body {
   appearance: none;
   width: 28px;
   height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
+  border-radius: 999px;
 }
 
 .ces-input::-moz-range-thumb {
   width: 28px;
   height: 28px;
   border: 0;
-  border-radius: 50%;
-  cursor: pointer;
+  border-radius: 999px;
 }
 
 .ces-input:focus-visible + .ces-knob,
 .ces-input:focus:not(:focus-visible) + .ces-knob {
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.34), 0 0 0 2px rgba(139, 92, 246, 0.6);
-}
-
-/* ── Max 档：星云 + 扫光 ───────────────────────────────────────────── */
-
-.ces-energy {
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.ces-stars {
-  position: absolute;
-  inset: 0;
-}
-
-.ces-star {
-  position: absolute;
-  display: block;
-  animation-name: ces-twinkle;
-  animation-iteration-count: infinite;
-  animation-timing-function: ease-in-out;
-}
-
-.ces-star__dot {
-  display: block;
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 0 4px rgba(255, 255, 255, 0.75);
-}
-
-@keyframes ces-twinkle {
-  0%, 100% { opacity: 0.15; transform: scale(0.7); }
-  50% { opacity: 1; transform: scale(1.15); }
-}
-
-.ces-energy__sweep {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 38%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
-  animation: ces-sweep 2.4s linear infinite;
-}
-
-@keyframes ces-sweep {
-  from { left: -40%; }
-  to { left: 100%; }
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.14),
+    0 1px 2px rgba(0, 0, 0, 0.22),
+    0 0 0 4px color-mix(in srgb, var(--ring) 30%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ces-energy__sweep { animation: none; opacity: 0; }
-  .ces-star { animation: none; opacity: 0.7; }
+  .ces-star { animation: none; opacity: 0.6; }
   .ces-fill, .ces-knob, .ces-tick { transition: none; }
+}
+
+/* ── 动效令牌 ────────────────────────────────────────────────
+   去 AI 味的关键之一：全站共用同一组缓动曲线。
+   不用 bounce / spring 那种"活泼"曲线，收尾用 expo-out（快出慢收）。 */
+:root {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* 模型菜单两层视图切换：进下一层从右滑入、返回时从左滑入 */
+.mp-view-list { animation: mp-slide-right 260ms var(--ease-out-expo) both; }
+.mp-view-root { animation: mp-slide-left 260ms var(--ease-out-expo) both; }
+
+@keyframes mp-slide-right {
+  from { opacity: 0; transform: translateX(14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes mp-slide-left {
+  from { opacity: 0; transform: translateX(-14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-view-list, .mp-view-root { animation: none; }
 }

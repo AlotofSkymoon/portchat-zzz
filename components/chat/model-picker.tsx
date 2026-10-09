@@ -44,7 +44,7 @@ const EFFORT_KEY: Record<EffortLevel, string> = {
 };
 
 // DeepSeek 入口已移除：站点不提供 DeepSeek Key，界面不再列出
-const PROVIDER_ORDER: ProviderId[] = ["agnes", "atriasi", "inkstone"];
+const PROVIDER_ORDER: ProviderId[] = ["agnes", "atriasi", "inkstone", "gateway"];
 
 /** 模型名全是拉丁字符，强制走 Montserrat */
 const MONTSERRAT = "Montserrat, -apple-system, BlinkMacSystemFont, system-ui, sans-serif";
@@ -102,31 +102,49 @@ export function ModelPicker({
       // 没填 Key 的内置供应商整个不显示 —— 列出来也调不通，点了就是报错
       .filter((pid) => presetProviders.has(pid) || Boolean((keys[pid] ?? "").trim()))
       .map((pid) => {
+        const pl = PROVIDERS[pid].label;
         const base = CHAT_MODELS.filter((m) => m.provider === pid).map((m) => ({
           id: m.id,
           label: m.label,
           desc: m.desc,
+          providerLabel: pl,
         }));
         // 用户自己探测/手填追加的模型 + 管理员加到站点上的，去掉与内置重复的再并进去
         const extras = Array.from(new Set([...(extraModels[pid] ?? []), ...(siteModels[pid] ?? [])]))
           .filter((id) => !base.some((m) => m.id === id))
-          .map((id) => ({ id, label: id, desc: t("model.customProvider") }));
+          // 追加模型的说明写具体供应商名，别笼统写「自定义供应商」
+          .map((id) => ({ id, label: id, desc: pl, providerLabel: pl }));
         return {
           key: pid as string,
-          label: PROVIDERS[pid].label,
+          label: pl,
           items: [...base, ...extras],
         };
       });
     const custom = customProviders.map((c) => ({
       key: c.id,
       label: c.label,
-      items: c.models.map((id) => ({ id, label: id, desc: t("model.customProvider") })),
+      items: c.models.map((id) => ({ id, label: id, desc: c.label, providerLabel: c.label })),
     }));
     return [...builtin, ...custom].filter((g) => g.items.length > 0);
   }, [customProviders, keys, extraModels, siteModels, t]);
 
   const allModels = React.useMemo(() => groups.flatMap((g) => g.items), [groups]);
-  const current = allModels.find((m) => m.id === value) ?? allModels[0] ?? CHAT_MODELS[0];
+
+  /**
+   * 不同供应商可能有同名模型（都在用自己的 id，名称不改）。
+   * 所以「选中」必须限定在某一个分组内判定，否则两个同名项会同时打勾。
+   * 当前分组取第一个匹配项所在的分组 —— 保持按 id 优先的既有行为。
+   */
+  const currentGroupKey = React.useMemo(() => {
+    const g = groups.find((gr) => gr.items.some((m) => m.id === value));
+    return g ? g.key : null;
+  }, [groups, value]);
+
+  const current =
+    allModels.find((m) => m.id === value && m.providerLabel === (groups.find((g) => g.key === currentGroupKey)?.label ?? ""))
+    ?? allModels.find((m) => m.id === value)
+    ?? allModels[0]
+    ?? CHAT_MODELS[0];
 
   /** 量一遍按钮位置，算出菜单该放哪、能多高 */
   const measure = React.useCallback(() => {
@@ -253,7 +271,7 @@ export function ModelPicker({
               className="z-[100] overflow-y-auto overscroll-contain rounded-xl border border-border bg-popover p-1 font-sans shadow-xl shadow-black/10 animate-fade-in"
             >
               {view === "list" ? (
-                <>
+                <div className="mp-view mp-view-list">
                   <button
                     type="button"
                     onClick={() => setView("root")}
@@ -269,10 +287,11 @@ export function ModelPicker({
                     {g.label}
                   </div>
                   {g.items.map((m) => {
-                    const active = m.id === value;
+                    // 同名模型只在该分组内打勾，另一个供应商的同名项不带勾
+                    const active = m.id === value && g.key === currentGroupKey;
                     return (
                       <button
-                        key={m.id}
+                        key={g.key + "|" + m.id}
                         ref={active ? activeRef : undefined}
                         type="button"
                         role="option"
@@ -318,9 +337,9 @@ export function ModelPicker({
                   t("model.moreHint")
                 )}
               </div>
-                </>
+                </div>
               ) : (
-                <>
+                <div className="mp-view mp-view-root">
                   {/* 行 1 —— 模型：点进去才展开列表，菜单一开不会就是一长条 */}
                   <button
                     type="button"
@@ -354,7 +373,7 @@ export function ModelPicker({
                       </>
                     ) : null}
                   </div>
-                </>
+                </div>
               )}
             </div>,
             document.body,

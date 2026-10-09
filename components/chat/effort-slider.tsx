@@ -9,11 +9,21 @@ import { EFFORT_LEVELS, type EffortLevel } from "@/lib/config";
  * 视觉逻辑移植自 Codex 风格滑条实现（蓝 → 紫 → 深紫三段插值）：
  * 填充层左端恒为蓝、右端（旋钮处）是当前位置的颜色，所以越往右整条越紫越深。
  * Off 档的数值文字刻意不上色，保持原本的灰。
+ *
+ * ── 几何（照参考实现，别改） ──────────────────────────────
+ * 旋钮直径 = 轨道高度，圆心只在 [R, 宽-R] 之间移动：
+ *     left = R + pct × (100% − 2R)
+ * 若直接用 pct×100%，pct=0 时圆心落在 0，左半圆会被菜单的 overflow 切掉。
+ * 填充宽度与刻度位置用同一个「到圆心」公式。
+ *
+ * ── 星尘 ────────────────────────────────────────────────
+ * 22 颗，整轨横穿（不是原地闪烁）。位置用确定性伪随机 + 黄金比低差异
+ * 相位，重渲染不跳变。横穿用 cqw 单位（容器 = 轨道宽），所以是 transform
+ * 动画走合成层，不触发 layout。
  */
 
 const TRACK_HEIGHT = 28;
 const KNOB_SIZE = 28;
-const KNOB_RADIUS = 14;
 
 const ENERGY_START = 1 / 3;
 const ENERGY_END = 2 / 3;
@@ -65,19 +75,27 @@ function valueColorFor(pct: number, level: EffortLevel) {
   return rgbOf(mixColor(COLOR_BLUE, COLOR_TEXT_VIOLET, energyFor(pct)));
 }
 
-/** Max 档的星尘：位置固定（不用随机，避免每次渲染跳动）。 */
-const STARS = [
-  { left: 18, top: 34, delay: 0, dur: 2.6 },
-  { left: 31, top: 62, delay: 0.4, dur: 3.1 },
-  { left: 44, top: 28, delay: 0.9, dur: 2.2 },
-  { left: 57, top: 68, delay: 1.3, dur: 3.4 },
-  { left: 69, top: 36, delay: 0.2, dur: 2.9 },
-  { left: 82, top: 58, delay: 1.1, dur: 2.4 },
-  { left: 91, top: 30, delay: 0.7, dur: 3.2 },
-  { left: 25, top: 48, delay: 1.6, dur: 2.7 },
-  { left: 52, top: 44, delay: 0.5, dur: 3.0 },
-  { left: 76, top: 50, delay: 1.9, dur: 2.3 },
-];
+/**
+ * 22 颗星尘：确定性伪随机，不用 Math.random（否则每次渲染都跳）。
+ * 横向位置用黄金比低差异序列，避免聚簇。
+ */
+const STAR_COUNT = 22;
+const STARS = (() => {
+  const out: { top: number; delay: number; dur: number }[] = [];
+  let seed = 20261009;
+  const rnd = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+  for (let i = 0; i < STAR_COUNT; i++) {
+    out.push({
+      top: 10 + rnd() * 80,
+      delay: -(rnd() * 3.2),
+      dur: 1.6 + rnd() * 2.0,
+    });
+  }
+  return out;
+})();
 
 export function EffortSlider({
   level,
@@ -93,36 +111,44 @@ export function EffortSlider({
   const index = rawIndex < 0 ? 1 : rawIndex;
   const pct = pctFromIndex(index, count);
 
+  // 旋钮直径 = 轨道高度（参考实现的几何前提）
+  const r = height / 2;
+
+  /** 圆心位置：R + pct × (100% − 2R) */
+  const centerAt = (p: number) =>
+    "calc(" + r.toFixed(2) + "px + " + (p * 100).toFixed(2) + "% - " + (p * 2 * r).toFixed(2) + "px)";
+
   const fillStyle = useMemo(
-    () => ({ width: "calc(" + (pct * 100).toFixed(2) + "% )", background: fillBackgroundFor(pct) }),
-    [pct],
+    () => ({
+      width: centerAt(pct),
+      background: fillBackgroundFor(pct),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pct, r],
   );
 
-  const knobSize = height;
-  const knobRadius = height / 2;
+  const energy = energyFor(pct);
 
   return (
     <div className="ces-inline">
-      <div
-        className="ces-track"
-        style={{ height }}
-        role="group"
-        aria-label="thinking-effort"
-      >
-        <div className="ces-fill" style={fillStyle} />
-
-        {level === "max" ? (
-          <div className="ces-energy" aria-hidden="true">
+      <div className="ces-track" style={{ height }} role="group" aria-label="thinking-effort">
+        <div className="ces-fill" style={fillStyle}>
+          <div
+            className="ces-energy"
+            aria-hidden="true"
+            style={{ ["--ces-energy" as string]: energy.toFixed(3) }}
+          >
             <div className="ces-stars">
               {STARS.map((s, i) => (
                 <span
                   key={i}
                   className="ces-star"
                   style={{
-                    left: s.left + "%",
-                    top: s.top + "%",
-                    animationDelay: s.delay + "s",
-                    animationDuration: s.dur + "s",
+                    // 低差异相位决定出发时机，形成连续星流而非齐步走
+                    left: "0px",
+                    top: s.top.toFixed(2) + "%",
+                    animationDelay: (s.delay - (i * 0.6180339887) % 1 * 2.4).toFixed(2) + "s",
+                    animationDuration: s.dur.toFixed(2) + "s",
                   }}
                 >
                   <i className="ces-star__dot" />
@@ -131,14 +157,14 @@ export function EffortSlider({
             </div>
             <div className="ces-energy__sweep" />
           </div>
-        ) : null}
+        </div>
 
         {EFFORT_LEVELS.map((lv, i) => (
           <span
             key={lv}
             className="ces-tick"
             data-on={i <= index ? "1" : "0"}
-            style={{ left: "calc(" + (pctFromIndex(i, count) * 100).toFixed(2) + "% )" }}
+            style={{ left: centerAt(pctFromIndex(i, count)) }}
             aria-hidden="true"
           />
         ))}
@@ -146,11 +172,12 @@ export function EffortSlider({
         <span
           className="ces-knob"
           style={{
-            width: knobSize,
-            height: knobSize,
-            marginLeft: -knobRadius,
-            marginTop: -knobRadius,
-            left: fillStyle.width,
+            width: height,
+            height: height,
+            marginLeft: -r,
+            marginTop: -r,
+            left: centerAt(pct),
+            ["--ces-knob-tint" as string]: fillColorFor(pct),
           }}
           aria-hidden="true"
         />

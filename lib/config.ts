@@ -1,5 +1,5 @@
 /** 支持的模型服务商 */
-export type ProviderId = "agnes" | "deepseek" | "inkstone" | "atriasi";
+export type ProviderId = "agnes" | "deepseek" | "inkstone" | "atriasi" | "gateway";
 
 export interface ProviderConfig {
   id: ProviderId;
@@ -59,6 +59,26 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     hasPreset: false,
     keyUrl: "https://atria-asi.ai/",
   },
+  gateway: {
+    id: "gateway",
+    /**
+     * Vercel AI Gateway —— 统一路由多家模型厂商的 OpenAI 兼容网关。
+     *
+     * ⚠️ Vercel 不自建/托管模型权重，Gateway 只做「路由 + 计费 + 可观测」，
+     * 实际推理仍在 Anthropic / OpenAI / Google 等上游。所以这里不是"部署模型"。
+     *
+     * - 端点：https://ai-gateway.vercel.sh/v1（OpenAI 兼容）
+     * - Key：Vercel 项目里的 AI_GATEWAY_API_KEY（免费档每月 $5 额度，零加价）
+     * - 模型名格式：`provider/model`，如 anthropic/claude-sonnet-4.5
+     * - 支持 GET /v1/models，所以设置里可以「探测新模型」拉到完整列表
+     *
+     * 没填 Key 时整组不显示（跟其他内置供应商一致）。
+     */
+    label: "Vercel AI Gateway",
+    baseUrl: "https://ai-gateway.vercel.sh/v1",
+    hasPreset: false,
+    keyUrl: "https://vercel.com/docs/ai-gateway",
+  },
 };
 
 export interface ModelOption {
@@ -80,6 +100,43 @@ export interface ModelOption {
 
 /** 可选模型（纯聊天，不含 Agent / 工具调用） */
 export const CHAT_MODELS: ModelOption[] = [
+  /**
+   * Vercel AI Gateway（provider/model 命名）。
+   * 这里只列几个常用的；完整列表请在设置里用「探测新模型」拉取
+   * （Gateway 支持 GET /v1/models）。
+   */
+  {
+    id: "anthropic/claude-sonnet-4.5",
+    label: "Claude Sonnet 4.5",
+    desc: "Vercel AI Gateway",
+    provider: "gateway" as ProviderId,
+    vision: true,
+    thinking: true,
+  },
+  {
+    id: "openai/gpt-5",
+    label: "GPT-5",
+    desc: "Vercel AI Gateway",
+    provider: "gateway" as ProviderId,
+    vision: true,
+    thinking: true,
+  },
+  {
+    id: "google/gemini-2.5-flash",
+    label: "Gemini 2.5 Flash",
+    desc: "Vercel AI Gateway",
+    provider: "gateway" as ProviderId,
+    vision: true,
+    thinking: true,
+  },
+  {
+    id: "deepseek/deepseek-v3",
+    label: "DeepSeek V3",
+    desc: "Vercel AI Gateway",
+    provider: "gateway" as ProviderId,
+    vision: false,
+    thinking: true,
+  },
   {
     // 2026-09 上线的次世代模型：512K 上下文、65.5K 输出、支持图像 URL 输入，
     // 官方主打 Agent 执行链路（工具编排、长任务上下文、可信交付），当前全免费。
@@ -456,6 +513,7 @@ export const PRESET_KEY_ENV: Record<ProviderId, string> = {
   deepseek: "PRESET_DEEPSEEK_API_KEY",
   inkstone: "PRESET_INKSTONE_API_KEY",
   atriasi: "PRESET_ATRIASI_API_KEY",
+  gateway: "AI_GATEWAY_API_KEY",
 };
 
 /** 自定义供应商 id 必须以 custom: 开头，避免与内置 id 冲突 */
