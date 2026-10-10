@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/components/i18n-provider";
 import { UniversalVideoPlayer } from "@/components/chat/universal-video-player";
 
-import { CoffingAvatar } from "@/components/coffing-avatar";
+import { PotAvatar } from "@/components/pot-avatar";
 import { ImageLightbox } from "@/components/chat/image-lightbox";
 import { Markdown } from "@/components/chat/markdown";
 import { Button } from "@/components/ui/button";
@@ -291,9 +291,9 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
   return (
     /* msg-assistant：Anthropic 主题下会换成衬线体（Claude 的标志性设计） */
     <div className="msg-assistant flex animate-fade-in gap-3">
-      {/* 头像：Coffing（透明底，不需要蓝色圆底衬托） */}
+      {/* 头像：Pot（透明底，不需要蓝色圆底衬托） */}
       <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center">
-        <CoffingAvatar />
+        <PotAvatar />
       </div>
 
       <div className="min-w-0 flex-1">

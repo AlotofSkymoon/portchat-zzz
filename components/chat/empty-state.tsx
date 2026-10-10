@@ -32,15 +32,15 @@ export function EmptyState({ onPick }: { onPick: (text: string) => void }) {
         <Vortex className="-z-10 h-56 w-56 rounded-full" />
         <Sparkles count={12} className="-z-10 h-40 w-72" />
 
-        {/* 空状态：Coffing（可颂吉祥物）。
-            尺寸给足（172px）才看得清酥皮纹理和表情，
-            小尺寸下会糊成一团黄影子。 */}
+        {/* 空状态：Portchat 品牌 logo。
+            尺寸给足（172px）才看得清气泡和橙色闪光，
+            小尺寸下三道闪光会糊成一团。 */}
         <span className="mb-5 inline-flex h-[172px] w-[172px] items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/croissant.png"
+            src="/logo-icon.png"
             alt={t("chat.emptyAlt")}
-            className="h-[172px] w-[172px] animate-croissant-bob object-contain drop-shadow-[0_10px_24px_rgba(120,72,24,0.28)]"
+            className="h-[172px] w-[172px] animate-logo-bob object-contain drop-shadow-[0_10px_24px_rgba(46,125,246,0.28)]"
             draggable={false}
           />
         </span>

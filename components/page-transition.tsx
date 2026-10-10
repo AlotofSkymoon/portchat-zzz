@@ -192,20 +192,19 @@ export function PageTransition() {
         </div>
       </div>
 
-        <p className="pt-title">
-          <span className="pt-shimmer">{t("transition.flying")}</span>
-          <span className="pt-dots" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-          </span>
-        </p>
+      <p className="pt-title">
+        <span className="pt-shimmer">{t("transition.flying")}</span>
+        <span className="pt-dots" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+      </p>
 
-        {label ? <p className="pt-dest">{label}</p> : null}
+      {label ? <p className="pt-dest">{label}</p> : null}
 
-        <div className="pt-bar" aria-hidden="true">
-          <span />
-        </div>
+      <div className="pt-bar" aria-hidden="true">
+        <span />
       </div>
     </div>
   );

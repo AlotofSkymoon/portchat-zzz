@@ -119,10 +119,10 @@ const config: Config = {
           "30%": { transform: "translateY(-4px)", opacity: "1" },
         },
         /**
-         * 空状态可颂：轻微上下浮动 + 极小幅摆动。
+         * 空状态 logo：轻微上下浮动 + 极小幅摆动。
          * 只做「呼吸感」，不做旋转翻滚 —— 大图旋转会显得廉价且晃眼。
          */
-        "croissant-bob": {
+        "logo-bob": {
           "0%, 100%": { transform: "translateY(0) rotate(-1.2deg)" },
           "50%": { transform: "translateY(-7px) rotate(1.2deg)" },
         },
@@ -141,7 +141,7 @@ const config: Config = {
         "gradient-pan": "gradient-pan 14s ease-in-out infinite",
         "caret": "caret 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         "dot": "dot 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite",
-        "croissant-bob": "croissant-bob 4.6s ease-in-out infinite",
+        "logo-bob": "logo-bob 4.6s ease-in-out infinite",
       },
     },
   },

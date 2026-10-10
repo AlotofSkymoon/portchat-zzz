@@ -97,9 +97,9 @@ function errorResponse(status: number, code: string, message: string) {
 /**
  * 「纯打招呼」判断：整轮对话只有一条用户消息，且内容就是一句问候。
  *
- * 只有这种情况才让 Coffing 念开场白。否则（比如用户问「Logo 是什么」）
+ * 只有这种情况才让 Pot 念开场白。否则（比如用户问「Logo 是什么」）
  * 硬塞自我介绍会把答案搅乱 —— 实测出现过把开场白插进 Logo 说明中间、
- * 还把名字写成 "Coffin" 的情况。
+ * 还把名字写成别的拼写的情况。
  */
 const GREETING_RE =
   /^(hi|hello|hey|yo|hola|bonjour|salut|cou?cou|nihao|ni\s?hao|\u4f60\u597d|\u60a8\u597d|\u55e8|\u54c8\u55e8|\u54c8\u5570|\u5728\u5417|\u5728\u4e48|\u65e9\u4e0a\u597d|\u4e0b\u5348\u597d|\u665a\u4e0a\u597d|who\s+are\s+you)[\s!\u3001,.\uff0c\u3002~\uff01\uff1f?.]*$/i;
@@ -430,7 +430,7 @@ export async function POST(request: Request) {
   }
 
   /**
-   * 品牌人格：Coffing。
+   * 品牌人格：Pot。
    *
    * 放在服务端注入而不是前端拼 —— 前端拼的话，绕过页面直接打接口
    * （或老版本客户端）就没有人格了，而且 prompt 会被存进会话记录里。
@@ -439,8 +439,8 @@ export async function POST(request: Request) {
    * 否则每次刷新历史都会多出一条 system 消息。
    */
   const persona = isGreetingOnly(messages)
-    ? st(request, "chat.coffingPersona")
-    : st(request, "chat.coffingBase");
+    ? st(request, "chat.potPersona")
+    : st(request, "chat.potBase");
   /**
    * 检索资料作为**独立的 system 消息**注入，紧跟 persona 之后。
    *
