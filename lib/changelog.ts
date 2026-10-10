@@ -25,6 +25,22 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-10-10",
+    title: { zh: "滑块消耗提示与菜单定位", en: "Effort cost hint & menu placement" },
+    entries: [
+      {
+        tag: "improve",
+        zh: "推理等级滑块上方显示实际消耗倍率（1× / 1.25× / 1.6× / 2.2×），拉满时提示「更快消耗使用额度」",
+        en: "The reasoning slider now shows its real cost multiplier (1× / 1.25× / 1.6× / 2.2×) and warns that higher levels burn quota faster",
+      },
+      {
+        tag: "fix",
+        zh: "修复模型菜单浮在半空：此前按最大高度定位，内容较短时菜单底边离按钮几百像素，现改为渲染后按真实高度贴合",
+        en: "Fixed the model menu floating in mid-air — it was positioned by max height, so short menus hung hundreds of pixels above the button. It now measures its real height and sits flush against it",
+      },
+    ],
+  },
+  {
     date: "2026-10-09",
     title: { zh: "连载开始", en: "First entry" },
     entries: [

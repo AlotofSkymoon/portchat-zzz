@@ -209,6 +209,34 @@ export function ModelPicker({
     };
   }, [open, measure]);
 
+  /**
+   * measure() 里的 top 是按「最大高度」算的，可菜单实际多高取决于内容：
+   * root 页只有模型行 + 滑条，比 MAX_H 矮一大截，于是菜单底边停在按钮
+   * 上方几百像素处 —— 就是那个「浮在半空」的观感。
+   * 这里渲染完再量真实高度，把菜单贴回按钮边上。
+   */
+  React.useLayoutEffect(() => {
+    if (!open || !placement) return;
+    const menu = menuRef.current;
+    const wrap = wrapRef.current;
+    if (!menu || !wrap) return;
+    const h = menu.offsetHeight;
+    if (!h) return;
+    const r = wrap.getBoundingClientRect();
+    const vh = window.innerHeight;
+    let top: number;
+    if (placement.up) {
+      top = r.top - GAP - h;
+      // 上方连真实高度都塞不下，就退回按最大高度排，让菜单内部滚动
+      if (top < EDGE) top = Math.max(EDGE, r.top - GAP - placement.maxHeight);
+    } else {
+      top = r.bottom + GAP;
+      if (top + h > vh - EDGE) top = Math.max(EDGE, vh - EDGE - h);
+    }
+    // 阈值兜底，避免同值回写把 layout effect 变成死循环
+    if (Math.abs(top - placement.top) > 0.5) setPlacement({ ...placement, top });
+  }, [open, view, placement]);
+
   // 点击外部 / Esc 关闭
   React.useEffect(() => {
     if (!open) return;
