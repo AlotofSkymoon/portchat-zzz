@@ -67,6 +67,22 @@ export async function syncIndexes(
   }
 }
 
+/**
+ * 单独补写一条 credId → userId 索引。
+ *
+ * 浏览器给的 `credential.id` 理论上与我们从 authData 里解出的完全一致，
+ * 但只要存在任何编码差异（填充 / 字符集 / 大小写），登录时那条唯一索引
+ * 就会查不中。所以注册时两种写法各建一条，登录时自愈也往这里补。
+ */
+export async function indexCred(credId: string, userId: string): Promise<void> {
+  if (!credId) return;
+  try {
+    await getRedis().set(`passkey:cred:${credId}`, userId);
+  } catch {
+    /* 索引失败不阻断主流程 —— 登录还有 userHandle 兜底 */
+  }
+}
+
 /** 凭凭证 id 反查用户 id。 */
 export async function findUserByCredId(credId: string): Promise<string | null> {
   try {

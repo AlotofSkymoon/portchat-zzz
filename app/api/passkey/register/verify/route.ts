@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
 import { hasRedisConfig, storageErrorMessage } from "@/lib/redis";
-import { nextLabel, readPasskeys, syncIndexes, writePasskeys } from "@/lib/passkey";
+import { indexCred, nextLabel, readPasskeys, syncIndexes, writePasskeys } from "@/lib/passkey";
 import { requireSyncable, rpConfig, takeChallenge, verifyRegistration } from "@/lib/webauthn";
 
 export const runtime = "nodejs";
@@ -109,6 +109,8 @@ export async function POST(request: Request) {
     // syncIndexes 只关心「after 里没有的索引要清掉」，前后传同一份即可
     await syncIndexes(user.id, list, list);
     await writePasskeys(user.id, list);
+    // 浏览器返回的写法也登记一份 —— 登录时它带回来的就是这个字符串
+    if (cred.id && cred.id !== parsed.credId) await indexCred(cred.id, user.id);
 
     return NextResponse.json({
       ok: true,

@@ -8,8 +8,8 @@ import {
   setSessionCookie,
   toSafeUser,
 } from "@/lib/auth";
-import { findUserByCredId, readPasskeys, writePasskeys } from "@/lib/passkey";
-import { hasRedisConfig, hgetAll, KEYS, storageErrorMessage } from "@/lib/redis";
+import { findUserByCredId, indexCred, readPasskeys, writePasskeys } from "@/lib/passkey";
+import { getRedis, hasRedisConfig, hgetAll, KEYS, storageErrorMessage } from "@/lib/redis";
 import { issueTrustCookie } from "@/lib/two-factor";
 import { issueGrant } from "@/lib/reauth";
 import { b64urlDecode, rpConfig, takeChallenge, verifyAssertion } from "@/lib/webauthn";
@@ -32,6 +32,39 @@ function userVerified(authDataB64: string): boolean {
     return authData.length > 32 && (authData[32] & 0x04) !== 0;
   } catch {
     return false;
+  }
+}
+
+/**
+ * 逐字节比较凭证 id。
+ *
+ * 直接比字符串会被「同一串字节的不同写法」坑到：标准 base64 的 `+/=`、
+ * base64url 的 `-_`、以及填充差异，字节完全相同但字符串不同。解码后再比
+ * 就能绕开所有这些差异 —— 这是「登录时明明带对了钥匙却查不到」最常见的原因。
+ */
+function sameCredId(a: string, b: string): boolean {
+  try {
+    const x = b64urlDecode(a);
+    const y = b64urlDecode(b);
+    if (x.length !== y.length || x.length === 0) return false;
+    for (let i = 0; i < x.length; i += 1) if (x[i] !== y[i]) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 从认证响应里解出 userHandle。
+ * 注册时写的是 userId（UTF-8），所以这里解出来可以直接当 userId 用。
+ */
+function decodeUserHandle(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const s = new TextDecoder().decode(b64urlDecode(raw)).trim();
+    return s || null;
+  } catch {
+    return null;
   }
 }
 
@@ -94,9 +127,31 @@ export async function POST(request: Request) {
       }
       user = current;
     } else {
-      const uid = await findUserByCredId(credId);
+      let uid = await findUserByCredId(credId);
+      /*
+       * 回退一：credId 索引没命中，就靠浏览器带回的 userHandle 反查。
+       * 这是 WebAuthn 标准自带的机制（注册时我们写入了 userId），
+       * 专门用来兜「凭据在，但索引丢了 / 写法不一致」这种情况。
+       */
       if (!uid) {
-        return NextResponse.json({ error: "这个 Passkey 没有对应的账号" }, { status: 401 });
+        const handle = decodeUserHandle(cred.response.userHandle);
+        if (handle) {
+          const direct = await hgetAll<UserRecord>(KEYS.user(handle));
+          if (direct?.id) {
+            uid = handle;
+          } else {
+            const byEmail = await getRedis().get<string>(
+              KEYS.userEmail(handle.toLowerCase()),
+            );
+            if (byEmail) uid = byEmail;
+          }
+        }
+      }
+      if (!uid) {
+        return NextResponse.json(
+          { error: "这个 Passkey 没有对应的账号（凭证未登记，请重新绑定）" },
+          { status: 401 },
+        );
       }
       const found = await hgetAll<UserRecord>(KEYS.user(uid));
       if (found?.id) user = found;
@@ -107,9 +162,17 @@ export async function POST(request: Request) {
     }
 
     const list = readPasskeys(user);
-    const credential = list.find((c) => c.credId === credId);
+    /*
+     * 回退二：用户找到了，但账号里存的 credId 与浏览器给的写法不同。
+     * 逐字节比一次，避免同一把钥匙因为编码写法不同就被判成陌生人。
+     */
+    const credential =
+      list.find((c) => c.credId === credId) || list.find((c) => sameCredId(c.credId, credId));
     if (!credential) {
-      return NextResponse.json({ error: "这个 Passkey 没有对应的账号" }, { status: 401 });
+      return NextResponse.json(
+        { error: "这个 Passkey 没有对应的账号（账号下没有这把钥匙）" },
+        { status: 401 },
+      );
     }
 
     const { rpId, origin } = rpConfig(request);
@@ -138,9 +201,11 @@ export async function POST(request: Request) {
        * 部分平台认证器恒为 0，一刀切会误伤。
        */
       const updated = list.map((c) =>
-        c.credId === credId ? { ...c, signCount, lastUsedAt: Date.now() } : c,
+        c.credId === credential.credId ? { ...c, signCount, lastUsedAt: Date.now() } : c,
       );
       await writePasskeys(user.id, updated);
+      // 自愈：按浏览器实际返回的写法再补一条索引，下次就能直接命中
+      await indexCred(credId, user.id);
     } catch {
       return NextResponse.json({ error: "Passkey 验证失败" }, { status: 401 });
     }
