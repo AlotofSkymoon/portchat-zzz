@@ -1,1 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"><style>path{fill:#111318}@media (prefers-color-scheme:dark){path{fill:#f5f6f8}}</style><path fill-rule="evenodd" d="M16 40 L16 8 L23 8 A10 10 0 0 1 23 28 L23 40 Z M23 13.5 A4.5 4.5 0 0 1 23 22.5 Z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <path fill="#2E7DF6" d="M13 12H24A10 10 0 0 1 34 22V30A10 10 0 0 1 24 40H19.5L11 46.5L12.8 40H13A10 10 0 0 1 3 30V22A10 10 0 0 1 13 12Z"/>
+  <g fill="none" stroke="#FF8A00" stroke-width="3.4" stroke-linecap="round">
+    <path d="M27.5 12.5 L29.5 5.5"/>
+    <path d="M33.2 13.5 L38.8 9.5"/>
+    <path d="M36.8 18.5 L44 16.2"/>
+  </g>
+  <ellipse cx="17" cy="26" rx="9" ry="6.2" fill="#FFFFFF"/>
+  <ellipse cx="12.8" cy="26" rx="2.1" ry="3.3" fill="#2E7DF6"/>
+  <ellipse cx="21.2" cy="26" rx="2.1" ry="3.3" fill="#2E7DF6"/>
+</svg>

@@ -8,7 +8,7 @@
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#0B0E14",
-  "theme_color": "#4D6BFE",
+  "theme_color": "#2E7DF6",
   "lang": "zh-CN",
   "dir": "ltr",
   "categories": ["productivity", "utilities"],

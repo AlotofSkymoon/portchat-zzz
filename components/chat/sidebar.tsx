@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 
 import { useI18n } from "@/components/i18n-provider";
-import { PortchatIcon } from "@/components/portchat-logo";
-import { BY_LINE, SITE_NAME, SPONSOR_ENABLED } from "@/lib/site";
+import { PortchatLogo } from "@/components/portchat-logo";
+import { BY_LINE, SPONSOR_ENABLED } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import type { Conversation } from "@/lib/use-conversations";
 import { cn } from "@/lib/utils";
@@ -159,11 +159,7 @@ export function Sidebar({
           {/* 顶部：Logo + 收起/关闭 */}
           <div className="flex items-center justify-between px-3 py-3">
             <Link href="/" className="flex items-center gap-2">
-              {/* 透明底 logo：不加蓝底圆，否则蓝色图形糊在蓝色底上 */}
-              <span className="inline-flex h-7 w-7 items-center justify-center">
-                <PortchatIcon />
-              </span>
-              <span className="text-sm font-semibold">{SITE_NAME}</span>
+              <PortchatLogo />
             </Link>
             <div className="flex items-center gap-0.5">
               {onToggleCollapse ? (
