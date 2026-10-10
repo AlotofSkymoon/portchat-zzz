@@ -183,23 +183,26 @@ export function PageTransition() {
       </div>
 
       <div className="pt-row">
-        <svg
-          className="pt-trail"
-          viewBox="0 0 160 44"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <path className="pt-trail-line" d="M2 31 C 44 25, 98 35, 158 21" fill="none" />
-        </svg>
-
-        <span className="pt-plane" aria-hidden="true">
-          <svg viewBox="0 0 64 64" className="pt-plane-svg">
-            {/* 机身：一张折好的纸，两个折面 + 中缝 */}
-            <path d="M4 30 L60 8 L34 56 L28 38 Z" fill="#FFFFFF" />
-            <path d="M4 30 L28 38 L34 56 Z" fill="#DCE6F5" />
-            <path d="M4 30 L60 8 L28 38 Z" fill="#F2F6FC" />
-            <path d="M28 38 L60 8" stroke="#9FB3D1" strokeWidth="1.1" fill="none" />
+        {/* 航迹容器：飞机的 left 百分比是相对它算的，不包一层就会飞过文字 */}
+        <span className="pt-sky" aria-hidden="true">
+          <svg
+            className="pt-trail"
+            viewBox="0 0 160 44"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <path className="pt-trail-line" d="M2 31 C 44 25, 98 35, 158 21" fill="none" />
           </svg>
+
+          <span className="pt-plane">
+            <svg viewBox="0 0 64 64" className="pt-plane-svg">
+              {/* 机身：一张折好的纸，两个折面 + 中缝 */}
+              <path d="M4 30 L60 8 L34 56 L28 38 Z" fill="#FFFFFF" />
+              <path d="M4 30 L28 38 L34 56 Z" fill="#DCE6F5" />
+              <path d="M4 30 L60 8 L28 38 Z" fill="#F2F6FC" />
+              <path d="M28 38 L60 8" stroke="#9FB3D1" strokeWidth="1.1" fill="none" />
+            </svg>
+          </span>
         </span>
 
         <div className="pt-text">

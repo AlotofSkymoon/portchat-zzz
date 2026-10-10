@@ -43,6 +43,11 @@ export const CHANGELOG: ChangelogDay[] = [
         zh: "凭据匹配放宽为三级（自解凭证 ID → 浏览器回传 ID → 逐字节比对），同一把钥匙不再因字符串写法不同被判为陌生",
         en: "Credential matching now falls back three ways (decoded ID, browser-returned ID, byte-for-byte), so the same key is never rejected over a difference in string formatting",
       },
+      {
+        tag: "fix",
+        zh: "修复页面切换遮罩显示成一大张品牌图：改用横向布局时新增的类名漏写样式，右上角徽标里的图片没有尺寸约束，512px 原图直接铺满画面把纸飞机盖住。现补齐样式，飞机回到航迹上飞行",
+        en: "Fixed the page-transition overlay rendering as one giant brand image: the new class names from the horizontal layout shipped without styles, so the badge image had no size constraint and the 512px artwork filled the screen, hiding the paper plane. Styles are now in place and the plane flies along its trail again",
+      },
     ],
   },
   {

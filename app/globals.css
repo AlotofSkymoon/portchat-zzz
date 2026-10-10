@@ -2788,11 +2788,44 @@ body {
   to { opacity: 0; }
 }
 
+/* --- 整行：航迹 + 飞机在左，文案在右 --- */
+.pt-row {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+
+/* 右上角徽标：不给 img 定尺寸的话，512px 原图会直接铺满整屏 */
+.pt-badge {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9999px;
+  background: rgba(255, 122, 198, 0.92);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(255, 122, 198, 0.28);
+}
+
+.pt-badge img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  /* 品牌图本身是蓝橙两色，压成纯白剪影才不会在粉底上打架 */
+  filter: brightness(0) invert(1);
+}
+
 /* --- 航迹 --- */
 .pt-sky {
   position: relative;
-  width: min(300px, 74vw);
-  height: 56px;
+  flex: none;
+  width: min(190px, 42vw);
+  height: 40px;
 }
 
 .pt-sky-svg {
@@ -2808,6 +2841,12 @@ body {
  * 之前是「画一次就停」，飞机飞走后画面就死了 —— 这里让它一直在流。
  */
 .pt-trail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
   stroke: rgba(150, 186, 255, 0.55);
   stroke-width: 2;
   stroke-linecap: round;
@@ -2815,8 +2854,65 @@ body {
   animation: pt-dash 0.6s linear infinite;
 }
 
+/* --- 文案区 --- */
+.pt-text {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.pt-line1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+}
+
+.pt-ell {
+  opacity: 0.75;
+}
+
+.pt-progress {
+  position: relative;
+  display: block;
+  width: 118px;
+  height: 2px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.pt-progress i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 36%;
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, rgba(110, 168, 255, 0), #6ea8ff, rgba(110, 168, 255, 0));
+  animation: pt-scan 1.15s ease-in-out infinite;
+}
+
+@keyframes pt-scan {
+  0%   { transform: translateX(-40%); }
+  100% { transform: translateX(300%); }
+}
+
 @keyframes pt-dash {
   to { stroke-dashoffset: -7; }
+}
+
+/* stroke 虽可继承，显式写一遍更稳：免得 svg 元素上的属性没落到 path 上 */
+.pt-trail-line {
+  fill: none;
+  stroke: inherit;
+  stroke-width: inherit;
+  stroke-dasharray: inherit;
+  stroke-linecap: inherit;
 }
 
 /* --- 飞机 --- */
@@ -2896,13 +2992,13 @@ body {
   50% { opacity: 1; transform: translateY(-3px); }
 }
 
-/* --- 目标页名 --- */
+/* --- 目标页名：紧跟在「正在前往…」后面，用品牌蓝区分 --- */
 .pt-dest {
-  margin: -8px 0 0;
-  font-size: 12.5px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  color: rgba(190, 205, 255, 0.72);
+  margin-left: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #7fb0ff;
 }
 
 /* --- 尊重系统「减少动态效果」--- */
