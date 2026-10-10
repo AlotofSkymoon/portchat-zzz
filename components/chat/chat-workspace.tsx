@@ -12,6 +12,7 @@ import {
   Plus,
   Settings2,
   Swords,
+  Trophy,
   Upload,
   MailWarning,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { ChatFooter } from "@/components/chat/chat-footer";
 import { ChatInput } from "@/components/chat/chat-input";
 import { EmptyState } from "@/components/chat/empty-state";
+import { ReauthDialog } from "@/components/reauth-dialog";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { SettingsDialog, type ChatSettings } from "@/components/chat/settings-dialog";
 import { probeImageUrl } from "@/lib/image-probe";
@@ -118,7 +120,10 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
   const [settings, setSettings] = React.useState<ChatSettings>(DEFAULT_SETTINGS);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const [cloudSync, setCloudSync] = React.useState(false);
+  const [cloudSync, setCloudSync] = React.useState(true);
+  /* 关闭云端保存属于危险方向，必须先过二次认证 */
+  const [reauthOpen, setReauthOpen] = React.useState(false);
+  const [cloudSyncBusy, setCloudSyncBusy] = React.useState(false);
   /* ---- 附件 + 拖拽 ---- */
   const [attachments, setAttachments] = React.useState<Attachment[]>([]);
   const [dragging, setDragging] = React.useState(false);
@@ -278,18 +283,59 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
   }, [settings.s3?.enabled]);
 
   /**
-   * 用户手动切换云端保存。
+   * 真正落地的切换（拿到二次认证凭证后才走这里）。
    * 除了存值，还要打上「用户已设置」标记 ——
    * 之后管理员的默认值就不能再覆盖这个选择了。
    */
-  const handleCloudSyncChange = React.useCallback((next: boolean) => {
-    setCloudSync(next);
-    try {
-      localStorage.setItem(LS_KEYS.cloudSyncSetByUser, "1");
-    } catch {
-      /* 忽略 */
-    }
-  }, []);
+  const commitCloudSync = React.useCallback(
+    async (next: boolean, token?: string) => {
+      setCloudSync(next);
+      try {
+        localStorage.setItem(LS_KEYS.cloudSyncSetByUser, "1");
+        localStorage.setItem(LS_KEYS.cloudSync, String(next));
+      } catch {
+        /* 忽略 */
+      }
+      if (!user) return;
+      setCloudSyncBusy(true);
+      try {
+        const res = await fetch("/api/user/cloud-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: next, reauthToken: token ?? "" }),
+        });
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        if (!res.ok) {
+          setCloudSync(!next);
+          toast.error(data?.error ?? t("account.cloudSyncFailed"));
+        }
+      } catch {
+        setCloudSync(!next);
+      } finally {
+        setCloudSyncBusy(false);
+      }
+    },
+    [t, user],
+  );
+
+  /**
+   * 开关回调：开启直接放行（更安全的一侧不该拦），
+   * 关闭则先弹二次认证 —— 关掉后记录只剩本机，属于不可逆的方向。
+   */
+  const handleCloudSyncChange = React.useCallback(
+    (next: boolean) => {
+      if (next) {
+        void commitCloudSync(true);
+        return;
+      }
+      if (!user) {
+        void commitCloudSync(false);
+        return;
+      }
+      setReauthOpen(true);
+    },
+    [commitCloudSync, user],
+  );
 
   React.useEffect(() => {
     if (!mounted) return;
@@ -1526,6 +1572,12 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                 <span className="hidden lg:inline">{t("sidebar.arena")}</span>
               </Link>
             </Button>
+            <Button variant="ghost" size="sm" asChild title={t("route.leaderboard")}>
+              <Link href="/leaderboard" className="gap-1.5">
+                <Trophy className="h-4 w-4" />
+                <span className="hidden lg:inline">{t("route.leaderboard")}</span>
+              </Link>
+            </Button>
             <Button variant="ghost" size="sm" asChild title={t("chat.cloudPc")}>
               <Link href="/pc" className="gap-1.5">
                 <Monitor className="h-4 w-4" />
@@ -1612,14 +1664,6 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   webSearchSupported={ALLOW_WEB_SEARCH}
                   webSearch={webSearch}
                   onWebSearchChange={toggleWebSearch}
-                  imageBusy={imageBusy}
-                  onGenerateImage={() => void generateImage()}
-                  imageCount={imageCount}
-                  onImageCountChange={setImageCount}
-                  imageRatio={imageRatio}
-                  onImageRatioChange={setImageRatio}
-                  imageSize={imageSize}
-                  onImageSizeChange={setImageSize}
                 />
                 <p className="mt-3 text-center text-xs text-fg-quaternary">
                   {t("input.disclaimerHero")}
@@ -1653,14 +1697,6 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
                   webSearchSupported={ALLOW_WEB_SEARCH}
                   webSearch={webSearch}
                   onWebSearchChange={toggleWebSearch}
-                  imageBusy={imageBusy}
-                  onGenerateImage={() => void generateImage()}
-                  imageCount={imageCount}
-                  onImageCountChange={setImageCount}
-                  imageRatio={imageRatio}
-                  onImageRatioChange={setImageRatio}
-                  imageSize={imageSize}
-                  onImageSizeChange={setImageSize}
                 />
                 <p className="mt-2 text-center text-xs text-fg-quaternary">
                   {t("input.disclaimer")}
@@ -1703,6 +1739,17 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
         onCloudSyncChange={handleCloudSyncChange}
         onClearAll={clearAllData}
         onUserChanged={() => router.refresh()}
+      />
+
+      <ReauthDialog
+        open={reauthOpen}
+        onClose={() => setReauthOpen(false)}
+        onVerified={(token) => {
+          setReauthOpen(false);
+          void commitCloudSync(false, token);
+        }}
+        title={t("reauth.cloudTitle")}
+        description={t("reauth.cloudDescription")}
       />
     </div>
   );

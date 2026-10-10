@@ -91,6 +91,20 @@ export async function POST(request: Request) {
     providerModels: sanitizeProviderModels(
       (body.providerModels ?? current.providerModels ?? {}) as Record<string, unknown>,
     ),
+    /**
+     * 被下架的模型（「最垃圾模型」投票后由管理员手动隐藏）。
+     * 只接受字符串数组，其余一律当空数组，避免脏数据把整份配置写坏。
+     */
+    hiddenModels: Array.isArray(body.hiddenModels)
+      ? Array.from(
+          new Set(
+            body.hiddenModels
+              .filter((x): x is string => typeof x === "string")
+              .map((x) => x.trim())
+              .filter(Boolean),
+          ),
+        ).slice(0, 500)
+      : (current.hiddenModels ?? []),
   };
 
   // Base URL 做基本校验，避免管理员手滑写坏全站

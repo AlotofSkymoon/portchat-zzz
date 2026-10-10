@@ -65,6 +65,15 @@ export interface UserRecord {
    * 没设置时前端回落显示邮箱，所以老账号不需要回填。
    */
   nickname?: string;
+  /**
+   * Passkey（WebAuthn）凭据。
+   *
+   * ⚠️ 存储形态同 twoFactor：用户记录在 Redis 里是 **hash**，
+   * 嵌套对象存不进去，所以这个字段实际存的是 JSON 字符串。
+   * 读写统一走 `lib/passkey.ts` 的 readPasskeys / writePasskeys，
+   * 不要直接 `user.passkeys[0]` —— 那样拿到的是字符串。
+   */
+  passkeys?: string;
 }
 
 /** 可以安全返回给前端的用户信息（永远不含 passwordHash） */
@@ -291,7 +300,12 @@ export function getClientIp(headers: Headers): string {
  */
 export async function updateUser(
   id: string,
-  patch: Partial<Record<"email" | "emailVerified" | "nickname" | "role", string>>,
+  patch: Partial<
+    Record<
+      "email" | "emailVerified" | "nickname" | "role" | "passkeys" | "twoFactor",
+      string
+    >
+  >,
 ): Promise<UserRecord | null> {
   const redis = getRedis();
   const key = KEYS.user(id);

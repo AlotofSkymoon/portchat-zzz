@@ -24,6 +24,7 @@ import { loadStoredPresetKeys, resolvePresetKey } from "@/lib/preset-keys";
 import { loadSiteProviderModels } from "@/lib/site-models";
 import { serverT as st } from "@/lib/i18n/server";
 import { CHAT_RATE_LIMIT_PER_MINUTE, hitChatRateLimit } from "@/lib/chat-rate-limit";
+import { bumpChatCount, bumpModelCount } from "@/lib/stats";
 
 export const runtime = "nodejs";
 
@@ -391,6 +392,22 @@ export async function POST(request: Request) {
         { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
       );
     }
+  }
+
+  /**
+   * 统计埋点：聊天次数 + 模型调用次数。
+   *
+   * ⚠️ 故意放在限流**之后** —— 被限流掉的请求不算一次有效对话，
+   * 否则刷接口就能刷榜。放在这里还意味着真正要发往上游的才算数。
+   *
+   * 统计失败绝不能影响对话本身，所以整体 try/catch 吞掉：
+   * Redis 抖一下就让整个聊天挂掉，是典型的把次要功能做成主链路依赖。
+   */
+  try {
+    if (chatUser) void bumpChatCount(chatUser.id);
+    void bumpModelCount(model);
+  } catch {
+    /* 统计是旁路，失败不影响对话 */
   }
 
   // 不支持识图的模型：把图片片段降级为占位文字，避免上游报错

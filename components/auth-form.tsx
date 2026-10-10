@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Github, Loader2, LogIn, Sparkles, UserPlus } from "lucide-react";
+import { Fingerprint, Github, Loader2, LogIn, Sparkles, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/components/i18n-provider";
@@ -12,6 +12,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+/** base64url → ArrayBuffer（WebAuthn 的 challenge 必须是二进制） */
+function b64urlToBuffer(b64url: string): ArrayBuffer {
+  const pad = b64url.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(pad + "=".repeat((4 - (pad.length % 4)) % 4));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+  return out.buffer;
+}
+
+/** ArrayBuffer → base64url（服务端按 base64url 解） */
+function bufferToB64url(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 1) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const { t } = useI18n();
@@ -50,6 +67,102 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       alive = false;
     };
   }, []);
+
+  /*
+   * ---- Passkey 登录 ----
+   *
+   * 只在浏览器真的支持 WebAuthn 时才显示按钮，否则点了必然报错。
+   * 另外还要检查有没有配存储：Passkey 凭据存 Redis，没配就直接不显示。
+   */
+  const [passkeyReady, setPasskeyReady] = React.useState(false);
+  const [passkeyBusy, setPasskeyBusy] = React.useState(false);
+  React.useEffect(() => {
+    if (mode !== "login") return;
+    /*
+     * 只探测浏览器能力，不请求服务端：
+     * 未登录的人调 /api/passkey 必然 401，拿不到有意义的结果。
+     * 存储没配的情况会在点击时由接口给出明确报错，不影响按钮显示与否。
+     */
+    const supported =
+      typeof window !== "undefined" &&
+      !!window.PublicKeyCredential &&
+      !!navigator.credentials?.get;
+    setPasskeyReady(supported);
+  }, [mode]);
+
+  async function loginWithPasskey() {
+    if (passkeyBusy) return;
+    setPasskeyBusy(true);
+    try {
+      const optRes = await fetch("/api/passkey/authenticate/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "login" }),
+        signal: timeoutSignal(10_000),
+      });
+      const opt = (await optRes.json().catch(() => ({}))) as {
+        chalId?: string;
+        challenge?: string;
+        rpId?: string;
+        timeout?: number;
+        error?: string;
+      };
+      if (!optRes.ok || !opt.chalId || !opt.challenge || !opt.rpId) {
+        toast.error(opt.error ?? t("auth.passkeyFailed"));
+        return;
+      }
+
+      const credential = await navigator.credentials.get({
+        publicKey: {
+          challenge: b64urlToBuffer(opt.challenge),
+          rpId: opt.rpId,
+          userVerification: "preferred",
+          timeout: opt.timeout ?? 60_000,
+        },
+      });
+      if (!credential) {
+        toast.error(t("auth.passkeyFailed"));
+        return;
+      }
+
+      // 断言（登录）响应体才有 signature / authenticatorData / userHandle，
+      // 基类 AuthenticatorResponse 上只有 clientDataJSON，直接读会报类型错
+      const pk = credential as PublicKeyCredential;
+      const assertion = pk.response as AuthenticatorAssertionResponse;
+      const userHandle = assertion.userHandle ?? null;
+
+      const res = await fetch("/api/passkey/authenticate/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chalId: opt.chalId,
+          credential: {
+            id: pk.id,
+            rawId: bufferToB64url(pk.rawId),
+            response: {
+              clientDataJSON: bufferToB64url(assertion.clientDataJSON),
+              authenticatorData: bufferToB64url(assertion.authenticatorData),
+              signature: bufferToB64url(assertion.signature),
+              userHandle: userHandle ? bufferToB64url(userHandle) : null,
+            },
+          },
+        }),
+        signal: timeoutSignal(15_000),
+      });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        toast.error(data.error ?? t("auth.passkeyFailed"));
+        return;
+      }
+      toast.success(t("auth.passkeyOk"));
+      router.replace(redirectTo);
+      router.refresh();
+    } catch {
+      toast.error(t("auth.passkeyFailed"));
+    } finally {
+      setPasskeyBusy(false);
+    }
+  }
 
   /* ---- 邮箱验证码（注册时用；未配置邮件服务则整块隐藏）---- */
   const [verifyEnabled, setVerifyEnabled] = React.useState(false);
@@ -347,6 +460,19 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             )}
             {isLogin ? t("auth.login") : t("auth.register")}
           </Button>
+
+          {isLogin && passkeyReady ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => void loginWithPasskey()}
+              disabled={passkeyBusy || loading}
+            >
+              {passkeyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
+              {t("auth.loginWithPasskey")}
+            </Button>
+          ) : null}
 
           {githubEnabled ? (
             <>

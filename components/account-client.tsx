@@ -7,7 +7,15 @@ import { ArrowLeft, Loader2, LogOut, Shield, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/components/i18n-provider";
-import { EmailCard, GithubBindCard, NicknameCard, TwoFactorCard } from "@/components/account-cards";
+import {
+  EmailCard,
+  GithubBindCard,
+  NicknameCard,
+  PasskeyCard,
+  QrLoginCard,
+  TwoFactorCard,
+} from "@/components/account-cards";
+import { ReauthDialog } from "@/components/reauth-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,16 +38,71 @@ export function AccountClient({ user }: { user: AccountUser }) {
   const [current, setCurrent] = React.useState("");
   const [next, setNext] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [cloudSync, setCloudSync] = React.useState(false);
+  const [cloudSync, setCloudSync] = React.useState(true);
+  const [syncLoaded, setSyncLoaded] = React.useState(false);
+  const [reauthOpen, setReauthOpen] = React.useState(false);
   const [clearing, setClearing] = React.useState(false);
 
+  /**
+   * 云端保存：**默认开启**，开关状态存在服务端。
+   *
+   * ⚠️ 为什么不只放 localStorage：那样清一次浏览器数据就能绕过认证把开关拨回去，
+   * 认证就成了摆设。这里以服务端为准，前端只是镜像。
+   */
   React.useEffect(() => {
-    setCloudSync(localStorage.getItem(LS_KEYS.cloudSync) === "true");
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/user/cloud-sync");
+        const data = (await res.json()) as { enabled?: boolean };
+        if (alive) {
+          setCloudSync(data.enabled !== false);
+          localStorage.setItem(LS_KEYS.cloudSync, String(data.enabled !== false));
+        }
+      } catch {
+        // 读不到就按默认开启，不要因为接口抽风把同步关掉
+        if (alive) setCloudSync(true);
+      } finally {
+        if (alive) setSyncLoaded(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  React.useEffect(() => {
-    localStorage.setItem(LS_KEYS.cloudSync, String(cloudSync));
-  }, [cloudSync]);
+  async function applyCloudSync(enabled: boolean, token?: string) {
+    setCloudSync(enabled);
+    localStorage.setItem(LS_KEYS.cloudSync, String(enabled));
+    try {
+      const res = await fetch("/api/user/cloud-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled, reauthToken: token }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        // 服务端拒绝了（多半是凭证无效）——把开关拨回去，别让界面撒谎
+        setCloudSync(!enabled);
+        localStorage.setItem(LS_KEYS.cloudSync, String(!enabled));
+        toast.error(data.error ?? t("account.cloudSyncFailed"));
+        return;
+      }
+      toast.success(enabled ? t("account.cloudSyncOn") : t("account.cloudSyncOff"));
+    } catch {
+      setCloudSync(!enabled);
+      toast.error(t("auth.networkError"));
+    }
+  }
+
+  function toggleCloudSync(next: boolean) {
+    // 开启是更安全的一侧，不拦；关闭会停同步，必须先验证身份
+    if (next) {
+      applyCloudSync(true);
+      return;
+    }
+    setReauthOpen(true);
+  }
 
   async function changePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -137,6 +200,8 @@ export function AccountClient({ user }: { user: AccountUser }) {
               <NicknameCard onChanged={() => router.refresh()} />
               <EmailCard onChanged={() => router.refresh()} />
               <GithubBindCard redirect="/account" />
+              <PasskeyCard />
+              <QrLoginCard />
               <TwoFactorCard />
             </div>
 
@@ -179,8 +244,9 @@ export function AccountClient({ user }: { user: AccountUser }) {
                 <p className="text-sm font-medium">{t("settings.cloudSave")}</p>
                 <p className="text-xs text-muted-foreground">{t("account.cloudSaveNote")}</p>
               </div>
-              <Switch checked={cloudSync} onCheckedChange={setCloudSync} />
+              <Switch checked={cloudSync} onCheckedChange={toggleCloudSync} disabled={!syncLoaded} />
             </div>
+            <p className="text-xs text-muted-foreground">{t("account.cloudSyncOffHint")}</p>
 
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={clearLocalHistory}>
@@ -200,6 +266,14 @@ export function AccountClient({ user }: { user: AccountUser }) {
         </Card>
       </div>
       <SiteFooter />
+
+      <ReauthDialog
+        open={reauthOpen}
+        onClose={() => setReauthOpen(false)}
+        onVerified={(token) => applyCloudSync(false, token)}
+        title={t("reauth.cloudTitle")}
+        description={t("reauth.cloudDescription")}
+      />
     </main>
   );
 }

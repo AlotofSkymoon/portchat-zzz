@@ -48,7 +48,9 @@ export type ThemePreset =
   | "violet-rose"
   | "anthropic"
   | "sidefolio"
-  | "minimalist";
+  | "minimalist"
+  | "swiftui"
+  | "material3";
 
 export const THEME_PRESETS: { id: ThemePreset; label: string; desc: string }[] = [
   { id: "anthropic", label: "Anthropic", desc: "纸感排版 · 衬线思考 · Inter + Source Serif" },
@@ -56,6 +58,8 @@ export const THEME_PRESETS: { id: ThemePreset; label: string; desc: string }[] =
   { id: "violet-rose", label: "Violet Rose", desc: "紫粉柔光 · 大圆角糖果 · 实心白卡" },
   { id: "sidefolio", label: "Sidefolio", desc: "侧栏工作台 · 中性灰阶 · 近黑深底" },
   { id: "minimalist", label: "Minimalist", desc: "极简作品集 · 大留白 · 近直角发丝框" },
+  { id: "swiftui", label: "SwiftUI", desc: "iOS 26 观感 · SF 字体 · 系统色 · 发丝分隔线" },
+  { id: "material3", label: "Material 3", desc: "MD3 baseline purple · Roboto · 高度阴影" },
 ];
 
 export const THEME_IDS: ThemePreset[] = [
@@ -64,6 +68,8 @@ export const THEME_IDS: ThemePreset[] = [
   "violet-rose",
   "sidefolio",
   "minimalist",
+  "swiftui",
+  "material3",
 ];
 
 const DEFAULT_THEME: ThemePreset = (() => {

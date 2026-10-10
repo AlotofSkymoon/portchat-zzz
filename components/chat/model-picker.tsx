@@ -10,18 +10,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Globe,
-  ImagePlus,
   Loader2,
-  SlidersHorizontal,
 } from "lucide-react";
 
 import {
   CHAT_MODELS,
   EFFORT_LEVELS,
   EFFORT_TOKEN_BUDGET,
-  IMAGE_MAX_COUNT,
-  IMAGE_RATIOS,
-  IMAGE_SIZES,
   PROVIDERS,
   type CustomProviderConfig,
   type EffortLevel,
@@ -54,15 +49,6 @@ interface ModelPickerProps {
   webSearchSupported?: boolean;
   webSearch?: boolean;
   onWebSearchChange?: (on: boolean) => void;
-  imageSupported?: boolean;
-  imageBusy?: boolean;
-  onGenerateImage?: () => void;
-  imageCount?: number;
-  onImageCountChange?: (n: number) => void;
-  imageRatio?: string;
-  onImageRatioChange?: (r: string) => void;
-  imageSize?: string;
-  onImageSizeChange?: (s: string) => void;
 }
 
 /** 四档对应的词条，缺省按 low 处理 */
@@ -119,23 +105,14 @@ export function ModelPicker({
   webSearchSupported = false,
   webSearch = false,
   onWebSearchChange,
-  imageSupported = true,
-  imageBusy = false,
-  onGenerateImage,
-  imageCount = 1,
-  onImageCountChange,
-  imageRatio = "1:1",
-  onImageRatioChange,
-  imageSize = "1K",
-  onImageSizeChange,
 }: ModelPickerProps) {
   const { t } = useI18n();
   const presetProviders = usePresetProviders();
   /** 管理员添加到站点上的模型 —— 全站可见，不用每人自己加一遍 */
   const siteModels = useSiteProviderModels();
   const [open, setOpen] = React.useState(false);
-  /** root = 模型行 + 推理等级滑条 + 功能开关；list = 模型列表；image = 生图参数 */
-  const [view, setView] = React.useState<"root" | "list" | "image">("root");
+  /** root = 模型行 + 推理等级滑条 + 功能开关；list = 模型列表 */
+  const [view, setView] = React.useState<"root" | "list">("root");
   const [placement, setPlacement] = React.useState<Placement | null>(null);
   const wrapRef = React.useRef<HTMLDivElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -411,79 +388,6 @@ export function ModelPicker({
                 )}
               </div>
                 </div>
-              ) : view === "image" ? (
-                <div className="mp-view mp-view-image">
-                  <button
-                    type="button"
-                    onClick={() => setView("root")}
-                    className="mb-1 flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{t("image.settings")}</span>
-                  </button>
-
-                  <div className="space-y-3 px-2 pb-1.5">
-                    <div className="space-y-1.5">
-                      <p className="text-[11px] font-medium text-fg-secondary">{t("image.count")}</p>
-                      <div className="flex flex-wrap gap-1">
-                        {Array.from({ length: IMAGE_MAX_COUNT }, (_, i) => i + 1).map((n) => (
-                          <button
-                            key={n}
-                            type="button"
-                            onClick={() => onImageCountChange?.(n)}
-                            className={
-                              n === imageCount
-                                ? "h-7 min-w-7 rounded-lg border border-primary/40 bg-primary/12 px-2 text-[11px] font-medium text-primary"
-                                : "h-7 min-w-7 rounded-lg border border-border px-2 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                            }
-                          >
-                            {n}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <p className="text-[11px] font-medium text-fg-secondary">{t("image.ratio")}</p>
-                      <div className="grid grid-cols-4 gap-1">
-                        {IMAGE_RATIOS.map((r) => (
-                          <button
-                            key={r}
-                            type="button"
-                            onClick={() => onImageRatioChange?.(r)}
-                            className={
-                              r === imageRatio
-                                ? "h-7 rounded-lg border border-primary/40 bg-primary/12 text-[10px] font-medium text-primary"
-                                : "h-7 rounded-lg border border-border text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                            }
-                          >
-                            {r}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <p className="text-[11px] font-medium text-fg-secondary">{t("image.quality")}</p>
-                      <div className="flex flex-wrap gap-1">
-                        {IMAGE_SIZES.map((sm) => (
-                          <button
-                            key={sm}
-                            type="button"
-                            onClick={() => onImageSizeChange?.(sm)}
-                            className={
-                              sm === imageSize
-                                ? "h-7 rounded-lg border border-primary/40 bg-primary/12 px-2.5 text-[11px] font-medium text-primary"
-                                : "h-7 rounded-lg border border-border px-2.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                            }
-                          >
-                            {sm}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
               ) : (
                 <div className="mp-view mp-view-root">
                   {/* 行 1 —— 模型：点进去才展开列表，菜单一开不会就是一长条 */}
@@ -563,42 +467,7 @@ export function ModelPicker({
                         <Globe className="h-3.5 w-3.5" />
                       </button>
                     ) : null}
-                    {imageSupported && onGenerateImage ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOpen(false);
-                            onGenerateImage();
-                          }}
-                          disabled={imageBusy}
-                          title={t("input.imageTip")}
-                          aria-label={t("input.image")}
-                          aria-busy={imageBusy}
-                          className={cn(
-                            "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
-                            imageBusy
-                              ? "bg-primary/12 text-primary"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                          )}
-                        >
-                          {imageBusy ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <ImagePlus className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setView("image")}
-                          title={t("image.settingsTip")}
-                          aria-label={t("image.settings")}
-                          className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                        >
-                          <SlidersHorizontal className="h-3.5 w-3.5" />
-                        </button>
-                      </>
-                    ) : null}
+
                   </div>
                 </div>
               )}

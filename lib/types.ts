@@ -249,12 +249,23 @@ export interface SiteSettings {
    * ⚠️ 要真正能用，该服务商还得有「站点预设 Key」，否则用户没 Key 调不通。
    */
   providerModels: Record<string, string[]>;
+
+  /* ---- 模型上下架（被投票为「最垃圾」的模型由管理员隐藏）---- */
+
+  /**
+   * 全站隐藏的模型 id。
+   *
+   * 投票榜只是民意，真正下架由管理员决定 ——
+   * 所以这里只存「管理员点了隐藏」的模型，投票本身不自动改这个字段。
+   */
+  hiddenModels: string[];
 }
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   defaultBaseUrl: "",
   defaultModel: "",
-  cloudSaveDefault: false,
+  // 默认开启云端保存；用户想关掉需要通过密码 / 2FA / Passkey / 邮箱验证码验证身份
+  cloudSaveDefault: true,
   icpText: "",
   icpUrl: "",
   icpIconUrl: "",
@@ -265,4 +276,5 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   githubClientSecret: "",
   presetKeys: {},
   providerModels: {},
+  hiddenModels: [],
 };

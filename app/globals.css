@@ -396,6 +396,264 @@ body {
    圆角中等（Claude 卡片 16-24px，控件 8px），不做大圆角糖果风。
    行高放宽到 1.6，读起来像在读一本书而不是在操作仪表盘。
    ========================================================================== */
+[data-theme="swiftui"] {
+  /* ---- 字体：SF 系列是系统字体，无需额外加载 ---- */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Chiron GoRound TC", "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
+  --font-serif: "New York", "SF Pro Serif", "Chiron GoRound TC", Georgia, Cambria, serif;
+  --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* ---- 颜色：Apple system colors（light） ----
+     systemGroupedBackground #F2F2F7 / secondarySystemGroupedBackground #FFFFFF
+     label #000 / secondaryLabel #3C3C43 / separator rgba(60,60,67,.29)
+     systemBlue #007AFF / systemRed #FF3B30 ---- */
+  --background: 240 24% 96%;
+  --foreground: 0 0% 0%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+
+  --primary: 211 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 2% 57%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 240 24% 96%;
+  --muted-foreground: 240 2% 57%;
+  --accent: 240 11% 91%;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 3 100% 59%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 240 2% 78%;
+  --input: 240 2% 78%;
+  --ring: 211 100% 50%;
+
+  --sidebar: 240 24% 96%;
+  --sidebar-foreground: 0 0% 0%;
+  --assistant-bubble: 0 0% 100%;
+  --user-bubble: 211 100% 50%;
+  --user-bubble-foreground: 0 0% 100%;
+
+  --text-secondary: 240 6% 25%;
+  --text-tertiary: 240 2% 57%;
+  --text-quaternary: 240 5% 79%;
+  /* ---- 形状：SwiftUI 连续圆角，单元格偏方、卡片偏圆 ---- */
+  --radius-ctrl: 0.625rem;   /* 10px SwiftUI 按钮 */
+  --radius-card: 0.875rem;   /* 14px SwiftUI 卡片 */
+  --radius-panel: 1.25rem;   /* 20px SwiftUI 大面板 */
+  --radius-pill: 999px;
+
+  --r-sm: 0.375rem;
+  --r-default: 0.625rem;
+  --r-md: 0.75rem;
+  --r-lg: 0.875rem;
+  --r-xl: 1rem;
+  --r-2xl: 1.25rem;
+  --r-3xl: 1.5rem;
+  --r-4xl: 1.75rem;
+  /* ---- 表面：SwiftUI 几乎不用阴影，靠 0.5px 发丝分隔线分层 ---- */
+  --shadow-card: 0 0.5px 1px 0 hsl(0 0% 0% / 0.04);
+  --shadow-panel: 0 8px 30px -10px hsl(0 0% 0% / 0.14);
+  --card-border-w: 0.5px;
+  --card-border: 240 2% 78%;
+  /* ---- 玻璃：Apple 材质，厚模糊 + 高饱和 ---- */
+  --lg-tint: 0 0% 100%;
+  --lg-tint-a1: 0.72;
+  --lg-tint-a2: 0.58;
+  --lg-blur: 26px;
+  --lg-saturate: 180%;
+  --lg-edge-a: 0.6;
+  --lg-spec-a: 0.14;
+  --lg-thick-a: 0.05;
+  --glass-bg: 0 0% 100%;
+  --glass-border: 240 2% 78%;
+  --density-gap: 1.1;
+  --leading-body: 1.5;
+
+  /* ---- 旧变量兼容 ---- */
+  --radius: 0.75rem;
+  --radius-ios: 0.625rem;
+  --radius-ios-lg: 1.25rem;
+  --radius-ios-xl: 1.5rem;
+}
+
+[data-theme="swiftui"].dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 240 3% 11%;
+    --card-foreground: 0 0% 100%;
+    --popover: 240 2% 18%;
+    --popover-foreground: 0 0% 100%;
+  
+    --primary: 210 100% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 2% 57%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 2% 18%;
+    --muted-foreground: 240 2% 57%;
+    --accent: 240 2% 23%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 3 100% 61%;
+    --destructive-foreground: 0 0% 100%;
+  
+    --border: 240 2% 22%;
+    --input: 240 2% 22%;
+    --ring: 210 100% 52%;
+  
+    --sidebar: 240 3% 11%;
+    --sidebar-foreground: 0 0% 100%;
+    --assistant-bubble: 240 3% 11%;
+    --user-bubble: 210 100% 52%;
+    --user-bubble-foreground: 0 0% 100%;
+  
+    --text-secondary: 240 33% 94%;
+    --text-tertiary: 240 2% 57%;
+    --text-quaternary: 240 1% 39%;
+  --shadow-card: 0 0.5px 1px 0 hsl(0 0% 0% / 0.3);
+  --shadow-panel: 0 10px 34px -10px hsl(0 0% 0% / 0.6);
+  --card-border-w: 0.5px;
+  --card-border: 240 2% 22%;
+  --lg-tint: 0 0% 12%;
+  --lg-tint-a1: 0.66;
+  --lg-tint-a2: 0.5;
+  --lg-blur: 26px;
+  --lg-saturate: 180%;
+  --lg-edge-a: 0.35;
+  --lg-spec-a: 0.1;
+  --lg-thick-a: 0.04;
+  --glass-bg: 240 3% 11%;
+  --glass-border: 240 2% 22%;
+}
+
+[data-theme="material3"] {
+  /* ---- 字体：Roboto 是 Material 3 的基准字体 ---- */
+  --font-sans: "Roboto", "Roboto Flex", "Chiron GoRound TC", -apple-system,
+    BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+  --font-serif: "Roboto Serif", "Chiron GoRound TC", Georgia, Cambria, serif;
+  --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* ---- 颜色：Material Design 3 baseline purple（官方色值） ----
+     primary #6750A4 / primary-container #EADDFF / secondary #625B71
+     tertiary #7D5260 / error #B3261E / surface #FEF7FF
+     surface-container 五级 #F7F2FA #F3EDF7 #ECE6F0 #E6E0E9 ---- */
+  --background: 292 100% 98%;
+  --foreground: 264 8% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 264 8% 12%;
+  --popover: 278 44% 96%;
+  --popover-foreground: 264 8% 12%;
+
+  --primary: 256 34% 48%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 259 11% 40%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 275 24% 90%;
+  --muted-foreground: 264 7% 29%;
+  --accent: 263 65% 92%;
+  --accent-foreground: 253 26% 13%;
+  --destructive: 3 71% 41%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 270 11% 79%;
+  --input: 270 11% 79%;
+  --ring: 256 34% 48%;
+
+  --sidebar: 276 38% 95%;
+  --sidebar-foreground: 264 8% 12%;
+  --assistant-bubble: 0 0% 100%;
+  --user-bubble: 263 100% 93%;
+  --user-bubble-foreground: 261 100% 18%;
+
+  --text-secondary: 264 7% 29%;
+  --text-tertiary: 259 11% 40%;
+  --text-quaternary: 270 4% 47%;
+  /* ---- 形状：Material 3 形状标度，小控件更圆、大卡片收敛 ---- */
+  --radius-ctrl: 1.25rem;    /* 20px M3 full 按钮 */
+  --radius-card: 0.75rem;    /* 12px M3 medium 卡片 */
+  --radius-panel: 1.75rem;   /* 28px M3 large */
+  --radius-pill: 999px;
+
+  --r-sm: 0.25rem;
+  --r-default: 0.5rem;
+  --r-md: 0.75rem;
+  --r-lg: 1rem;
+  --r-xl: 1.25rem;
+  --r-2xl: 1.5rem;
+  --r-3xl: 1.75rem;
+  --r-4xl: 2rem;
+  /* ---- 表面：M3 用高度层级阴影（level1 / level3） ---- */
+  --shadow-card: 0 1px 2px 0 hsl(260 20% 20% / 0.3), 0 1px 3px 1px hsl(260 20% 20% / 0.15);
+  --shadow-panel: 0 4px 8px 3px hsl(260 20% 20% / 0.15), 0 1px 3px 0 hsl(260 20% 20% / 0.3);
+  --card-border-w: 1px;
+  --card-border: 270 11% 79%;
+  /* ---- 玻璃：M3 强调表面不透明，玻璃只做轻微分隔 ---- */
+  --lg-tint: 292 100% 98%;
+  --lg-tint-a1: 0.8;
+  --lg-tint-a2: 0.68;
+  --lg-blur: 14px;
+  --lg-saturate: 125%;
+  --lg-edge-a: 0.5;
+  --lg-spec-a: 0.06;
+  --lg-thick-a: 0.03;
+  --glass-bg: 0 0% 100%;
+  --glass-border: 270 11% 79%;
+  --density-gap: 1.1;
+  --leading-body: 1.55;
+
+  /* ---- 旧变量兼容 ---- */
+  --radius: 0.75rem;
+  --radius-ios: 0.625rem;
+  --radius-ios-lg: 1.25rem;
+  --radius-ios-xl: 1.5rem;
+}
+
+[data-theme="material3"].dark {
+    --background: 260 14% 8%;
+    --foreground: 280 17% 90%;
+    --card: 257 10% 14%;
+    --card-foreground: 280 17% 90%;
+    --popover: 257 8% 17%;
+    --popover-foreground: 280 17% 90%;
+  
+    --primary: 258 100% 87%;
+    --primary-foreground: 259 58% 28%;
+    --secondary: 263 27% 81%;
+    --secondary-foreground: 258 18% 22%;
+    --muted: 264 7% 29%;
+    --muted-foreground: 270 11% 79%;
+    --accent: 258 13% 31%;
+    --accent-foreground: 263 65% 92%;
+    --destructive: 3 70% 83%;
+    --destructive-foreground: 3 71% 22%;
+  
+    --border: 264 7% 29%;
+    --input: 264 7% 29%;
+    --ring: 258 100% 87%;
+  
+    --sidebar: 264 8% 12%;
+    --sidebar-foreground: 280 17% 90%;
+    --assistant-bubble: 264 8% 12%;
+    --user-bubble: 257 43% 38%;
+    --user-bubble-foreground: 263 100% 93%;
+  
+    --text-secondary: 270 11% 79%;
+    --text-tertiary: 264 5% 58%;
+    --text-quaternary: 270 4% 47%;
+  --shadow-card: 0 1px 2px 0 hsl(0 0% 0% / 0.6), 0 1px 3px 1px hsl(0 0% 0% / 0.3);
+  --shadow-panel: 0 4px 8px 3px hsl(0 0% 0% / 0.3), 0 1px 3px 0 hsl(0 0% 0% / 0.6);
+  --card-border-w: 1px;
+  --card-border: 264 7% 29%;
+  --lg-tint: 260 14% 8%;
+  --lg-tint-a1: 0.78;
+  --lg-tint-a2: 0.64;
+  --lg-blur: 16px;
+  --lg-saturate: 120%;
+  --lg-edge-a: 0.3;
+  --lg-spec-a: 0.05;
+  --lg-thick-a: 0.03;
+  --glass-bg: 264 8% 12%;
+  --glass-border: 264 7% 29%;
+}
+
 [data-theme="anthropic"] {
   /* ---- 字体：Styrene B → Inter；Tiempos/Copernicus → Source Serif 4 ----
      两者都是官方 fallback 栈的第一顺位，开源且观感最接近。 */
@@ -2490,7 +2748,10 @@ body {
 }
 
 /* ==========================================================================
-   页面切换过渡 · 一只纸飞机从左飞入，右侧跟着目的地
+   页面切换过渡 · 一只纸飞机飞过
+
+   纸飞机的形状与航迹取自 aicssanimations 的 Paper Plane Loader：
+   机身一片 + 两片半透明折翼，虚线沿航线**持续流动**。
    ========================================================================== */
 
 .pt-overlay {
@@ -2498,22 +2759,23 @@ body {
   inset: 0;
   z-index: 9999;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 16px;
   overflow: hidden;
-  background: #07080d;
   background:
-    radial-gradient(120% 100% at 50% 50%, rgba(18, 20, 30, 0.96) 0%, rgba(9, 10, 16, 0.99) 55%, rgba(5, 5, 9, 1) 100%);
+    radial-gradient(110% 90% at 50% 45%, rgba(28, 34, 58, 0.98) 0%, rgba(11, 13, 24, 0.99) 60%, rgba(6, 7, 14, 1) 100%);
 }
 
 /* 退场时不再拦截点击：新页面已经渲染好，不该让用户再等一层遮罩 */
 .pt-overlay-exit {
   pointer-events: none;
-  animation: pt-fade-out 420ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: pt-fade-out 280ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .pt-overlay-enter {
-  animation: pt-fade-in 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: pt-fade-in 180ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes pt-fade-in {
@@ -2526,178 +2788,147 @@ body {
   to { opacity: 0; }
 }
 
-/* --- 右上角小徽标 --- */
-.pt-badge {
-  position: absolute;
-  top: clamp(18px, 4vh, 34px);
-  right: clamp(18px, 4vw, 34px);
-  width: 36px;
-  height: 36px;
-  border-radius: 9999px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(140deg, #ff9dbd 0%, #f66d9c 100%);
-  box-shadow: 0 6px 18px rgba(246, 109, 156, 0.28);
-  animation: pt-badge-in 520ms cubic-bezier(0.32, 0.72, 0, 1) both;
-}
-
-.pt-badge img {
-  width: 21px;
-  height: 21px;
-  border-radius: 5px;
-  /* 原图是蓝橙双色，压成纯白剪影才看得清 */
-  filter: brightness(0) invert(1);
-}
-
-@keyframes pt-badge-in {
-  from { opacity: 0; transform: scale(0.7); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-/* --- 一行：航迹 → 飞机 → 文字 --- */
-.pt-row {
+/* --- 航迹 --- */
+.pt-sky {
   position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: clamp(10px, 2.4vw, 18px);
-  padding: 0 clamp(22px, 7vw, 64px);
-  max-width: 100%;
+  width: min(300px, 74vw);
+  height: 56px;
 }
 
-/* 航迹：虚线从左向右画出 */
-.pt-trail {
-  flex: 0 0 auto;
-  width: clamp(74px, 21vw, 168px);
-  height: 44px;
+.pt-sky-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   overflow: visible;
 }
 
-.pt-trail-line {
-  stroke: #9fc4ff;
-  stroke-width: 1.7;
+/*
+ * 虚线沿航线持续流动：dashoffset 循环一整个 dash 周期（3 + 4 = 7）。
+ * 之前是「画一次就停」，飞机飞走后画面就死了 —— 这里让它一直在流。
+ */
+.pt-trail {
+  stroke: rgba(150, 186, 255, 0.55);
+  stroke-width: 2;
   stroke-linecap: round;
-  stroke-dasharray: 6 8;
-  /* dashoffset 从总长收回 0：虚线自己"长"出来 */
-  stroke-dashoffset: 320;
-  animation: pt-trail 720ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  stroke-dasharray: 3 4;
+  animation: pt-dash 0.6s linear infinite;
 }
 
-@keyframes pt-trail {
-  to { stroke-dashoffset: 0; }
+@keyframes pt-dash {
+  to { stroke-dashoffset: -7; }
 }
 
-/* 飞机：从左侧飞入，停在文字左边 */
+/* --- 飞机 --- */
 .pt-plane {
-  flex: 0 0 auto;
-  width: clamp(26px, 7vw, 34px);
-  height: clamp(26px, 7vw, 34px);
-  animation: pt-fly 720ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  position: absolute;
+  top: 4px;
+  width: 44px;
+  height: 30px;
+  will-change: left, transform;
+  animation: pt-fly 900ms cubic-bezier(0.36, 0, 0.2, 1) infinite;
+}
+
+/* 第二架错开半程，保证遮罩停留期间画面里始终有一架在飞 */
+.pt-plane-2 {
+  animation-delay: 450ms;
 }
 
 .pt-plane-svg {
   width: 100%;
   height: 100%;
   overflow: visible;
-  filter: drop-shadow(0 3px 10px rgba(150, 190, 255, 0.35));
+  filter: drop-shadow(0 3px 10px rgba(110, 160, 255, 0.38));
 }
 
-@keyframes pt-fly {
-  0% { transform: translateX(-190px) translateY(9px) rotate(-7deg) scale(0.86); opacity: 0; }
-  22% { opacity: 1; }
-  70% { transform: translateX(0) translateY(-3px) rotate(2deg) scale(1); }
-  100% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); opacity: 1; }
+/* 机身：主色 + 两片半透明折翼，层次靠透明度而不是描边 */
+.pt-body {
+  fill: #ffffff;
 }
 
-/* --- 右侧文字 --- */
-.pt-text {
-  flex: 0 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  animation: pt-text-in 460ms 180ms cubic-bezier(0.32, 0.72, 0, 1) both;
-}
-
-@keyframes pt-text-in {
-  from { opacity: 0; transform: translateX(-6px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-.pt-line1 {
-  margin: 0;
-  font-size: clamp(15px, 3.9vw, 19px);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  line-height: 1.35;
-  color: #ffffff;
-  white-space: nowrap;
-}
-
-.pt-ell {
-  color: #8fa8cc;
-  margin: 0 2px;
-}
-
-.pt-dest {
-  margin: 0 0 0 1px;
-  font-size: clamp(15px, 3.9vw, 19px);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: #7fb0ff;
-  white-space: nowrap;
-}
-
-/* 细线进度：不知道还要多久，就走 indeterminate，不撒谎给百分比 */
-.pt-progress {
-  position: relative;
-  margin-top: 3px;
-  width: clamp(90px, 26vw, 168px);
-  height: 2px;
-  border-radius: 9999px;
-  background: rgba(140, 170, 220, 0.16);
-  overflow: hidden;
-}
-
-.pt-progress i {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 40%;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, rgba(127, 176, 255, 0) 0%, #7fb0ff 55%, #ffffff 100%);
-  animation: pt-slide 1.15s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-}
-
-@keyframes pt-slide {
-  from { transform: translateX(-110%); }
-  to { transform: translateX(260%); }
+.pt-fold {
+  fill: rgba(255, 255, 255, 0.55);
 }
 
 /*
- * 减少动态效果：把"飞"换成"停"。
- * 航迹画满、飞机与文字直接就位，只留最轻的呼吸 ——
- * 直接掐掉动画会让遮罩看起来像卡死。
+ * left 用百分比是相对航迹容器（transform 的百分比是相对自身尺寸，走不出容器宽度）。
+ * 循环播放而不是 forwards：只飞一趟的话，飞出画面后遮罩剩余时间就是一片空白。
  */
-@media (prefers-reduced-motion: reduce) {
-  .pt-trail-line,
-  .pt-plane,
-  .pt-text,
-  .pt-badge {
-    animation: none;
-  }
-  .pt-trail-line { stroke-dashoffset: 0; }
-  .pt-plane { opacity: 1; transform: none; }
-  .pt-text { opacity: 1; transform: none; }
-  .pt-progress i {
-    animation: pt-breathe-line 2.4s ease-in-out infinite;
-    width: 100%;
-    background: rgba(127, 176, 255, 0.75);
-  }
+@keyframes pt-fly {
+  0%   { left: -20%; transform: translateY(5px)  rotate(-5deg) scale(0.88); opacity: 0; }
+  14%  { opacity: 1; }
+  40%  {             transform: translateY(-4px) rotate(3deg)  scale(1); }
+  72%  {             transform: translateY(2px)  rotate(-1deg) scale(0.98); }
+  88%  { opacity: 1; }
+  100% { left: 108%; transform: translateY(-8px) rotate(7deg)  scale(0.84); opacity: 0; }
 }
 
-@keyframes pt-breathe-line {
-  0%, 100% { opacity: 0.35; }
-  50% { opacity: 1; }
+/* --- 文案 --- */
+.pt-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.pt-dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 4px;
+  vertical-align: baseline;
+}
+
+.pt-dots i {
+  width: 3px;
+  height: 3px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.9);
+  animation: pt-dot 1.05s ease-in-out infinite;
+}
+
+.pt-dots i:nth-child(2) { animation-delay: 0.14s; }
+.pt-dots i:nth-child(3) { animation-delay: 0.28s; }
+
+@keyframes pt-dot {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* --- 目标页名 --- */
+.pt-dest {
+  margin: -8px 0 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: rgba(190, 205, 255, 0.72);
+}
+
+/* --- 尊重系统「减少动态效果」--- */
+@media (prefers-reduced-motion: reduce) {
+  .pt-overlay-enter,
+  .pt-overlay-exit {
+    animation-duration: 120ms;
+  }
+  /* 虚线放慢而不是停掉：Apple 的规则是换成温和的，不是直接删掉 */
+  .pt-trail {
+    animation-duration: 1.6s;
+  }
+  .pt-dots i {
+    animation: none;
+    opacity: 0.7;
+  }
+  /* 飞机不飞了也不能消失在画面外，静态停在航迹中段 */
+  .pt-plane {
+    animation: none;
+    left: 38%;
+    transform: none;
+    opacity: 1;
+  }
+  .pt-plane-2 {
+    display: none;
+  }
 }
 
 /* ==========================================================================

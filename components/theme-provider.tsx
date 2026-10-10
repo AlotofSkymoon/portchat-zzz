@@ -22,6 +22,45 @@ export type ResolvedTheme = "light" | "dark";
 const STORAGE_KEY = "agnes:theme";
 const PRESET_KEY = "agnes:theme-preset";
 const VARIANT_KEY = "agnes:ui-variant";
+/**
+ * iOS 观感解锁标记。
+ *
+ * SwiftUI 主题属于配色（跟 Anthropic / Fuwari 并列），不是"界面变体"。
+ * 规则是：只有在 iOS 上把站点装到主屏幕（standalone）才算解锁，
+ * 解锁后写进 localStorage，之后在浏览器里也能继续用 —— 否则每次
+ * 从 Safari 打开就掉回默认主题，等于惩罚用户。
+ */
+const IOS_UNLOCK_KEY = "agnes:ios-unlocked";
+
+/** 读取是否已解锁（SSR 安全） */
+export function isIosUnlocked(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem(IOS_UNLOCK_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 是否是 iOS / iPadOS 设备。
+ *
+ * iPadOS 13+ 的 UA 已经伪装成 Macintosh，靠 UA 里的 "iPhone/iPad" 会漏，
+ * 所以补一条：Mac 且支持多点触控（maxTouchPoints > 1）也判为 iPad。
+ */
+export function isIOSDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const ua = navigator.userAgent || "";
+    if (/iPhone|iPad|iPod/i.test(ua)) return true;
+    const isMac = /Macintosh/i.test(ua);
+    if (isMac && (navigator.maxTouchPoints || 0) > 1) return true;
+    // iPadOS 13+ 还有一种：platform 是 MacIntel 但带触控
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * 界面变体。
@@ -67,6 +106,8 @@ interface ThemeContextValue {
   setVariantPref: (pref: VariantPref) => void;
   /** 当前是否以 standalone（已安装 PWA）方式运行 */
   standalone: boolean;
+  /** SwiftUI 配色主题是否已解锁（iOS 装到主屏幕过） */
+  iosUnlocked: boolean;
 }
 
 const ThemeContext = React.createContext<ThemeContextValue | undefined>(undefined);
@@ -172,6 +213,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [variant, setVariantState] = React.useState<UiVariant>("web");
   const [variantPref, setVariantPrefState] = React.useState<VariantPref>("auto");
   const [standalone, setStandalone] = React.useState(false);
+  const [iosUnlocked, setIosUnlockedState] = React.useState(false);
 
   React.useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
@@ -184,7 +226,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.toggle("dark", initial === "system" ? sys === "dark" : initial === "dark");
 
     const storedPreset = localStorage.getItem(PRESET_KEY) as ThemePreset | null;
-    const initialPreset: ThemePreset = THEME_IDS.includes(storedPreset as ThemePreset)
+    let initialPreset: ThemePreset = THEME_IDS.includes(storedPreset as ThemePreset)
       ? (storedPreset as ThemePreset)
       : SITE_THEME;
     setPresetState(initialPreset);
@@ -198,6 +240,39 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const saMq = window.matchMedia?.("(display-mode: standalone)");
     const isStandalone = detectStandalone();
     setStandalone(isStandalone);
+
+    /**
+     * iOS 观感解锁：只有「iOS 设备 + 从主屏幕打开」才写进存储。
+     *
+     * ⚠️ ?ios=1 只在内存里解锁、不落盘 —— 它是给站长在桌面浏览器上
+     * 预览用的，不该让随便加个参数就永久解锁。
+     */
+    let unlocked = false;
+    try {
+      unlocked = localStorage.getItem(IOS_UNLOCK_KEY) === "1";
+    } catch {
+      unlocked = false;
+    }
+    if (isStandalone && isIOSDevice() && !unlocked) {
+      try {
+        localStorage.setItem(IOS_UNLOCK_KEY, "1");
+      } catch {
+        /* 隐私模式下写不进，只影响跨会话保留，不影响本次 */
+      }
+      unlocked = true;
+    }
+    if (forcedIos) unlocked = true;
+    setIosUnlockedState(unlocked);
+    // 未解锁却存着 swiftui（换设备、清了标记等），回落到站点默认主题，
+    // 免得看到一个"应该锁着"的主题。
+    if (initialPreset === "swiftui" && !unlocked) {
+      initialPreset = SITE_THEME;
+      try {
+        localStorage.setItem(PRESET_KEY, initialPreset);
+      } catch {
+        /* 写不进就算了，下次还会再回落一次 */
+      }
+    }
 
     // 旧的存储值只有 "ios" / "web"，等价于手动锁定；"auto" 是新增的跟随态。
     const storedPref: VariantPref =
@@ -330,6 +405,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       variantPref,
       setVariantPref,
       standalone,
+      iosUnlocked,
     }),
     [
       theme,
@@ -345,6 +421,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       variantPref,
       setVariantPref,
       standalone,
+      iosUnlocked,
     ],
   );
 
@@ -373,6 +450,8 @@ var r=document.documentElement;
 if(d)r.classList.add('dark');else r.classList.remove('dark');
 var p=localStorage.getItem('${PRESET_KEY}');
 r.dataset.theme=${JSON.stringify(THEME_IDS)}.indexOf(p)>=0?p:'${SITE_THEME}';
+// SwiftUI 主题锁：未解锁（没在 iOS 主屏幕装过）就回落，避免首屏闪一下锁定主题
+if(r.dataset.theme==='swiftui'&&localStorage.getItem('${IOS_UNLOCK_KEY}')!=='1'){r.dataset.theme='${SITE_THEME}';}
 }catch(e){document.documentElement.classList.remove('dark');}})();`;
 
 /**

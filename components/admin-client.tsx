@@ -17,6 +17,7 @@ import {
   Mail,
   RefreshCw,
   Save,
+  Gift,
   Server,
   Settings2,
   Shield,
@@ -206,6 +207,8 @@ export function AdminClient({ me }: { me: AdminUser }) {
         </Card>
 
         <SiteSettingsCard />
+
+        <RewardCard />
 
         <MailCard />
 
@@ -774,6 +777,196 @@ interface MailStatus {
   from?: string;
   missing?: string[];
   keyPreview?: string;
+}
+
+/* ------------------------- 月度奖励 ------------------------- */
+
+type PendingEntry = {
+  period: string;
+  candidate: { subject: string; count: number; label?: string; isAdmin?: boolean } | null;
+  reward: { period: string; label: string; domain: string; transferCode: string } | null;
+};
+
+/**
+ * 月度榜首发奖。
+ *
+ * ⚠️ 为什么「已发过」和「待发奖」要同时显示：
+ * 只看待发奖的话，上月漏发了管理员根本发现不了 —— 这个面板是唯一的提醒入口，
+ * 所以已发的也列出来，让管理员一眼看到哪些月发了、哪些没发。
+ */
+function RewardCard() {
+  const { t } = useI18n();
+  const [list, setList] = React.useState<PendingEntry[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [openFor, setOpenFor] = React.useState("");
+  const [code, setCode] = React.useState("");
+  const [domain, setDomain] = React.useState("");
+  const [imageUrl, setImageUrl] = React.useState("");
+  const [note, setNote] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/reward", { signal: timeoutSignal(10_000) });
+      const data = (await res.json().catch(() => ({}))) as { list?: PendingEntry[] };
+      setList(Array.isArray(data.list) ? data.list : []);
+    } catch {
+      setList([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function submit(period: string) {
+    if (!code.trim()) {
+      toast.error(t("admin.rewardNeedCode"));
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/reward", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ period, transferCode: code, domain, note, imageUrl }),
+        signal: timeoutSignal(15_000),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string; label?: string };
+      if (!res.ok) {
+        toast.error(data.error ?? t("admin.rewardFailed"));
+        return;
+      }
+      toast.success(t("admin.rewardSent"));
+      setOpenFor("");
+      setCode("");
+      setDomain("");
+      setImageUrl("");
+      setNote("");
+      void load();
+    } catch {
+      toast.error(t("auth.networkError"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const pending = list.filter((x) => x.candidate && !x.reward).length;
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="h-4 w-4" />
+            {t("admin.rewardTitle")}
+            {pending > 0 ? <Badge variant="destructive">{pending}</Badge> : null}
+          </CardTitle>
+          <CardDescription>{t("admin.rewardDesc")}</CardDescription>
+        </div>
+        <Button variant="ghost" size="icon" onClick={() => void load()} title={t("admin.refresh")}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {loading ? (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {t("common.loading")}
+          </p>
+        ) : null}
+
+        {!loading && !list.length ? (
+          <p className="text-sm text-muted-foreground">{t("admin.rewardNone")}</p>
+        ) : null}
+
+        {list.map((entry) => {
+          const done = Boolean(entry.reward);
+          const who = entry.reward?.label ?? entry.candidate?.label ?? entry.candidate?.subject ?? "";
+          return (
+            <div
+              key={entry.period}
+              className="rounded-xl border border-border/70 bg-muted/20 px-3 py-2.5"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0 space-y-0.5">
+                  <p className="text-sm font-medium">
+                    {entry.period}
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      {done ? t("admin.rewardDone") : t("admin.rewardPending")}
+                    </span>
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {who
+                      ? `${who} · ${entry.reward ? "" : (entry.candidate?.count ?? 0)} ${t("leaderboard.rewardCount")}`
+                      : t("admin.rewardNoCandidate")}
+                  </p>
+                </div>
+                {!done && entry.candidate ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setOpenFor(openFor === entry.period ? "" : entry.period)}
+                  >
+                    {t("admin.rewardFill")}
+                  </Button>
+                ) : null}
+              </div>
+
+              {openFor === entry.period && !done ? (
+                <div className="mt-3 space-y-2">
+                  <div className="space-y-1">
+                    <Label>{t("admin.rewardCode")}</Label>
+                    <Input
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      placeholder={t("admin.rewardCodeHint")}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>{t("admin.rewardDomain")}</Label>
+                    <Input
+                      value={domain}
+                      onChange={(e) => setDomain(e.target.value)}
+                      placeholder="xxx.dnshe.com"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>{t("common.optional")} · {t("admin.rewardImage")}</Label>
+                    <Input
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      placeholder="https://…"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>{t("common.optional")} · {t("admin.rewardNote")}</Label>
+                    <Input
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <Button onClick={() => void submit(entry.period)} disabled={saving}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
+                    {t("admin.rewardSend")}
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+
+        <p className="text-[11px] text-muted-foreground">{t("admin.rewardRule")}</p>
+      </CardContent>
+    </Card>
+  );
 }
 
 /**

@@ -21,10 +21,13 @@ import { useI18n } from "@/components/i18n-provider";
 
 type Phase = "idle" | "covering" | "revealing";
 
-/** 遮罩最短停留时间：预取过的页面会瞬间切完，不设下限就只是闪一下 */
-const COVER_MIN_MS = 460;
-/** 退场时长，需与 CSS `.pt-overlay-exit` 的 420ms 保持一致 */
-const REVEAL_MS = 420;
+/**
+ * 遮罩最短停留时间：预取过的页面会瞬间切完，不设下限就只是闪一下。
+ * 340ms 落在「能感知但不觉慢」的甜点区（<150ms 看不见，>400ms 开始嫌慢）。
+ */
+const COVER_MIN_MS = 340;
+/** 退场时长，需与 CSS `.pt-overlay-exit` 的 280ms 保持一致 */
+const REVEAL_MS = 280;
 /** 兜底：导航迟迟不结束时强制收起，绝不能让遮罩永久卡住页面 */
 const HARD_STOP_MS = 3500;
 
@@ -48,6 +51,7 @@ const DEST_LABELS: Record<string, string> = {
   "/login": "route.login",
   "/register": "route.register",
   "/pc": "route.pc",
+  "/leaderboard": "route.leaderboard",
 };
 
 function destLabel(path: string): string {

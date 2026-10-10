@@ -19,7 +19,14 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { timeoutSignal } from "@/lib/fetch-timeout";
-import { EmailCard, GithubBindCard, NicknameCard, TwoFactorCard } from "@/components/account-cards";
+import {
+  EmailCard,
+  GithubBindCard,
+  NicknameCard,
+  PasskeyCard,
+  QrLoginCard,
+  TwoFactorCard,
+} from "@/components/account-cards";
 import { useI18n } from "@/components/i18n-provider";
 import { usePresetProviders } from "@/lib/use-preset-providers";
 import { LocalePicker } from "@/components/locale-picker";
@@ -863,7 +870,7 @@ export function SettingsDialog({
     };
   }, [open]);
 
-  const { preset, setPreset, variantPref, setVariantPref, standalone } = useTheme();
+  const { preset, setPreset, variantPref, setVariantPref, standalone, iosUnlocked } = useTheme();
 
   /**
    * 权限分流：普通用户只能改「配色主题」和「自己的 API Key」。
@@ -1053,7 +1060,9 @@ export function SettingsDialog({
             </Label>
             {/* 5 套风格用 2 列会剩一个空格，中等屏起给 3 列 */}
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
-              {THEME_PRESETS.map((t) => (
+              {THEME_PRESETS.filter(
+                (x) => x.id !== "swiftui" || iosUnlocked,
+              ).map((t) => (
                 <button
                   key={t.id}
                   type="button"
@@ -1632,6 +1641,12 @@ export function SettingsDialog({
 
           {/* GitHub 绑定 */}
           {user ? <GithubBindCard /> : null}
+
+          {/* Passkey（指纹 / 面容） */}
+          {user ? <PasskeyCard /> : null}
+
+          {/* 扫码登录 */}
+          {user ? <QrLoginCard /> : null}
 
           {/* 云端保存 —— 仅管理员可见（站点级配置已移到 /admin） */}
           {!isAdmin ? null : user ? (

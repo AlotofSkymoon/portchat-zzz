@@ -1,13 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Brain,
   Check,
   Globe,
   ChevronDown,
   Copy,
+  Volume2,
+  VolumeX,
   FileDown,
   FileText,
   FileVideo,
@@ -184,6 +186,51 @@ function extractCodeBlocks(text: string): { lang: string; code: string }[] {
 export function MessageBubble({ message, onRetry, isStreaming }: MessageBubbleProps) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+
+  /**
+   * 朗读这条消息。
+   *
+   * 用浏览器内置的 speechSynthesis，不消耗任何额度、不发请求。
+   * 只取纯文本（去掉 markdown 符号和代码块），否则会把星号、井号也念出来。
+   */
+  const speakMessage = useCallback(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      toast.error(t("chat.ttsUnsupported"));
+      return;
+    }
+    const synth = window.speechSynthesis;
+    if (speaking) {
+      synth.cancel();
+      setSpeaking(false);
+      return;
+    }
+    let text = message.content || "";
+    text = text
+      .replace(/```[\s\S]*?```/g, "（此处为代码，已跳过）")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/^#{1,6}\s+/gm, "")
+      .replace(/[*_~>|#]/g, "")
+      .trim();
+    if (!text) return;
+    const u = new SpeechSynthesisUtterance(text.slice(0, 4000));
+    const lang = (typeof navigator !== "undefined" && navigator.language) || "zh-CN";
+    u.lang = /^zh/i.test(lang) ? lang : lang;
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    synth.speak(u);
+    setSpeaking(true);
+  }, [message.content, speaking, t]);
+
+  // 组件卸载时取消朗读，否则切走会话后还在念
+  useEffect(() => () => {
+    try {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    } catch {
+      /* 忽略 */
+    }
+  }, []);
   const [preview, setPreview] = useState<{ src: string; name: string } | null>(null);
   const isUser = message.role === "user";
 
@@ -340,6 +387,13 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
         {/* 操作栏：复制 / 存为新版文件 */}
         {message.content && !message.error && !isStreaming ? (
           <div className="mt-2 flex items-center gap-1">
+            <button
+              onClick={speakMessage}
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title={speaking ? t("chat.stopRead") : t("chat.readAloud")}
+            >
+              {speaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+            </button>
             <button
               onClick={copyMessage}
               className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
