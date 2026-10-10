@@ -3,27 +3,16 @@
 import * as React from "react";
 import {
   ArrowUp,
-  Brain,
-  Globe,
   FileText,
   FileVideo,
-  ImagePlus,
-  Loader2,
   Paperclip,
-  SlidersHorizontal,
   Square,
   X,
 } from "lucide-react";
 
 import { useI18n } from "@/components/i18n-provider";
 import { ModelPicker } from "@/components/chat/model-picker";
-import {
-  IMAGE_MAX_COUNT,
-  IMAGE_RATIOS,
-  IMAGE_SIZES,
-  type CustomProviderConfig,
-  type EffortLevel,
-} from "@/lib/config";
+import { type CustomProviderConfig, type EffortLevel } from "@/lib/config";
 import { formatBytes, type Attachment } from "@/lib/types";
 
 interface ChatInputProps {
@@ -112,28 +101,6 @@ export function ChatInput({
   const { t } = useI18n();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
-  const [imgPanelOpen, setImgPanelOpen] = React.useState(false);
-  const imgPanelRef = React.useRef<HTMLDivElement>(null);
-
-  // 点击面板外或按 Esc 就收起
-  React.useEffect(() => {
-    if (!imgPanelOpen) return;
-    function onDown(e: MouseEvent) {
-      if (imgPanelRef.current && !imgPanelRef.current.contains(e.target as Node)) {
-        setImgPanelOpen(false);
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setImgPanelOpen(false);
-    }
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [imgPanelOpen]);
-
   // 自适应高度
   React.useEffect(() => {
     const el = textareaRef.current;
@@ -238,159 +205,22 @@ export function ChatInput({
               extraModels={extraModels}
               effort={effort}
               onEffortChange={onEffortChange}
+              thinkingSupported={thinkingSupported}
+              thinking={thinking}
+              onThinkingChange={onThinkingChange}
+              webSearchSupported={webSearchSupported}
+              webSearch={webSearch}
+              onWebSearchChange={onWebSearchChange}
+              imageSupported={imageSupported}
+              imageBusy={imageBusy}
+              onGenerateImage={onGenerateImage}
+              imageCount={imageCount}
+              onImageCountChange={onImageCountChange}
+              imageRatio={imageRatio}
+              onImageRatioChange={onImageRatioChange}
+              imageSize={imageSize}
+              onImageSizeChange={onImageSizeChange}
             />
-          ) : null}
-          {thinkingSupported && onThinkingChange ? (
-            <button
-              type="button"
-              onClick={() => onThinkingChange(!thinking)}
-              title={
-                thinking
-                  ? t("input.thinkOn")
-                  : t("input.thinkOff")
-              }
-              aria-pressed={thinking}
-              className={
-                thinking
-                  ? "flex h-7 shrink-0 items-center gap-1 rounded-full border border-primary/40 bg-primary/12 px-2.5 text-[11px] font-medium text-primary transition-colors"
-                  : "flex h-7 shrink-0 items-center gap-1 rounded-full border border-border px-2.5 text-[11px] text-fg-tertiary transition-colors hover:bg-muted hover:text-foreground"
-              }
-            >
-              <Brain className="h-3.5 w-3.5" />
-              {t("input.think")}
-            </button>
-          ) : null}
-          {webSearchSupported && onWebSearchChange ? (
-            <button
-              type="button"
-              onClick={() => onWebSearchChange(!webSearch)}
-              title={
-                webSearch
-                  ? t("input.webOn")
-                  : t("input.webOff")
-              }
-              aria-pressed={webSearch}
-              className={
-                webSearch
-                  ? "flex h-7 shrink-0 items-center gap-1 rounded-full border border-primary/40 bg-primary/12 px-2.5 text-[11px] font-medium text-primary transition-colors"
-                  : "flex h-7 shrink-0 items-center gap-1 rounded-full border border-border px-2.5 text-[11px] text-fg-tertiary transition-colors hover:bg-muted hover:text-foreground"
-              }
-            >
-              <Globe className="h-3.5 w-3.5" />
-              {t("input.web")}
-            </button>
-          ) : null}
-          {imageSupported && onGenerateImage ? (
-            <div ref={imgPanelRef} className="relative flex shrink-0 items-center gap-1">
-              {imgPanelOpen ? (
-                <div className="absolute bottom-full left-0 z-50 mb-2 w-[15rem] space-y-3 rounded-2xl border border-border bg-background/95 p-3 shadow-xl backdrop-blur">
-                  {/* 张数 */}
-                  <div className="space-y-1.5">
-                    <p className="text-[11px] font-medium text-fg-secondary">
-                      {t("image.count")}
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {Array.from({ length: IMAGE_MAX_COUNT }, (_, i) => i + 1).map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => onImageCountChange?.(n)}
-                          className={
-                            n === imageCount
-                              ? "h-7 min-w-7 rounded-lg border border-primary/40 bg-primary/12 px-2 text-[11px] font-medium text-primary"
-                              : "h-7 min-w-7 rounded-lg border border-border px-2 text-[11px] text-fg-tertiary transition-colors hover:bg-muted hover:text-foreground"
-                          }
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 宽高比 */}
-                  <div className="space-y-1.5">
-                    <p className="text-[11px] font-medium text-fg-secondary">
-                      {t("image.ratio")}
-                    </p>
-                    <div className="grid grid-cols-4 gap-1">
-                      {IMAGE_RATIOS.map((r) => (
-                        <button
-                          key={r}
-                          type="button"
-                          onClick={() => onImageRatioChange?.(r)}
-                          className={
-                            r === imageRatio
-                              ? "h-7 rounded-lg border border-primary/40 bg-primary/12 text-[10px] font-medium text-primary"
-                              : "h-7 rounded-lg border border-border text-[10px] text-fg-tertiary transition-colors hover:bg-muted hover:text-foreground"
-                          }
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 尺寸档位 */}
-                  <div className="space-y-1.5">
-                    <p className="text-[11px] font-medium text-fg-secondary">
-                      {t("image.quality")}
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {IMAGE_SIZES.map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => onImageSizeChange?.(s)}
-                          className={
-                            s === imageSize
-                              ? "h-7 rounded-lg border border-primary/40 bg-primary/12 px-2.5 text-[11px] font-medium text-primary"
-                              : "h-7 rounded-lg border border-border px-2.5 text-[11px] text-fg-tertiary transition-colors hover:bg-muted hover:text-foreground"
-                          }
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              <button
-                type="button"
-                onClick={onGenerateImage}
-                disabled={imageBusy}
-                title={t("input.imageTip")}
-                aria-label={t("input.image")}
-                aria-busy={imageBusy}
-                className={
-                  imageBusy
-                    ? "flex h-7 shrink-0 items-center gap-1 rounded-full border border-primary/40 bg-primary/12 px-2.5 text-[11px] font-medium text-primary"
-                    : "flex h-7 shrink-0 items-center gap-1 rounded-full border border-border px-2.5 text-[11px] text-fg-tertiary transition-colors hover:bg-muted hover:text-foreground"
-                }
-              >
-                {imageBusy ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <ImagePlus className="h-3.5 w-3.5" />
-                )}
-                {t("input.image")}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setImgPanelOpen((v) => !v)}
-                title={t("image.settingsTip")}
-                aria-label={t("image.settings")}
-                aria-expanded={imgPanelOpen}
-                className={
-                  imgPanelOpen
-                    ? "flex h-7 w-7 items-center justify-center rounded-full border border-primary/40 bg-primary/12 text-primary"
-                    : "flex h-7 w-7 items-center justify-center rounded-full text-fg-tertiary transition-colors hover:bg-muted hover:text-foreground"
-                }
-              >
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-              </button>
-            </div>
           ) : null}
           {onPickFiles ? (
             <>
