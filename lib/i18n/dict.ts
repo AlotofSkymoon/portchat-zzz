@@ -1038,6 +1038,8 @@ const DICT: Record<string, Entry> = {
   "leaderboard.myVote": { "zh-CN": "我投给了", "zh-TW": "我投給了", en: "You voted for", fr: "Vous avez voté pour" },
   "leaderboard.noVote": { "zh-CN": "本月还没投票", "zh-TW": "本月還沒投票", en: "No vote yet this month", fr: "Aucun vote ce mois-ci" },
   "leaderboard.voted": { "zh-CN": "已投票", "zh-TW": "已投票", en: "Voted", fr: "Voté" },
+  "leaderboard.noCandidates": { "zh-CN": "当前没有可投票的模型（站点未配置可用的模型供应商）", "zh-TW": "目前沒有可投票的模型（網站未設定可用的模型供應商）", en: "No model to vote for (no usable provider configured)", fr: "Aucun modèle à voter (aucun fournisseur utilisable configuré)" },
+  "leaderboard.candidateHint": { "zh-CN": "只列出本站点实际可用的模型", "zh-TW": "只列出本網站實際可用的模型", en: "Only models actually available on this site", fr: "Seuls les modèles réellement disponibles sur ce site" },
   "leaderboard.myReward": { "zh-CN": "我的奖励", "zh-TW": "我的獎勵", en: "My reward", fr: "Ma récompense" },
   "leaderboard.rewardCount": { "zh-CN": "次对话", "zh-TW": "次對話", en: "chats", fr: "discussions" },
   "leaderboard.downloadPdf": { "zh-CN": "下载贺信 PDF", "zh-TW": "下載賀信 PDF", en: "Download certificate PDF", fr: "Télécharger le certificat PDF" },

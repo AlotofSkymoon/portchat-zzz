@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/i18n-provider";
 import { timeoutSignal } from "@/lib/fetch-timeout";
-import { CHAT_MODELS } from "@/lib/config";
+import { useVisibleModelGroups } from "@/lib/use-visible-models";
 
 type Row = { subject: string; count: number; label?: string; isAdmin?: boolean };
 
@@ -52,14 +52,24 @@ export function LeaderboardClient() {
   /*
    * 投票面板里能选的模型。
    *
-   * ⚠️ 这里用**全量内置模型**，不做「没填 Key 就不显示」的过滤：
-   * 榜单统计的是全站口径，投票口径跟着收窄会让「被投最多」失去可比性；
-   * 而且没 Key 的人照样有资格评价某个模型难用。
+   * 只列**本站点实际用得到的模型**：没配 Key 的供应商、以及用户自己
+   * 都没建过的自建供应商，一律不摆出来 —— 站点里没有的模型点了也没意义。
+   * 口径和输入框的模型菜单完全一致（同一个 hook），两边不会打架。
+   *
+   * 例外：自己已经投过的模型即使现在不可见也保留，否则改投/查看都找不到它。
    */
-  const options = React.useMemo(
-    () => CHAT_MODELS.map((m) => ({ id: m.id, label: m.label })),
-    [],
+  const groups = useVisibleModelGroups();
+  const visible = React.useMemo(
+    () => groups.flatMap((g) => g.items.map((m) => ({ id: m.id, label: m.label }))),
+    [groups],
   );
+  const options = React.useMemo(() => {
+    const seen = new Set(visible.map((m) => m.id));
+    const mine = data?.myWorstVote && !seen.has(data.myWorstVote)
+      ? [{ id: data.myWorstVote, label: data.myWorstVote }]
+      : [];
+    return [...visible, ...mine];
+  }, [visible, data?.myWorstVote]);
 
   const load = React.useCallback(async () => {
     setError("");
@@ -209,8 +219,12 @@ export function LeaderboardClient() {
               ? `${t("leaderboard.myVote")} ${data.myWorstVote}`
               : t("leaderboard.noVote")}
           </p>
+          <p className="text-xs text-muted-foreground">{t("leaderboard.candidateHint")}</p>
           <div className="flex flex-wrap gap-1.5">
-            {options.slice(0, 24).map((m) => (
+            {options.length === 0 ? (
+              <p className="text-xs text-muted-foreground">{t("leaderboard.noCandidates")}</p>
+            ) : null}
+            {options.map((m) => (
               <button
                 key={m.id}
                 type="button"

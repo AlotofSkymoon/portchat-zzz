@@ -103,6 +103,11 @@ export const CHANGELOG: ChangelogDay[] = [
         zh: "修复 iOS 添加到主屏幕后仍以普通 Safari 打开，导致观感不生效",
         en: "Fixed iOS opening the site in plain Safari even after adding it to the home screen, which kept the iOS look from ever activating",
       },
+      {
+        tag: "fix",
+        zh: "「最垃圾模型」投票只列出本站点实际可用的模型：此前直接渲染全量内置清单，把站点根本没配的 Claude / GPT 等也摆出来给人投",
+        en: "The worst-model ballot now lists only models this site can actually run — it used to render the entire built-in catalogue, including Claude and GPT entries this site never configured",
+      },
     ],
   },
   {

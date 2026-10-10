@@ -17,15 +17,12 @@ import {
   CHAT_MODELS,
   EFFORT_LEVELS,
   EFFORT_TOKEN_BUDGET,
-  PROVIDERS,
   type CustomProviderConfig,
   type EffortLevel,
-  type ProviderId,
 } from "@/lib/config";
 import { EffortSlider, effortValueColor } from "@/components/chat/effort-slider";
 import { useI18n } from "@/components/i18n-provider";
-import { usePresetProviders } from "@/lib/use-preset-providers";
-import { useSiteProviderModels } from "@/lib/use-site-models";
+import { useVisibleModelGroups } from "@/lib/use-visible-models";
 import { SPONSOR_ENABLED } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -59,9 +56,6 @@ const EFFORT_KEY: Record<EffortLevel, string> = {
   max: "input.effortMax",
 };
 
-// DeepSeek 入口已移除：站点不提供 DeepSeek Key，界面不再列出
-const PROVIDER_ORDER: ProviderId[] = ["agnes", "atriasi", "inkstone", "gateway"];
-
 /** 模型名全是拉丁字符，强制走 Montserrat */
 const MONTSERRAT = "Montserrat, -apple-system, BlinkMacSystemFont, system-ui, sans-serif";
 
@@ -94,9 +88,11 @@ export function ModelPicker({
   value,
   onChange,
   className,
-  customProviders = [],
-  keys = {},
-  extraModels = {},
+  // 不设默认空值：父组件没传时交给 hook 从 localStorage 读，
+  // 否则空对象会把本地配置盖掉，模型列表直接变空
+  customProviders,
+  keys,
+  extraModels,
   effort = "low",
   onEffortChange,
   thinkingSupported = false,
@@ -107,9 +103,8 @@ export function ModelPicker({
   onWebSearchChange,
 }: ModelPickerProps) {
   const { t } = useI18n();
-  const presetProviders = usePresetProviders();
-  /** 管理员添加到站点上的模型 —— 全站可见，不用每人自己加一遍 */
-  const siteModels = useSiteProviderModels();
+  /** 可见模型分组：没填 Key 的供应商不显示，自建供应商与追加模型一并列出 */
+  const groups = useVisibleModelGroups({ customProviders, keys, extraModels });
   const [open, setOpen] = React.useState(false);
   /** root = 模型行 + 推理等级滑条 + 功能开关；list = 模型列表 */
   const [view, setView] = React.useState<"root" | "list">("root");
@@ -119,37 +114,6 @@ export function ModelPicker({
   const activeRef = React.useRef<HTMLButtonElement>(null);
 
   /** 内置 + 自定义，拼成统一的分组列表 */
-  const groups = React.useMemo(() => {
-    const builtin = PROVIDER_ORDER
-      // 没填 Key 的内置供应商整个不显示 —— 列出来也调不通，点了就是报错
-      .filter((pid) => presetProviders.has(pid) || Boolean((keys[pid] ?? "").trim()))
-      .map((pid) => {
-        const pl = PROVIDERS[pid].label;
-        const base = CHAT_MODELS.filter((m) => m.provider === pid).map((m) => ({
-          id: m.id,
-          label: m.label,
-          desc: m.desc,
-          providerLabel: pl,
-        }));
-        // 用户自己探测/手填追加的模型 + 管理员加到站点上的，去掉与内置重复的再并进去
-        const extras = Array.from(new Set([...(extraModels[pid] ?? []), ...(siteModels[pid] ?? [])]))
-          .filter((id) => !base.some((m) => m.id === id))
-          // 追加模型的说明写具体供应商名，别笼统写「自定义供应商」
-          .map((id) => ({ id, label: id, desc: pl, providerLabel: pl }));
-        return {
-          key: pid as string,
-          label: pl,
-          items: [...base, ...extras],
-        };
-      });
-    const custom = customProviders.map((c) => ({
-      key: c.id,
-      label: c.label,
-      items: c.models.map((id) => ({ id, label: id, desc: c.label, providerLabel: c.label })),
-    }));
-    return [...builtin, ...custom].filter((g) => g.items.length > 0);
-  }, [customProviders, keys, extraModels, siteModels, t]);
-
   const allModels = React.useMemo(() => groups.flatMap((g) => g.items), [groups]);
 
   /**
