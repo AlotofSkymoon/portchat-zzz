@@ -2991,11 +2991,15 @@ body {
   background: color-mix(in srgb, var(--muted) 50%, transparent);
   isolation: isolate;
   touch-action: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: none;
   /* 去 AI 味：hairline 内描边替代发光投影 */
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border) 60%, transparent);
 }
 
-.ces-track:focus-within {
+.ces-track:focus-visible {
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--border) 80%, transparent),
     0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
@@ -3010,8 +3014,15 @@ body {
   overflow: hidden;
   /* width 由内联 style 给出到「旋钮圆心」，不是 pct*100% */
   transition:
-    width 320ms var(--ease-out-expo),
-    background 320ms linear;
+    width 180ms var(--ease-out-expo),
+    background 180ms linear;
+}
+
+/* 拖动中：视觉必须 1:1 跟手，任何过渡都是延迟 */
+.ces-track[data-dragging="1"] .ces-fill,
+.ces-track[data-dragging="1"] .ces-knob,
+.ces-track[data-dragging="1"] .ces-tick {
+  transition: none;
 }
 
 /* 能量层只在已填充段内可见 —— Max 时铺满整轨 */
@@ -3033,13 +3044,21 @@ body {
 
 .ces-star {
   position: absolute;
-  top: var(--star-top);
   width: 2px;
   height: 2px;
   border-radius: 999px;
+  /* 时长/延迟/高度由内联给出：写成 CSS 变量时负相位不生效，
+     会出现「一打开星星全挤在起点」—— 这里只保留一个合法兜底值 */
+  animation: ces-star-sweep 1.5s linear infinite;
+}
+
+.ces-star__dot {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   background: #fff;
-  will-change: transform, opacity;
-  animation: ces-star-sweep var(--star-dur) linear var(--star-delay) infinite;
+  opacity: var(--ces-b, 0.75);
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.9);
 }
 
 @keyframes ces-star-sweep {
@@ -3091,7 +3110,7 @@ body {
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.14),
     0 1px 2px rgba(0, 0, 0, 0.22);
-  transition: left 320ms var(--ease-out-expo), box-shadow 200ms linear;
+  transition: left 180ms var(--ease-out-expo), box-shadow 200ms linear;
   pointer-events: none;
   z-index: 2;
 }
@@ -3107,46 +3126,9 @@ body {
   transition: background 320ms linear;
 }
 
-.ces-input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  z-index: 3;
-}
-
-.ces-input::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-}
-
-.ces-input::-moz-range-thumb {
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 999px;
-}
-
-.ces-input:focus-visible + .ces-knob,
-.ces-input:focus:not(:focus-visible) + .ces-knob {
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.14),
-    0 1px 2px rgba(0, 0, 0, 0.22),
-    0 0 0 4px color-mix(in srgb, var(--ring) 30%, transparent);
-}
-
 @media (prefers-reduced-motion: reduce) {
+  /* 扫光是纯装饰，直接停；星星按参考实现保留但放慢 2.6 倍（由 JS 给时长） */
   .ces-energy__sweep { animation: none; opacity: 0; }
-  .ces-star { animation: none; opacity: 0.6; }
   .ces-fill, .ces-knob, .ces-tick { transition: none; }
 }
 
@@ -3173,4 +3155,120 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .mp-view-list, .mp-view-root { animation: none; }
+}
+
+/* ==========================================================================
+   iOS 观感 —— html[data-variant="ios"]
+
+   装成 PWA（iOS 加到主屏幕 / Chrome 已安装）后自动解锁，
+   也可以用 ?ios=1 在普通浏览器里预览、?ios=0 强制关掉。
+
+   依据 Apple《Designing Fluid Interfaces》的几条硬规则：
+   - 半透明材质承载层级：大表面更厚（更强模糊 + 更深投影），小控件更轻
+   - 亮顶边 = 光打在材质上边缘，材质才"有厚度"
+   - 动效用弹簧曲线，且始终从当前值出发（可被中途打断）
+   - 分隔线用发丝线（0.5px），不是 1px 硬边
+   - reduced-motion 下退化为交叉淡入，而不是把反馈一起删掉
+   ========================================================================== */
+
+html[data-variant="ios"] {
+  /* SF 优先：装在主屏幕时系统字体就在本机，零网络成本 */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Helvetica Neue", "PingFang SC", system-ui, sans-serif;
+  --font-serif: "New York", -apple-system, "SF Pro Text", Georgia, serif;
+  --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* 材质加厚：大表面比小控件更"重" */
+  --lg-blur: 26px;
+  --lg-saturate: 180%;
+  --lg-tint-a1: 0.72;
+  --lg-tint-a2: 0.56;
+  --lg-edge-a: 0.30;
+
+  /* 连续圆角：整体放大一档，卡片比控件更圆 */
+  --r-sm: 0.75rem;
+  --r-default: 1.375rem;
+  --r-md: 1.375rem;
+  --r-lg: 1.75rem;
+  --r-xl: 2.125rem;
+  --r-2xl: 2.5rem;
+  --r-3xl: 2.875rem;
+  --r-4xl: 3.375rem;
+  --radius-ctrl: 1.5rem;
+  --radius-card: 2.125rem;
+  --radius-panel: 2.625rem;
+
+  /* 发丝分隔线 */
+  --card-border-w: 0.5px;
+
+  /* 弹簧曲线：起手快、收尾长，接近 iOS 的临界阻尼弹簧 */
+  --ease-out-expo: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-in-out-soft: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --leading-body: 1.5;
+}
+
+/* 交互态统一走弹簧曲线。
+   只改 transition-timing-function —— 动画（animation）不受影响，
+   星空、呼吸光这类循环动效照旧。 */
+html[data-variant="ios"] * {
+  transition-timing-function: var(--ease-out-expo);
+}
+
+/* 半透明材质上的文字：字距微增 + 字重微提，避免发虚 */
+html[data-variant="ios"] .liquid-glass,
+html[data-variant="ios"] .liquid-bar {
+  letter-spacing: 0.01em;
+}
+
+/* ---- 安全区：刘海 / 状态栏 / 底部小黑条 ----
+   viewport-fit=cover 之后内容会延伸到屏幕边缘，
+   不补内边距的话顶栏会被状态栏压住、输入框会被小黑条吃掉。 */
+
+html[data-variant="ios"] .liquid-bar {
+  margin-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+html[data-variant="ios"] [data-ios-safe-bottom] {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+html[data-variant="ios"] [data-ios-safe-x] {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* iOS 的地址栏会伸缩，100vh 会跟着抖；dvh 是"动态视口高度"，
+   只在支持的浏览器上覆盖，不支持的继续用 vh。 */
+@supports (height: 100dvh) {
+  html[data-variant="ios"] body,
+  html[data-variant="ios"] .h-screen,
+  html[data-variant="ios"] .min-h-screen,
+  html[data-variant="ios"] .h-dvh {
+    min-height: 100dvh;
+  }
+  html[data-variant="ios"] .h-screen {
+    height: 100dvh;
+  }
+}
+
+/* 全屏 App 里没有浏览器橡皮筋，overflow 的回弹交给系统 */
+html[data-variant="ios"] body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---- reduced motion：淡入替代位移 ---- */
+@media (prefers-reduced-motion: reduce) {
+  html[data-variant="ios"] .liquid-glass,
+  html[data-variant="ios"] .liquid-bar {
+    transition-property: opacity;
+    transition-duration: 160ms;
+  }
+  html[data-variant="ios"] * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }

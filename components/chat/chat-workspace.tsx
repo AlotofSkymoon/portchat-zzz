@@ -1476,7 +1476,10 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
           </div>
         ) : null}
         {/* 顶栏：常驻显示，液态玻璃 */}
-        <header className="liquid-glass liquid-bar sticky top-0 z-30 mx-2 mt-2 flex h-14 shrink-0 items-center justify-between px-3">
+        <header
+          className="liquid-glass liquid-bar sticky top-0 z-30 mx-2 mt-2 flex h-14 shrink-0 items-center justify-between px-3"
+          data-ios-safe-x
+        >
           <div className="flex min-w-0 items-center gap-2">
             <Button
               variant="ghost"
@@ -1578,7 +1581,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
         </main>
 
         {/* 输入区 */}
-        <div className="shrink-0 px-4 pb-4">
+        <div className="shrink-0 px-4 pb-4" data-ios-safe-bottom>
           <div className="mx-auto w-full max-w-3xl">
             {isEmpty ? (
               <>

@@ -21,6 +21,19 @@ export type ResolvedTheme = "light" | "dark";
 
 const STORAGE_KEY = "agnes:theme";
 const PRESET_KEY = "agnes:theme-preset";
+const VARIANT_KEY = "agnes:ui-variant";
+
+/**
+ * 界面变体。
+ *
+ * "web" 是常规浏览器观感；"ios" 是装成 PWA（添加到主屏幕 / 已安装）
+ * 之后解锁的 Apple 观感：SF 字体、更厚的半透明材质、更大的连续圆角、
+ * 发丝级分隔线、安全区内边距、弹簧曲线。
+ *
+ * 默认自动：以 standalone 打开就启用。用户可以用 ?ios=1 / ?ios=0
+ * 或设置里的开关手动覆盖。
+ */
+export type UiVariant = "web" | "ios";
 
 interface ThemeContextValue {
   /** 用户的选择（可能是 system） */
@@ -37,6 +50,11 @@ interface ThemeContextValue {
   /** 界面风格预设：anthropic / fuwari / violet-rose / sidefolio / minimalist */
   preset: ThemePreset;
   setPreset: (preset: ThemePreset) => void;
+  /** 界面变体：web = 常规，ios = PWA 解锁的 Apple 观感 */
+  variant: UiVariant;
+  setVariant: (variant: UiVariant) => void;
+  /** 当前是否以 standalone（已安装 PWA）方式运行 */
+  standalone: boolean;
 }
 
 const ThemeContext = React.createContext<ThemeContextValue | undefined>(undefined);
@@ -107,6 +125,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = React.useState<Theme>("system");
   const [systemTheme, setSystemTheme] = React.useState<ResolvedTheme>("light");
   const [preset, setPresetState] = React.useState<ThemePreset>(SITE_THEME);
+  const [variant, setVariantState] = React.useState<UiVariant>("web");
+  const [standalone, setStandalone] = React.useState(false);
 
   React.useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
@@ -125,12 +145,36 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setPresetState(initialPreset);
     document.documentElement.dataset.theme = initialPreset;
 
+    /* ---- 界面变体：装成 PWA 就自动解锁 iOS 观感 ---- */
+    const q = new URLSearchParams(window.location.search);
+    const forcedIos = q.get("ios") === "1";
+    const forcedWeb = q.get("ios") === "0";
+    const storedVariant = localStorage.getItem(VARIANT_KEY);
+    const saMq = window.matchMedia?.("(display-mode: standalone)");
+    const isStandalone = !!(
+      saMq?.matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true
+    );
+    setStandalone(isStandalone);
+
+    const initialVariant: UiVariant = forcedWeb
+      ? "web"
+      : forcedIos || storedVariant === "ios"
+        ? "ios"
+        : isStandalone
+          ? "ios"
+          : "web";
+    setVariantState(initialVariant);
+    document.documentElement.dataset.variant = initialVariant;
+    // 只有显式用 ?ios= 才写进存储 —— 否则 standalone 是"跟着环境走"，
+    // 用户从主屏幕切回浏览器标签时会自动回到 web 观感，不会锁死。
+    if (forcedIos || forcedWeb) localStorage.setItem(VARIANT_KEY, initialVariant);
+
     /**
      * 监听系统偏好变化。
      * 只有处在 "system" 模式时才需要跟着变 —— 用户手动锁定后就不再打扰。
      */
     const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
-    if (!mq) return;
     const onChange = (e: MediaQueryListEvent) => {
       const next: ResolvedTheme = e.matches ? "dark" : "light";
       setSystemTheme(next);
@@ -140,8 +184,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         document.documentElement.classList.toggle("dark", next === "dark");
       }
     };
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
+    mq?.addEventListener("change", onChange);
+
+    // 从浏览器标签装到主屏幕（或反过来）时实时跟随
+    const onSa = (e: MediaQueryListEvent) => {
+      setStandalone(e.matches);
+      const pinned = localStorage.getItem(VARIANT_KEY);
+      if (pinned === "ios" || pinned === "web") return;
+      const next: UiVariant = e.matches ? "ios" : "web";
+      setVariantState(next);
+      document.documentElement.dataset.variant = next;
+    };
+    saMq?.addEventListener("change", onSa);
+
+    return () => {
+      mq?.removeEventListener("change", onChange);
+      saMq?.removeEventListener("change", onSa);
+    };
   }, []);
 
   /** 真正写 DOM 的动作 */
@@ -187,6 +246,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.dataset.theme = next;
   }, []);
 
+  const setVariant = React.useCallback((next: UiVariant) => {
+    setVariantState(next);
+    localStorage.setItem(VARIANT_KEY, next);
+    document.documentElement.dataset.variant = next;
+  }, []);
+
   const resolvedTheme: ResolvedTheme =
     theme === "system" ? systemTheme : (theme as ResolvedTheme);
 
@@ -200,8 +265,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       systemTheme,
       preset,
       setPreset,
+      variant,
+      setVariant,
+      standalone,
     }),
-    [theme, resolvedTheme, setTheme, toggleTheme, cycleTheme, systemTheme, preset, setPreset],
+    [
+      theme,
+      resolvedTheme,
+      setTheme,
+      toggleTheme,
+      cycleTheme,
+      systemTheme,
+      preset,
+      setPreset,
+      variant,
+      setVariant,
+      standalone,
+    ],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -230,3 +310,26 @@ if(d)r.classList.add('dark');else r.classList.remove('dark');
 var p=localStorage.getItem('${PRESET_KEY}');
 r.dataset.theme=${JSON.stringify(THEME_IDS)}.indexOf(p)>=0?p:'${SITE_THEME}';
 }catch(e){document.documentElement.classList.remove('dark');}})();`;
+
+/**
+ * 界面变体的首屏同步脚本。
+ *
+ * 必须在 <head> 里同步跑完：iOS 观感会改字体栈、圆角和安全区内边距，
+ * 如果等 hydration 再生效，首帧会先用 web 观感渲染再跳变 —— 肉眼可见。
+ *
+ * 判定优先级：?ios=0 > ?ios=1 > 用户手动存的选择 > 是否 standalone 运行。
+ */
+export const variantInitScript = `(function(){try{
+var r=document.documentElement;
+var q=location.search;
+var force1=/[?&]ios=1(?![\w=])/.test(q);
+var force0=/[?&]ios=0(?![\w=])/.test(q);
+var s=localStorage.getItem('${VARIANT_KEY}');
+var sa=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+var v='web';
+if(force0)v='web';
+else if(force1)v='ios';
+else if(s==='ios'||s==='web')v=s;
+else if(sa)v='ios';
+r.setAttribute('data-variant',v);
+}catch(e){document.documentElement.setAttribute('data-variant','web');}})();`;
