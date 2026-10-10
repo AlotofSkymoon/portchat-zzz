@@ -185,7 +185,9 @@ export function EffortSlider({
   costLabel?: string;
   costMaxLabel?: string;
 }) {
-  const count = EFFORT_LEVELS.length;
+  // 显式标成 number：EFFORT_LEVELS 是 as const 元组，.length 的字面量类型是 4，
+  // 下面的 count === 0 守卫会被 TS 判成「不可能」而报 TS2367。
+  const count: number = EFFORT_LEVELS.length;
   const rawIndex = EFFORT_LEVELS.indexOf(level);
   const committedIndex = rawIndex < 0 ? 1 : rawIndex;
 
