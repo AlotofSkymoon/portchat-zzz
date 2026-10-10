@@ -432,7 +432,7 @@ const DICT: Record<string, Entry> = {
   "chat.maxFiles": { "zh-CN": "最多同时上传", "zh-TW": "最多同時上傳", en: "Upload at most", fr: "Téléversez au maximum" },
   "chat.uploadFailed": { "zh-CN": "上传失败", "zh-TW": "上傳失敗", en: "Upload failed", fr: "Échec du téléversement" },
 
-  "transition.warping": { "zh-CN": "正在带你飞速进入中", "zh-TW": "正在帶你飛速進入中", en: "Warping you there", fr: "Transfert en cours" },
+  "transition.flying": { "zh-CN": "正在前往", "zh-TW": "正在前往", en: "On our way", fr: "En route" },
   "route.home": { "zh-CN": "首页", "zh-TW": "首頁", en: "Home", fr: "Accueil" },
   "route.chat": { "zh-CN": "聊天", "zh-TW": "聊天", en: "Chat", fr: "Discussion" },
 
@@ -995,7 +995,31 @@ const DICT: Record<string, Entry> = {
   "arena.noTopic": { "zh-CN": "请填写辩题", "zh-TW": "請填寫辯題", en: "Please enter a topic", fr: "Veuillez saisir un sujet" },
   "arena.hint": { "zh-CN": "一局会调用模型数十次，请注意额度", "zh-TW": "一局會呼叫模型數十次，請注意額度", en: "A round calls models dozens of times — watch your quota", fr: "Une partie appelle les modèles des dizaines de fois — attention au quota" },
   "arena.auto": { "zh-CN": "全自动，无需人工干预", "zh-TW": "全自動，無需人工干預", en: "Fully automatic", fr: "Entièrement automatique" },
-};
+  "landing.badge": { "zh-CN": "免费 · 无需自备 API Key", "zh-TW": "免費 · 無需自備 API Key", en: "Free · no API key needed", fr: "Gratuit · aucune clé API requise" },
+  "landing.title1": { "zh-CN": "和 AI 聊天", "zh-TW": "和 AI 聊天", en: "Chat with AI", fr: "Discutez avec l'IA" },
+  "landing.title2": { "zh-CN": "打开就能用", "zh-TW": "打開就能用", en: "just open and go", fr: "il suffit d'ouvrir" },
+  "landing.desc": { "zh-CN": "打开就能聊，注册可选。支持联网搜索、图片和视频理解，登录后聊天记录可以跟着账号走。", "zh-TW": "打開就能聊，註冊可選。支援聯網搜尋、圖片和影片理解，登入後聊天紀錄可以跟著帳號走。", en: "Open it and start talking — signing up is optional. Web search, image and video understanding included; log in to keep your history across devices.", fr: "Ouvrez et discutez — l'inscription est facultative. Recherche web, compréhension d'images et de vidéos incluses ; connectez-vous pour retrouver votre historique." },
+  "landing.cta": { "zh-CN": "进入聊天", "zh-TW": "進入聊天", en: "Start chatting", fr: "Commencer à discuter" },
+  "landing.ctaSponsor": { "zh-CN": "赞助支持", "zh-TW": "贊助支持", en: "Sponsor", fr: "Soutenir" },
+  "landing.note": { "zh-CN": "免费使用 · 无广告 · 不采集隐私数据", "zh-TW": "免費使用 · 無廣告 · 不蒐集隱私資料", en: "Free · no ads · no tracking", fr: "Gratuit · sans publicité · sans suivi" },
+  "landing.enter": { "zh-CN": "进入", "zh-TW": "進入", en: "Enter", fr: "Entrer" },
+  "landing.feat.free": { "zh-CN": "开箱即用", "zh-TW": "開箱即用", en: "Ready to use", fr: "Prêt à l'emploi" },
+  "landing.feat.freeDesc": { "zh-CN": "不用自己申请 API Key，打开页面就能开始对话。", "zh-TW": "不用自己申請 API Key，打開頁面就能開始對話。", en: "No API key to apply for — just open the page and talk.", fr: "Aucune clé API à demander — ouvrez la page et discutez." },
+  "landing.feat.models": { "zh-CN": "模型自由切换", "zh-TW": "模型自由切換", en: "Switch models freely", fr: "Changez de modèle librement" },
+  "landing.feat.modelsDesc": { "zh-CN": "内置多个模型，聊到一半换也行。", "zh-TW": "內建多個模型，聊到一半換也行。", en: "Several models built in — switch mid-conversation if you like.", fr: "Plusieurs modèles intégrés — changez en cours de discussion si vous voulez." },
+  "landing.feat.media": { "zh-CN": "图片与视频理解", "zh-TW": "圖片與影片理解", en: "Images & video", fr: "Images et vidéos" },
+  "landing.feat.mediaDesc": { "zh-CN": "上传图片、视频或文件，AI 能看懂内容再回答。", "zh-TW": "上傳圖片、影片或檔案，AI 能看懂內容再回答。", en: "Upload images, video or files — the AI understands them before answering.", fr: "Téléversez images, vidéos ou fichiers — l'IA les comprend avant de répondre." },
+  "landing.feat.sync": { "zh-CN": "云端同步", "zh-TW": "雲端同步", en: "Cloud sync", fr: "Synchronisation cloud" },
+  "landing.feat.syncDesc": { "zh-CN": "登录后换设备也能接着聊，记录不会丢。", "zh-TW": "登入後換裝置也能接著聊，紀錄不會丟。", en: "Log in and continue on another device — nothing gets lost.", fr: "Connectez-vous et reprenez sur un autre appareil — rien ne se perd." },
+  "landing.contact.title": { "zh-CN": "联系站长", "zh-TW": "聯絡站長", en: "Contact", fr: "Contact" },
+  "landing.contact.desc": { "zh-CN": "有问题、建议或想合作，都可以找过来。", "zh-TW": "有問題、建議或想合作，都可以找過來。", en: "Questions, ideas or collaboration — feel free to reach out.", fr: "Questions, idées ou collaboration — n'hésitez pas à écrire." },
+  "landing.contact.homepage": { "zh-CN": "个人主页", "zh-TW": "個人主頁", en: "Personal site", fr: "Site personnel" },
+  "landing.contact.chat": { "zh-CN": "频道或聊天群", "zh-TW": "頻道或聊天群", en: "Channel or group", fr: "Chaîne ou groupe" },
+  "landing.preview.user": { "zh-CN": "帮我把这段话改得更自然一点", "zh-TW": "幫我把這段話改得更自然一點", en: "Make this paragraph sound more natural", fr: "Rendez ce paragraphe plus naturel" },
+  "landing.preview.r1": { "zh-CN": "当然，我把句子拆短一些，去掉重复的形容词：", "zh-TW": "當然，我把句子拆短一些，去掉重複的形容詞：", en: "Sure — I'll shorten the sentences and drop the repeated adjectives:", fr: "Bien sûr — je raccourcis les phrases et supprime les adjectifs répétés :" },
+  "landing.preview.r2": { "zh-CN": "「他犹豫了一下，还是把那句话说了出来。」", "zh-TW": "「他猶豫了一下，還是把那句話說了出來。」", en: "\"He hesitated, then said it anyway.\"", fr: "« Il hésita, puis le dit quand même. »" },
+  "landing.preview.r3": { "zh-CN": "这样节奏更紧凑，读起来也顺。", "zh-TW": "這樣節奏更緊湊，讀起來也順。", en: "Tighter rhythm, smoother read.", fr: "Un rythme plus serré, une lecture plus fluide." },
+}
 
 export type DictKey = keyof typeof DICT;
 

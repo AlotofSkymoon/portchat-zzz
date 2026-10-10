@@ -47,19 +47,28 @@ function guardHeaders(verdict: { allowed: boolean; reason: string; provider?: st
 /*
  * 会话 cookie 名。
  *
- * 注：本文件不再读取会话 cookie —— 聊天域名直达（见 chatHostRedirect）
- * 已不区分登录状态。
+ * ⚠️ 这里**不能** import @/lib/auth：那个模块依赖 Node 运行时 + 数据库驱动，
+ * 而 middleware 跑在 Edge runtime，引进来会让构建直接失败。
+ * 所以只把 cookie 名抄一份，跟 lib/auth.ts 的 SESSION_COOKIE_NAME 对应。
  */
+const SESSION_COOKIE_NAME = "agnes_session";
 
 /**
  * 聊天域名直达。
  *
  * 场景：chat.xyz.ci 这类子域名专门指向聊天，访问根路径就该直接开聊。
  *
- * ⚠️ 以前这里区分登录状态：已登录进 /chat，未登录留在落地页。
- * 落地页已移除（介绍页改由独立静态 HTML 托管），
- * 所以现在不管有没有会话都进 /chat —— 未登录时 /chat 自己会处理登录引导，
- * 这里不做重定向，避免与页面自身的跳转形成循环。
+ * 落地页回来了，所以恢复「按登录状态分流」：
+ *   已登录  → 直接进 /chat
+ *   未登录  → 留在落地页，先讲清楚这站能干什么
+ *
+ * ⚠️ 用 rewrite 而不是 redirect：地址栏保持 chat.xyz.ci 不变，
+ * 且不会和页面自身的登录跳转互相打架形成循环。
+ *
+ * ⚠️ 只看 cookie 存不存在，**不验签**。middleware 跑在 Edge，验签要拉密钥、
+ * 查存储，成本太高；而这里只是决定"先看介绍还是直接开聊"，
+ * 真正的身份校验仍然由 /chat 和接口层自己做。cookie 是伪造的也没关系 ——
+ * 伪造出来的结果只是被送进 /chat，然后被 /chat 自己挡在登录页。
  */
 function chatHostRedirect(request: NextRequest, pathname: string) {
   const chatHost = process.env.CHAT_HOST?.trim().toLowerCase();
@@ -67,6 +76,8 @@ function chatHostRedirect(request: NextRequest, pathname: string) {
 
   const host = (request.headers.get("host") ?? "").split(":")[0].toLowerCase();
   if (host !== chatHost) return null;
+
+  if (!request.cookies.get(SESSION_COOKIE_NAME)?.value) return null;
 
   const url = request.nextUrl.clone();
   url.pathname = "/chat";

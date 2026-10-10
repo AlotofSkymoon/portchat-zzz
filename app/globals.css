@@ -2490,7 +2490,7 @@ body {
 }
 
 /* ==========================================================================
-   页面切换过渡 · Aceternity 风格「曲速穿越」
+   页面切换过渡 · 一只纸飞机飞过
    ========================================================================== */
 
 .pt-overlay {
@@ -2502,7 +2502,7 @@ body {
   justify-content: center;
   overflow: hidden;
   background:
-    radial-gradient(120% 90% at 50% 50%, rgba(30, 41, 92, 0.98) 0%, rgba(12, 14, 26, 0.99) 45%, rgba(6, 7, 14, 1) 100%);
+    radial-gradient(110% 90% at 50% 45%, rgba(28, 34, 58, 0.98) 0%, rgba(11, 13, 24, 0.99) 60%, rgba(6, 7, 14, 1) 100%);
 }
 
 /* 退场时不再拦截点击：新页面已经渲染好，不该让用户再等一层遮罩 */
@@ -2525,55 +2525,66 @@ body {
   to { opacity: 0; }
 }
 
-/* --- 极光光斑 --- */
-.pt-aurora {
-  position: absolute;
-  inset: -20%;
-  pointer-events: none;
+/* --- 纸飞机航迹 --- */
+.pt-sky {
+  position: relative;
+  width: min(320px, 74vw);
+  height: 88px;
 }
 
-.pt-aurora::before,
-.pt-aurora::after {
-  content: "";
-  position: absolute;
-  width: 60%;
-  height: 60%;
-  border-radius: 9999px;
-  filter: blur(80px);
-  opacity: 0.55;
-}
-
-.pt-aurora::before {
-  left: 8%;
-  top: 12%;
-  background: radial-gradient(circle, rgba(77, 107, 254, 0.85) 0%, rgba(77, 107, 254, 0) 70%);
-  animation: pt-aurora-a 3.6s ease-in-out infinite;
-}
-
-.pt-aurora::after {
-  right: 6%;
-  bottom: 10%;
-  background: radial-gradient(circle, rgba(167, 108, 254, 0.75) 0%, rgba(167, 108, 254, 0) 70%);
-  animation: pt-aurora-b 4.4s ease-in-out infinite;
-}
-
-@keyframes pt-aurora-a {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.45; }
-  50% { transform: translate3d(6%, -4%, 0) scale(1.15); opacity: 0.7; }
-}
-
-@keyframes pt-aurora-b {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1.1); opacity: 0.5; }
-  50% { transform: translate3d(-5%, 5%, 0) scale(0.95); opacity: 0.28; }
-}
-
-/* --- 曲速星域画布 --- */
-.pt-stars {
+.pt-sky-svg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none;
+  overflow: visible;
+}
+
+.pt-plane-trail {
+  stroke: rgba(160, 190, 255, 0.5);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 7 9;
+  /* 虚线沿航线自己画出来：dashoffset 从总长收回到 0 */
+  stroke-dashoffset: 420;
+  animation: pt-trail 1100ms ease-out forwards;
+}
+
+@keyframes pt-trail {
+  to { stroke-dashoffset: 0; }
+}
+
+/*
+ * 横飞用 left 的百分比而不是 translateX ——
+ * transform 的百分比是相对元素自身尺寸的，走不出容器宽度；
+ * left 的百分比才是相对「航迹容器」，能保证飞机正好穿出右边界。
+ */
+.pt-plane {
+  position: absolute;
+  top: 14px;
+  left: -12%;
+  width: 34px;
+  height: 34px;
+  animation: pt-fly 1100ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.pt-plane-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 4px 12px rgba(120, 165, 255, 0.4));
+  animation: pt-bob 900ms ease-in-out infinite;
+}
+
+@keyframes pt-fly {
+  0% { left: -12%; transform: translateY(8px) rotate(-6deg) scale(0.88); }
+  30% { transform: translateY(-4px) rotate(2deg) scale(1); }
+  100% { left: 104%; transform: translateY(-16px) rotate(7deg) scale(0.84); }
+}
+
+@keyframes pt-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(-2deg); }
 }
 
 /* --- 中央内容 --- */
@@ -2646,52 +2657,6 @@ body {
 @keyframes pt-breathe {
   0%, 100% { opacity: 0.5; transform: scale(0.94); }
   50% { opacity: 1; transform: scale(1.06); }
-}
-
-/* --- 游动的小鲸鱼：整体横向巡游，尾鳍叠加摆动，水柱单独上喷 --- */
-.pt-whale {
-  position: relative;
-  width: 168px;
-  height: 100px;
-  animation: whale-swim 5.2s ease-in-out infinite;
-  will-change: transform;
-}
-
-.pt-whale-svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  filter: drop-shadow(0 6px 18px rgba(62, 134, 214, 0.45));
-}
-
-@keyframes whale-swim {
-  0% { transform: translateX(-46%) translateY(0) rotate(-2deg); }
-  25% { transform: translateX(-16%) translateY(-9px) rotate(1.5deg); }
-  50% { transform: translateX(16%) translateY(0) rotate(2.5deg); }
-  75% { transform: translateX(-16%) translateY(9px) rotate(-1.5deg); }
-  100% { transform: translateX(-46%) translateY(0) rotate(-2deg); }
-}
-
-@keyframes whale-tail {
-  0%, 100% { transform: rotate(-13deg); }
-  50% { transform: rotate(13deg); }
-}
-
-@keyframes whale-spout {
-  0% { transform: translateY(6px) scale(0.5); opacity: 0; }
-  35% { transform: translateY(-9px) scale(1); opacity: 0.85; }
-  100% { transform: translateY(-24px) scale(0.7); opacity: 0; }
-}
-
-/* 变换原点设在尾鳍根部，摆动才自然 */
-.pt-whale-tail {
-  transform-origin: 158px 62px;
-  animation: whale-tail 1.1s ease-in-out infinite;
-}
-
-.pt-whale-spout {
-  transform-origin: 66px 34px;
-  animation: whale-spout 2.6s ease-in-out infinite;
 }
 
 /* --- 标题：流光扫过 --- */
@@ -2804,18 +2769,26 @@ body {
   .pt-overlay-exit {
     animation-duration: 120ms;
   }
-  .pt-aurora::before,
-  .pt-aurora::after,
   .pt-ring,
   .pt-ring-2,
   .pt-core-glow,
-  .pt-whale,
-  .pt-whale-tail,
-  .pt-whale-spout,
   .pt-bar span,
   .pt-dots i,
   .pt-shimmer {
     animation: none;
+  }
+  /* 飞机不飞了也不能消失在画面外，静态停在航迹中段 */
+  .pt-plane {
+    animation: none;
+    left: 42%;
+    transform: none;
+  }
+  .pt-plane-svg {
+    animation: none;
+  }
+  .pt-plane-trail {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 

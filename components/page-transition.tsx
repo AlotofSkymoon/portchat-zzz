@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/i18n-provider";
 
 /**
- * 全站页面切换过渡（Aceternity 风格的「曲速穿越」）。
+ * 全站页面切换过渡（一只纸飞机横飞而过）。
  *
  * ⚠️ 这里刻意**不拦截**点击、不 preventDefault。
  *
@@ -57,122 +57,6 @@ function destLabel(path: string): string {
 }
 
 /* --------------------------- 曲速星域 --------------------------- */
-
-interface Star {
-  x: number;
-  y: number;
-  z: number;
-  pz: number;
-}
-
-function WarpField() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    let w = 0;
-    let h = 0;
-    const resize = () => {
-      // 限制 dpr：高倍屏下 3x 会让像素填充量翻好几倍，帧率反而掉
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      w = canvas.clientWidth;
-      h = canvas.clientHeight;
-      canvas.width = Math.max(1, Math.round(w * dpr));
-      canvas.height = Math.max(1, Math.round(h * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const COUNT = 150;
-    const spawn = (): Star => ({
-      x: (Math.random() * 2 - 1) * 1.15,
-      y: (Math.random() * 2 - 1) * 1.15,
-      z: 0.08 + Math.random() * 0.92,
-      pz: 1,
-    });
-    const stars: Star[] = Array.from({ length: COUNT }, spawn);
-
-    let raf = 0;
-    let last = performance.now();
-    const startedAt = last;
-
-    const frame = (now: number) => {
-      const dt = Math.min((now - last) / 1000, 0.05);
-      last = now;
-
-      /**
-       * 速度从静止起步再拉满 —— 单纯的高速星点不像「穿越」，
-       * 有加速过程才有被吸进去的感觉。约 520ms 达到峰值。
-       */
-      const t = Math.min((now - startedAt) / 520, 1);
-      const speed = reduce ? 0.06 : 0.16 + t * t * 1.85;
-
-      ctx.clearRect(0, 0, w, h);
-
-      const cx = w / 2;
-      const cy = h / 2;
-      const scale = Math.min(w, h) * 0.62;
-
-      for (let i = 0; i < stars.length; i++) {
-        const s = stars[i];
-        s.pz = s.z;
-        s.z -= speed * dt;
-        if (s.z <= 0.03) {
-          const n = spawn();
-          s.x = n.x;
-          s.y = n.y;
-          s.z = 1;
-          s.pz = 1;
-          continue;
-        }
-
-        const k = scale / s.z;
-        const x = cx + s.x * k;
-        const y = cy + s.y * k;
-
-        // 上一帧位置：z 越大越远，用 pz 反推能画出自然的拖尾长度
-        const pk = scale / s.pz;
-        const px = cx + s.x * pk;
-        const py = cy + s.y * pk;
-
-        const depth = 1 - s.z;
-        const alpha = Math.min(0.15 + depth * 0.85, 1);
-
-        // 靠近的星点偏品牌蓝紫，远处的偏冷白，层次更明显
-        const mix = Math.min(depth * 1.25, 1);
-        const r = Math.round(210 + (120 - 210) * (1 - mix));
-        const g = Math.round(225 + (150 - 225) * (1 - mix));
-        const b = 255;
-
-        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        ctx.lineWidth = Math.max(0.6, depth * 2.1);
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(px, py);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-      }
-
-      raf = requestAnimationFrame(frame);
-    };
-
-    raf = requestAnimationFrame(frame);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-
-  return <canvas ref={canvasRef} className="pt-stars" aria-hidden="true" />;
-}
 
 /* --------------------------- 过渡遮罩 --------------------------- */
 
@@ -289,67 +173,27 @@ export function PageTransition() {
       aria-live="polite"
       aria-busy={!leaving}
     >
-      <div className="pt-aurora" aria-hidden="true" />
-      <WarpField />
-      <div className="pt-content">
-        <div className="pt-whale" aria-hidden="true">
-          <svg viewBox="0 0 200 120" className="pt-whale-svg">
-            <defs>
-              <linearGradient id="ptWhaleBody" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#7FC9FF" />
-                <stop offset="55%" stopColor="#3E86D6" />
-                <stop offset="100%" stopColor="#25538F" />
-              </linearGradient>
-            </defs>
-
-            {/* 喷出的小水柱 */}
-            <g className="pt-whale-spout">
-              <circle cx="62" cy="30" r="4" fill="#BFE4FF" opacity="0.9" />
-              <circle cx="66" cy="20" r="3" fill="#BFE4FF" opacity="0.7" />
-              <circle cx="70" cy="12" r="2.2" fill="#BFE4FF" opacity="0.5" />
-            </g>
-
-            {/* 尾鳍（单独摆动） */}
-            <g className="pt-whale-tail">
-              <path
-                d="M158 62c10-14 22-18 30-14-6 6-8 12-7 18 2 8-4 16-14 20-4-9-8-17-9-24z"
-                fill="url(#ptWhaleBody)"
-              />
-            </g>
-
-            {/* 身体 */}
-            <path
-              d="M28 66c0-18 18-30 44-32 22-2 40 2 54 10 10 6 16 12 20 18-4 8-10 14-20 20-14 8-32 12-54 10-26-2-44-14-44-26z"
-              fill="url(#ptWhaleBody)"
-            />
-            {/* 腹部浅色 */}
-            <path
-              d="M34 74c8 8 22 13 40 14 18 1 34-2 46-8-10 9-24 15-42 16-20 1-36-6-44-16z"
-              fill="#CFEBFF"
-              opacity="0.55"
-            />
-            {/* 胸鳍 */}
-            <path
-              d="M74 82c-2 10-10 16-20 16 6-4 9-9 10-14z"
-              fill="#2C62A6"
-            />
-            {/* 眼睛 */}
-            <circle cx="52" cy="58" r="4.2" fill="#0E2A4A" />
-            <circle cx="53.4" cy="56.6" r="1.4" fill="#FFFFFF" opacity="0.9" />
-            {/* 嘴部弧线 */}
-            <path
-              d="M36 70c8 5 18 7 28 6"
-              stroke="#0E2A4A"
-              strokeWidth="1.6"
-              fill="none"
-              strokeLinecap="round"
-              opacity="0.55"
-            />
+      <div className="pt-sky" aria-hidden="true">
+        <svg viewBox="0 0 300 90" className="pt-sky-svg" preserveAspectRatio="none">
+          <path
+            className="pt-plane-trail"
+            d="M6 52 C 70 34, 150 62, 294 40"
+            fill="none"
+          />
+        </svg>
+        <div className="pt-plane">
+          <svg viewBox="0 0 64 64" className="pt-plane-svg">
+            {/* 机身：一张折好的纸，两个折面 + 中缝 */}
+            <path d="M4 30 L60 8 L34 56 L28 38 Z" fill="#FFFFFF" />
+            <path d="M4 30 L28 38 L34 56 Z" fill="#DCE6F5" />
+            <path d="M4 30 L60 8 L28 38 Z" fill="#F2F6FC" />
+            <path d="M28 38 L60 8" stroke="#9FB3D1" strokeWidth="1.1" fill="none" />
           </svg>
         </div>
+      </div>
 
         <p className="pt-title">
-          <span className="pt-shimmer">{t("transition.warping")}</span>
+          <span className="pt-shimmer">{t("transition.flying")}</span>
           <span className="pt-dots" aria-hidden="true">
             <i />
             <i />
