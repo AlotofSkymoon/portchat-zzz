@@ -389,6 +389,19 @@ export class CloudflareStore implements Store {
   }
 
   /* ------------------------------ hset ----------------------------- */
+  /**
+   * ⚠️ 用户 key 走 D1 的固定列映射，**只认下面这几列**：
+   *    id / email / password_hash / role / created_at
+   *
+   * 任何没在映射里的字段（passkeys、twoFactor、nickname、emailVerified…）
+   * 都会被**静默丢弃** —— 写入不报错、读取永远是空。已经踩过一次：
+   * Passkey 早先存在用户记录里，绑定返回成功、列表却空、登录永远说
+   * 「没有对应的账号」，三个症状一个根因，日志上完全看不出异常。
+   *
+   * 所以这类数据请**单独存 key**（走下面「非用户 hash → 整体存 JSON」的分支），
+   * 不要塞进用户记录。要给用户表加字段的话，必须同步改：
+   * schema.sql、这里的 hset 映射、以及 hgetall 的 SELECT 列表，三处缺一不可。
+   */
   async hset(key: string, obj: Record<string, unknown>): Promise<number> {
     if (isUserKey(key)) {
       const id = key.slice(P_USER.length);

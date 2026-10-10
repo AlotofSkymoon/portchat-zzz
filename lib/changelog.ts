@@ -26,6 +26,27 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-10-10",
+    title: { zh: "Passkey 存储重构", en: "Passkey storage rebuilt" },
+    entries: [
+      {
+        tag: "fix",
+        zh: "修复 Passkey 绑定成功却看不到、登录永远提示「没有对应的账号」：凭据原存在用户记录的单个字段里，而该字段在部分存储后端会被静默丢弃（写入不报错、读取永远为空）。现改为独立存储，与用户记录解耦",
+        en: "Fixed passkeys binding successfully yet never showing up, with login always saying 'no matching account'. Credentials used to live in a single field on the user record, which some storage backends silently dropped — the write reported success while reads always came back empty. They are now stored independently of the user record",
+      },
+      {
+        tag: "improve",
+        zh: "登录改用 WebAuthn 标准的 userHandle 反查账号作为主路径，自建索引只作兜底 —— 索引丢失或编码写法不一致时仍能登录",
+        en: "Login now resolves the account via the standard WebAuthn userHandle first, with our own index only as a fallback, so sign-in still works if the index is lost or encodings differ",
+      },
+      {
+        tag: "improve",
+        zh: "凭据匹配放宽为三级（自解凭证 ID → 浏览器回传 ID → 逐字节比对），同一把钥匙不再因字符串写法不同被判为陌生",
+        en: "Credential matching now falls back three ways (decoded ID, browser-returned ID, byte-for-byte), so the same key is never rejected over a difference in string formatting",
+      },
+    ],
+  },
+  {
+    date: "2026-10-10",
     title: { zh: "滑块消耗提示与菜单定位", en: "Effort cost hint & menu placement" },
     entries: [
       {

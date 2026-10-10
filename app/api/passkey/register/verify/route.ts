@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
 import { hasRedisConfig, storageErrorMessage } from "@/lib/redis";
-import { indexCred, nextLabel, readPasskeys, syncIndexes, writePasskeys } from "@/lib/passkey";
+import { indexCred, loadPasskeys, nextLabel, syncIndexes, writePasskeys } from "@/lib/passkey";
 import { requireSyncable, rpConfig, takeChallenge, verifyRegistration } from "@/lib/webauthn";
 
 export const runtime = "nodejs";
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const list = readPasskeys(user);
+    const list = await loadPasskeys(user);
     if (list.some((c) => c.credId === parsed.credId)) {
       return NextResponse.json({ error: "这个 Passkey 已经绑定过了" }, { status: 400 });
     }
@@ -94,6 +94,9 @@ export async function POST(request: Request) {
     list.push({
       id: parsed.credId,
       credId: parsed.credId,
+      // 浏览器回传的写法也存下来：登录时它带回来的就是这个字符串
+      rawId: cred.id ?? cred.rawId,
+      userId: user.id,
       spki: parsed.spki,
       alg: parsed.alg,
       signCount: parsed.signCount,

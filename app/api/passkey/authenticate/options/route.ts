@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
 import { hasRedisConfig, storageErrorMessage } from "@/lib/redis";
-import { readPasskeys } from "@/lib/passkey";
+import { loadPasskeys } from "@/lib/passkey";
 import { randomB64url, rpConfig, saveChallenge } from "@/lib/webauthn";
 
 export const runtime = "nodejs";
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       challenge,
       allowCredentials:
         mode === "reauth" && user
-          ? readPasskeys(user).map((c) => ({
+          ? (await loadPasskeys(user)).map((c) => ({
               id: c.credId,
               type: "public-key",
               transports: c.transports ?? ["internal"],

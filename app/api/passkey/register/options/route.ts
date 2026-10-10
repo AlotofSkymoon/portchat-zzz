@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
 import { hasRedisConfig, storageErrorMessage } from "@/lib/redis";
-import { readPasskeys } from "@/lib/passkey";
+import { loadPasskeys } from "@/lib/passkey";
 import { randomB64url, rpConfig, saveChallenge } from "@/lib/webauthn";
 
 export const runtime = "nodejs";
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     }
 
     const { rpId, rpName } = rpConfig(request);
-    const existing = readPasskeys(user);
+    const existing = await loadPasskeys(user);
 
     if (existing.length >= 10) {
       return NextResponse.json({ error: "最多只能绑定 10 个 Passkey" }, { status: 400 });

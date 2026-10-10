@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
-import { readPasskeys, syncIndexes, writePasskeys } from "@/lib/passkey";
+import { loadPasskeys, syncIndexes, writePasskeys } from "@/lib/passkey";
 import { hasRedisConfig, storageErrorMessage } from "@/lib/redis";
 
 export const runtime = "nodejs";
@@ -17,7 +17,7 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: "请先登录" }, { status: 401 });
 
     return NextResponse.json({
-      passkeys: readPasskeys(user).map((c) => ({
+      passkeys: (await loadPasskeys(user)).map((c) => ({
         id: c.id,
         label: c.label,
         createdAt: c.createdAt,
@@ -53,7 +53,7 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id") ?? "";
-    const list = readPasskeys(user);
+    const list = await loadPasskeys(user);
     const rest = list.filter((c) => c.id !== id);
 
     if (rest.length === list.length) {

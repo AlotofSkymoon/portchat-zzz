@@ -8,8 +8,14 @@ import {
   setSessionCookie,
   toSafeUser,
 } from "@/lib/auth";
-import { findUserByCredId, indexCred, readPasskeys, writePasskeys } from "@/lib/passkey";
-import { getRedis, hasRedisConfig, hgetAll, KEYS, storageErrorMessage } from "@/lib/redis";
+import {
+  findUserByCredId,
+  findUserByHandle,
+  indexCred,
+  loadPasskeys,
+  writePasskeys,
+} from "@/lib/passkey";
+import { hasRedisConfig, hgetAll, KEYS, storageErrorMessage } from "@/lib/redis";
 import { issueTrustCookie } from "@/lib/two-factor";
 import { issueGrant } from "@/lib/reauth";
 import { b64urlDecode, rpConfig, takeChallenge, verifyAssertion } from "@/lib/webauthn";
@@ -127,48 +133,60 @@ export async function POST(request: Request) {
       }
       user = current;
     } else {
-      let uid = await findUserByCredId(credId);
       /*
-       * 回退一：credId 索引没命中，就靠浏览器带回的 userHandle 反查。
-       * 这是 WebAuthn 标准自带的机制（注册时我们写入了 userId），
-       * 专门用来兜「凭据在，但索引丢了 / 写法不一致」这种情况。
+       * 主路径：userHandle 反查（对齐 Cloudreve 的 ValidateDiscoverableLogin）。
+       *
+       * 为什么把它提到第一位：userHandle 是 WebAuthn 标准自带的机制，
+       * 注册时写进去的就是账号 id，不依赖任何我们自己建的索引 ——
+       * 索引丢了、编码写法不一致、甚至存储换过一轮，这条路照样成立。
        */
-      if (!uid) {
-        const handle = decodeUserHandle(cred.response.userHandle);
-        if (handle) {
-          const direct = await hgetAll<UserRecord>(KEYS.user(handle));
-          if (direct?.id) {
-            uid = handle;
-          } else {
-            const byEmail = await getRedis().get<string>(
-              KEYS.userEmail(handle.toLowerCase()),
-            );
-            if (byEmail) uid = byEmail;
-          }
+      const handle = decodeUserHandle(cred.response.userHandle);
+      user = await findUserByHandle(handle);
+
+      // 兜底：credId 索引（老数据可能没写 userHandle，或认证器没带回）
+      if (!user) {
+        const uid = await findUserByCredId(credId);
+        if (uid) {
+          const found = await hgetAll<UserRecord>(KEYS.user(uid));
+          if (found?.id) user = found;
         }
       }
-      if (!uid) {
+
+      if (!user) {
+        // 只打不该外泄的判定依据，不打印任何凭据内容
+        console.error("[passkey/authenticate] 反查账号失败", {
+          cidPrefix: credId.slice(0, 12),
+          handlePresent: Boolean(handle),
+        });
         return NextResponse.json(
-          { error: "这个 Passkey 没有对应的账号（凭证未登记，请重新绑定）" },
+          { error: "这个 Passkey 没有对应的账号，请在设置里重新绑定" },
           { status: 401 },
         );
       }
-      const found = await hgetAll<UserRecord>(KEYS.user(uid));
-      if (found?.id) user = found;
     }
 
     if (!user) {
       return NextResponse.json({ error: "账号不存在" }, { status: 401 });
     }
 
-    const list = readPasskeys(user);
+    const list = await loadPasskeys(user);
     /*
-     * 回退二：用户找到了，但账号里存的 credId 与浏览器给的写法不同。
-     * 逐字节比一次，避免同一把钥匙因为编码写法不同就被判成陌生人。
+     * 三级匹配，逐级放宽：
+     *   1) 我们自己解出的 credId
+     *   2) 浏览器回传的 rawId（字节相同、写法可能不同）
+     *   3) 逐字节比（绕开填充 / 字符集差异）
+     * 同一把钥匙不该因为字符串写法不同就被判成陌生人。
      */
     const credential =
-      list.find((c) => c.credId === credId) || list.find((c) => sameCredId(c.credId, credId));
+      list.find((c) => c.credId === credId) ||
+      list.find((c) => c.rawId && c.rawId === credId) ||
+      list.find((c) => sameCredId(c.credId, credId));
     if (!credential) {
+      console.error("[passkey/authenticate] 账号下没有这把钥匙", {
+        uid: user.id,
+        bound: list.length,
+        cidPrefix: credId.slice(0, 12),
+      });
       return NextResponse.json(
         { error: "这个 Passkey 没有对应的账号（账号下没有这把钥匙）" },
         { status: 401 },
