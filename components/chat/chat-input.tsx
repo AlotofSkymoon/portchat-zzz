@@ -172,69 +172,74 @@ export function ChatInput({
         }
       />
 
-      {/* 底部操作行：模型选择器与发送靠右，附件「+」在最右端 */}
-      <div className="mt-2 flex items-center justify-end gap-1.5">
-        {model && onModelChange ? (
-          <ModelPicker
-            value={model}
-            onChange={onModelChange}
-            customProviders={customProviders}
-            keys={keys}
-            extraModels={extraModels}
-            effort={effort}
-            onEffortChange={onEffortChange}
-            thinkingSupported={thinkingSupported}
-            thinking={thinking}
-            onThinkingChange={onThinkingChange}
-            webSearchSupported={webSearchSupported}
-            webSearch={webSearch}
-            onWebSearchChange={onWebSearchChange}
-          />
-        ) : null}
+      {/* 底部操作行：附件「+」在最左，模型选择器与发送靠右 */}
+      <div className="mt-2 flex items-center justify-between gap-1.5">
+        {/* 附件：+ 号，最左端 */}
+        <div className="flex items-center gap-1.5">
+          {onPickFiles ? (
+            <>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                title={t("input.attachTip")}
+                aria-label={t("input.attach")}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-fg-tertiary transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.5} />
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                multiple
+                hidden
+                onChange={(e) => {
+                  if (e.target.files?.length) onPickFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </>
+          ) : null}
+        </div>
 
-        {streaming ? (
-          <button
-            onClick={onStop}
-            className="flex h-8 items-center gap-1.5 rounded-full border border-border bg-background px-3.5 text-sm transition-colors hover:bg-muted"
-          >
-            <Square className="h-3.5 w-3.5 fill-current" />
-            {t("input.stop")}
-          </button>
-        ) : (
-          <button
-            onClick={onSubmit}
-            disabled={!value.trim() && attachments.length === 0}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#4D6BFE] text-white transition-all hover:bg-[#3757E4] disabled:cursor-not-allowed disabled:bg-muted disabled:text-fg-quaternary"
-            title={t("input.send")}
-          >
-            <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
-          </button>
-        )}
-
-        {/* 附件：+ 号，最右端 */}
-        {onPickFiles ? (
-          <>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              title={t("input.attachTip")}
-              aria-label={t("input.attach")}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-fg-tertiary transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.5} />
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              multiple
-              hidden
-              onChange={(e) => {
-                if (e.target.files?.length) onPickFiles(e.target.files);
-                e.target.value = "";
-              }}
+        {/* 右侧组：模型选择器 + 发送 / 停止 */}
+        <div className="flex items-center gap-1.5">
+          {model && onModelChange ? (
+            <ModelPicker
+              value={model}
+              onChange={onModelChange}
+              customProviders={customProviders}
+              keys={keys}
+              extraModels={extraModels}
+              effort={effort}
+              onEffortChange={onEffortChange}
+              thinkingSupported={thinkingSupported}
+              thinking={thinking}
+              onThinkingChange={onThinkingChange}
+              webSearchSupported={webSearchSupported}
+              webSearch={webSearch}
+              onWebSearchChange={onWebSearchChange}
             />
-          </>
-        ) : null}
+          ) : null}
+
+          {streaming ? (
+            <button
+              onClick={onStop}
+              className="flex h-8 items-center gap-1.5 rounded-full border border-border bg-background px-3.5 text-sm transition-colors hover:bg-muted"
+            >
+              <Square className="h-3.5 w-3.5 fill-current" />
+              {t("input.stop")}
+            </button>
+          ) : (
+            <button
+              onClick={onSubmit}
+              disabled={!value.trim() && attachments.length === 0}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#4D6BFE] text-white transition-all hover:bg-[#3757E4] disabled:cursor-not-allowed disabled:bg-muted disabled:text-fg-quaternary"
+              title={t("input.send")}
+            >
+              <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

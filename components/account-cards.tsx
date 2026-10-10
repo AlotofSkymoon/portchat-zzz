@@ -604,6 +604,27 @@ function fromB64urlStr(text: string): Uint8Array {
  * （iCloud 钥匙圈 / Google 密码管理器 / 1Password 都是），BE=0 表示只在本机、丢了就没了。
  * 服务端用 BE 作为代理判据，BE=0 会被拒绝，并在 UI 上把「不同步」的钥匙标出来。
  */
+/**
+ * 把 Passkey 失败的真实原因说出来。
+ *
+ * 之前 catch 里一律弹「添加失败」，等于让人瞎猜：
+ * 取消、超时、已注册过、域名不是 HTTPS、密钥不同步 —— 原因差别很大，
+ * 处理办法完全不同。WebAuthn 的异常带 name 字段，直接映射成能看懂的话。
+ */
+function passkeyErrorText(err: unknown, t: (key: string) => string): string {
+  const name = (err as { name?: string } | null | undefined)?.name ?? "";
+  const known: Record<string, string> = {
+    NotAllowedError: t("settings.passkeyErrNotAllowed"),
+    InvalidStateError: t("settings.passkeyErrRegistered"),
+    SecurityError: t("settings.passkeyErrDomain"),
+    AbortError: t("settings.passkeyErrAbort"),
+  };
+  if (name && known[name]) return known[name];
+  const msg = err instanceof Error ? err.message : "";
+  if (msg) return `${t("settings.passkeyAddFailed")}（${msg}）`;
+  return t("settings.passkeyAddFailed");
+}
+
 export function PasskeyCard() {
   const { t } = useI18n();
   const [loading, setLoading] = React.useState(true);
@@ -710,8 +731,8 @@ export function PasskeyCard() {
       }
       toast.success(t("settings.passkeyAdded"));
       await load();
-    } catch {
-      toast.error(t("settings.passkeyAddFailed"));
+    } catch (err) {
+      toast.error(passkeyErrorText(err, t));
     } finally {
       setBusy(false);
     }
@@ -753,8 +774,20 @@ export function PasskeyCard() {
         <div className="pr-3">
           <p className="text-sm font-medium">{t("settings.passkey")}</p>
           <p className="text-xs text-muted-foreground">{t("settings.passkeyDesc")}</p>
+          {/* 绑定状态直接显示有几把 —— 绑没绑成功一眼能看到，不用去猜 */}
+          <p className="mt-1 text-xs">
+            {items.length > 0 ? (
+              <span className="font-medium text-emerald-500">
+                {t("settings.passkeyBoundCount", { n: items.length })}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">{t("settings.passkeyNone")}</span>
+            )}
+          </p>
         </div>
-        <Fingerprint className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+        <Fingerprint
+          className={`mt-0.5 h-4 w-4 shrink-0 ${items.length > 0 ? "text-emerald-500" : "text-muted-foreground"}`}
+        />
       </div>
 
       {items.length > 0 ? (
@@ -763,9 +796,14 @@ export function PasskeyCard() {
             <li key={p.id} className="flex items-center justify-between gap-2 text-xs">
               <span className="truncate">
                 {p.label}
+                <span className="ml-1.5 text-[11px] text-muted-foreground">
+                  {new Date(p.createdAt).toLocaleDateString()}
+                </span>
                 {p.synced === false ? (
                   <span className="ml-1 text-amber-500">{t("settings.passkeyNotSynced")}</span>
-                ) : null}
+                ) : (
+                  <span className="ml-1 text-emerald-500">{t("settings.passkeySynced")}</span>
+                )}
               </span>
               <Button
                 type="button"
