@@ -173,15 +173,22 @@ export function PageTransition() {
       aria-live="polite"
       aria-busy={!leaving}
     >
-      <div className="pt-sky" aria-hidden="true">
-        <svg viewBox="0 0 300 90" className="pt-sky-svg" preserveAspectRatio="none">
-          <path
-            className="pt-plane-trail"
-            d="M6 52 C 70 34, 150 62, 294 40"
-            fill="none"
-          />
+      <div className="pt-badge" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-icon.png" alt="" />
+      </div>
+
+      <div className="pt-row">
+        <svg
+          className="pt-trail"
+          viewBox="0 0 160 44"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path className="pt-trail-line" d="M2 31 C 44 25, 98 35, 158 21" fill="none" />
         </svg>
-        <div className="pt-plane">
+
+        <span className="pt-plane" aria-hidden="true">
           <svg viewBox="0 0 64 64" className="pt-plane-svg">
             {/* 机身：一张折好的纸，两个折面 + 中缝 */}
             <path d="M4 30 L60 8 L34 56 L28 38 Z" fill="#FFFFFF" />
@@ -189,22 +196,18 @@ export function PageTransition() {
             <path d="M4 30 L60 8 L28 38 Z" fill="#F2F6FC" />
             <path d="M28 38 L60 8" stroke="#9FB3D1" strokeWidth="1.1" fill="none" />
           </svg>
-        </div>
-      </div>
-
-      <p className="pt-title">
-        <span className="pt-shimmer">{t("transition.flying")}</span>
-        <span className="pt-dots" aria-hidden="true">
-          <i />
-          <i />
-          <i />
         </span>
-      </p>
 
-      {label ? <p className="pt-dest">{label}</p> : null}
-
-      <div className="pt-bar" aria-hidden="true">
-        <span />
+        <div className="pt-text">
+          <p className="pt-line1">
+            {t("transition.flying")}
+            <span className="pt-ell">…</span>
+            {label ? <span className="pt-dest">{label}</span> : null}
+          </p>
+          <span className="pt-progress" aria-hidden="true">
+            <i />
+          </span>
+        </div>
       </div>
     </div>
   );

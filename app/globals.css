@@ -2490,7 +2490,7 @@ body {
 }
 
 /* ==========================================================================
-   页面切换过渡 · 一只纸飞机飞过
+   页面切换过渡 · 一只纸飞机从左飞入，右侧跟着目的地
    ========================================================================== */
 
 .pt-overlay {
@@ -2501,8 +2501,9 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  background: #07080d;
   background:
-    radial-gradient(110% 90% at 50% 45%, rgba(28, 34, 58, 0.98) 0%, rgba(11, 13, 24, 0.99) 60%, rgba(6, 7, 14, 1) 100%);
+    radial-gradient(120% 100% at 50% 50%, rgba(18, 20, 30, 0.96) 0%, rgba(9, 10, 16, 0.99) 55%, rgba(5, 5, 9, 1) 100%);
 }
 
 /* 退场时不再拦截点击：新页面已经渲染好，不该让用户再等一层遮罩 */
@@ -2512,7 +2513,7 @@ body {
 }
 
 .pt-overlay-enter {
-  animation: pt-fade-in 240ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: pt-fade-in 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes pt-fade-in {
@@ -2525,271 +2526,178 @@ body {
   to { opacity: 0; }
 }
 
-/* --- 纸飞机航迹 --- */
-.pt-sky {
-  position: relative;
-  width: min(320px, 74vw);
-  height: 88px;
+/* --- 右上角小徽标 --- */
+.pt-badge {
+  position: absolute;
+  top: clamp(18px, 4vh, 34px);
+  right: clamp(18px, 4vw, 34px);
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(140deg, #ff9dbd 0%, #f66d9c 100%);
+  box-shadow: 0 6px 18px rgba(246, 109, 156, 0.28);
+  animation: pt-badge-in 520ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
-.pt-sky-svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+.pt-badge img {
+  width: 21px;
+  height: 21px;
+  border-radius: 5px;
+  /* 原图是蓝橙双色，压成纯白剪影才看得清 */
+  filter: brightness(0) invert(1);
+}
+
+@keyframes pt-badge-in {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* --- 一行：航迹 → 飞机 → 文字 --- */
+.pt-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 2.4vw, 18px);
+  padding: 0 clamp(22px, 7vw, 64px);
+  max-width: 100%;
+}
+
+/* 航迹：虚线从左向右画出 */
+.pt-trail {
+  flex: 0 0 auto;
+  width: clamp(74px, 21vw, 168px);
+  height: 44px;
   overflow: visible;
 }
 
-.pt-plane-trail {
-  stroke: rgba(160, 190, 255, 0.5);
-  stroke-width: 1.6;
+.pt-trail-line {
+  stroke: #9fc4ff;
+  stroke-width: 1.7;
   stroke-linecap: round;
-  stroke-dasharray: 7 9;
-  /* 虚线沿航线自己画出来：dashoffset 从总长收回到 0 */
-  stroke-dashoffset: 420;
-  animation: pt-trail 1100ms ease-out forwards;
+  stroke-dasharray: 6 8;
+  /* dashoffset 从总长收回 0：虚线自己"长"出来 */
+  stroke-dashoffset: 320;
+  animation: pt-trail 720ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 @keyframes pt-trail {
   to { stroke-dashoffset: 0; }
 }
 
-/*
- * 横飞用 left 的百分比而不是 translateX ——
- * transform 的百分比是相对元素自身尺寸的，走不出容器宽度；
- * left 的百分比才是相对「航迹容器」，能保证飞机正好穿出右边界。
- */
+/* 飞机：从左侧飞入，停在文字左边 */
 .pt-plane {
-  position: absolute;
-  top: 14px;
-  left: -12%;
-  width: 34px;
-  height: 34px;
-  animation: pt-fly 1100ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  flex: 0 0 auto;
+  width: clamp(26px, 7vw, 34px);
+  height: clamp(26px, 7vw, 34px);
+  animation: pt-fly 720ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 .pt-plane-svg {
   width: 100%;
   height: 100%;
   overflow: visible;
-  filter: drop-shadow(0 4px 12px rgba(120, 165, 255, 0.4));
-  animation: pt-bob 900ms ease-in-out infinite;
+  filter: drop-shadow(0 3px 10px rgba(150, 190, 255, 0.35));
 }
 
 @keyframes pt-fly {
-  0% { left: -12%; transform: translateY(8px) rotate(-6deg) scale(0.88); }
-  30% { transform: translateY(-4px) rotate(2deg) scale(1); }
-  100% { left: 104%; transform: translateY(-16px) rotate(7deg) scale(0.84); }
+  0% { transform: translateX(-190px) translateY(9px) rotate(-7deg) scale(0.86); opacity: 0; }
+  22% { opacity: 1; }
+  70% { transform: translateX(0) translateY(-3px) rotate(2deg) scale(1); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); opacity: 1; }
 }
 
-@keyframes pt-bob {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-3px) rotate(-2deg); }
-}
-
-/* --- 中央内容 --- */
-.pt-content {
-  position: relative;
-  z-index: 1;
+/* --- 右侧文字 --- */
+.pt-text {
+  flex: 0 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 22px;
-  padding: 24px;
-  text-align: center;
+  gap: 5px;
+  animation: pt-text-in 460ms 180ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
-/* --- 旋转光环（Aceternity moving-border 思路，用 transform 而非 @property，
-       老 Safari 不支持 @property 时也不会整条失效）--- */
-.pt-core {
-  position: relative;
-  width: 92px;
-  height: 92px;
+@keyframes pt-text-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
-.pt-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: conic-gradient(
-    from 0deg,
-    rgba(77, 107, 254, 0) 0deg,
-    rgba(77, 107, 254, 0.95) 60deg,
-    rgba(167, 108, 254, 0.95) 120deg,
-    rgba(77, 107, 254, 0) 200deg,
-    rgba(77, 107, 254, 0) 360deg
-  );
-  animation: pt-spin 1.5s linear infinite;
-}
-
-.pt-ring-2 {
-  inset: 10px;
-  background: conic-gradient(
-    from 0deg,
-    rgba(167, 108, 254, 0) 0deg,
-    rgba(167, 108, 254, 0.9) 80deg,
-    rgba(255, 255, 255, 0.8) 140deg,
-    rgba(167, 108, 254, 0) 220deg,
-    rgba(167, 108, 254, 0) 360deg
-  );
-  animation: pt-spin 2.4s linear infinite reverse;
-}
-
-.pt-hole {
-  position: absolute;
-  inset: 3px;
-  border-radius: 9999px;
-  background: radial-gradient(circle at 50% 40%, rgba(24, 30, 60, 1) 0%, rgba(8, 10, 20, 1) 100%);
-}
-
-.pt-core-glow {
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: radial-gradient(circle, rgba(77, 107, 254, 0.35) 0%, rgba(77, 107, 254, 0) 65%);
-  animation: pt-breathe 1.8s ease-in-out infinite;
-}
-
-@keyframes pt-spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes pt-breathe {
-  0%, 100% { opacity: 0.5; transform: scale(0.94); }
-  50% { opacity: 1; transform: scale(1.06); }
-}
-
-/* --- 标题：流光扫过 --- */
-.pt-title {
+.pt-line1 {
   margin: 0;
-  font-size: 17px;
+  font-size: clamp(15px, 3.9vw, 19px);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  line-height: 1.5;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  color: #ffffff;
+  white-space: nowrap;
 }
 
-.pt-shimmer {
-  background-image: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 1) 42%,
-    rgba(178, 200, 255, 1) 52%,
-    rgba(255, 255, 255, 1) 62%,
-    rgba(255, 255, 255, 0.5) 100%
-  );
-  background-size: 220% 100%;
-  background-position: 200% 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  animation: pt-shimmer 1.7s linear infinite;
+.pt-ell {
+  color: #8fa8cc;
+  margin: 0 2px;
 }
 
-@keyframes pt-shimmer {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
+.pt-dest {
+  margin: 0 0 0 1px;
+  font-size: clamp(15px, 3.9vw, 19px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #7fb0ff;
+  white-space: nowrap;
+}
+
+/* 细线进度：不知道还要多久，就走 indeterminate，不撒谎给百分比 */
+.pt-progress {
+  position: relative;
+  margin-top: 3px;
+  width: clamp(90px, 26vw, 168px);
+  height: 2px;
+  border-radius: 9999px;
+  background: rgba(140, 170, 220, 0.16);
+  overflow: hidden;
+}
+
+.pt-progress i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, rgba(127, 176, 255, 0) 0%, #7fb0ff 55%, #ffffff 100%);
+  animation: pt-slide 1.15s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes pt-slide {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(260%); }
 }
 
 /*
- * background-clip: text 万一不被支持，上面的 color: transparent 会让文字彻底消失。
- * 这里兜底成实色，宁可没有流光也不能看不见字。
+ * 减少动态效果：把"飞"换成"停"。
+ * 航迹画满、飞机与文字直接就位，只留最轻的呼吸 ——
+ * 直接掐掉动画会让遮罩看起来像卡死。
  */
-@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
-  .pt-shimmer {
-    background-image: none;
-    color: #fff;
-    -webkit-text-fill-color: #fff;
-    animation: none;
-  }
-}
-
-/* --- 省略号 --- */
-.pt-dots {
-  display: inline-flex;
-  gap: 3px;
-  margin-left: 4px;
-  vertical-align: baseline;
-}
-
-.pt-dots i {
-  width: 3px;
-  height: 3px;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.9);
-  animation: pt-dot 1.05s ease-in-out infinite;
-}
-
-.pt-dots i:nth-child(2) { animation-delay: 0.14s; }
-.pt-dots i:nth-child(3) { animation-delay: 0.28s; }
-
-@keyframes pt-dot {
-  0%, 100% { opacity: 0.25; transform: translateY(0); }
-  50% { opacity: 1; transform: translateY(-3px); }
-}
-
-/* --- 目标页名 --- */
-.pt-dest {
-  margin: -8px 0 0;
-  font-size: 12.5px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  color: rgba(190, 205, 255, 0.72);
-}
-
-/* --- 底部流光条 --- */
-.pt-bar {
-  position: relative;
-  width: 168px;
-  height: 2px;
-  border-radius: 9999px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.pt-bar span {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 44%;
-  height: 100%;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, rgba(77, 107, 254, 0) 0%, #4d6bfe 45%, #a76cfe 60%, rgba(167, 108, 254, 0) 100%);
-  animation: pt-bar 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
-@keyframes pt-bar {
-  from { transform: translateX(-110%); }
-  to { transform: translateX(240%); }
-}
-
-/* --- 尊重系统「减少动态效果」--- */
 @media (prefers-reduced-motion: reduce) {
-  .pt-overlay-enter,
-  .pt-overlay-exit {
-    animation-duration: 120ms;
-  }
-  .pt-ring,
-  .pt-ring-2,
-  .pt-core-glow,
-  .pt-bar span,
-  .pt-dots i,
-  .pt-shimmer {
+  .pt-trail-line,
+  .pt-plane,
+  .pt-text,
+  .pt-badge {
     animation: none;
   }
-  /* 飞机不飞了也不能消失在画面外，静态停在航迹中段 */
-  .pt-plane {
-    animation: none;
-    left: 42%;
-    transform: none;
+  .pt-trail-line { stroke-dashoffset: 0; }
+  .pt-plane { opacity: 1; transform: none; }
+  .pt-text { opacity: 1; transform: none; }
+  .pt-progress i {
+    animation: pt-breathe-line 2.4s ease-in-out infinite;
+    width: 100%;
+    background: rgba(127, 176, 255, 0.75);
   }
-  .pt-plane-svg {
-    animation: none;
-  }
-  .pt-plane-trail {
-    animation: none;
-    stroke-dashoffset: 0;
-  }
+}
+
+@keyframes pt-breathe-line {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
 
 /* ==========================================================================
