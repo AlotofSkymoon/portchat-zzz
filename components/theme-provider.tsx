@@ -35,6 +35,15 @@ const VARIANT_KEY = "agnes:ui-variant";
  */
 export type UiVariant = "web" | "ios";
 
+/**
+ * 界面变体的用户意图。
+ *
+ * "auto" 跟着运行环境走：装成 PWA（standalone）就是 ios，浏览器标签里就是 web。
+ * 之前只有隐式的"跟着环境走"，用户在浏览器里根本没法主动开，
+ * 加到主屏幕一旦判定失败也无从手动补救 —— 所以这里把它变成显式三态。
+ */
+export type VariantPref = "auto" | "ios" | "web";
+
 interface ThemeContextValue {
   /** 用户的选择（可能是 system） */
   theme: Theme;
@@ -53,6 +62,9 @@ interface ThemeContextValue {
   /** 界面变体：web = 常规，ios = PWA 解锁的 Apple 观感 */
   variant: UiVariant;
   setVariant: (variant: UiVariant) => void;
+  /** 用户的意图：auto 跟随环境，ios / web 手动锁定 */
+  variantPref: VariantPref;
+  setVariantPref: (pref: VariantPref) => void;
   /** 当前是否以 standalone（已安装 PWA）方式运行 */
   standalone: boolean;
 }
@@ -62,6 +74,38 @@ const ThemeContext = React.createContext<ThemeContextValue | undefined>(undefine
 function readSystemTheme(): ResolvedTheme {
   if (typeof window === "undefined" || !window.matchMedia) return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+/**
+ * 判断是否以"已安装"的方式运行。
+ *
+ * 四种情况都要算进来，少一种就会有用户加到主屏幕却拿不到 iOS 观感：
+ * - display-mode: standalone —— 标准写法，iOS 15.4+ / Chrome / Edge
+ * - display-mode: fullscreen —— 部分 Android 桌面应用模式
+ * - display-mode: minimal-ui —— iOS 某些从主屏幕打开的降级情形
+ * - navigator.standalone —— iOS 的老私有属性，至今仍是判定的兜底
+ *
+ * iOS 上如果站点缺 apple-mobile-web-app-capable，从主屏幕打开会走普通 Safari，
+ * 上面四种全为 false —— 那种情况只能靠设置里手动锁定。
+ */
+export function detectStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const mm = window.matchMedia?.bind(window);
+    if (mm) {
+      const modes = ["(display-mode: standalone)", "(display-mode: fullscreen)", "(display-mode: minimal-ui)"];
+      for (const m of modes) {
+        if (mm(m).matches) return true;
+      }
+    }
+  } catch {
+    /* matchMedia 在某些内置浏览器里会抛，忽略后走 navigator 兜底 */
+  }
+  try {
+    return (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -126,6 +170,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [systemTheme, setSystemTheme] = React.useState<ResolvedTheme>("light");
   const [preset, setPresetState] = React.useState<ThemePreset>(SITE_THEME);
   const [variant, setVariantState] = React.useState<UiVariant>("web");
+  const [variantPref, setVariantPrefState] = React.useState<VariantPref>("auto");
   const [standalone, setStandalone] = React.useState(false);
 
   React.useEffect(() => {
@@ -151,24 +196,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const forcedWeb = q.get("ios") === "0";
     const storedVariant = localStorage.getItem(VARIANT_KEY);
     const saMq = window.matchMedia?.("(display-mode: standalone)");
-    const isStandalone = !!(
-      saMq?.matches ||
-      (navigator as Navigator & { standalone?: boolean }).standalone === true
-    );
+    const isStandalone = detectStandalone();
     setStandalone(isStandalone);
 
-    const initialVariant: UiVariant = forcedWeb
-      ? "web"
-      : forcedIos || storedVariant === "ios"
-        ? "ios"
-        : isStandalone
-          ? "ios"
-          : "web";
+    // 旧的存储值只有 "ios" / "web"，等价于手动锁定；"auto" 是新增的跟随态。
+    const storedPref: VariantPref =
+      storedVariant === "ios" || storedVariant === "web" || storedVariant === "auto"
+        ? (storedVariant as VariantPref)
+        : "auto";
+    const initialPref: VariantPref = forcedIos ? "ios" : forcedWeb ? "web" : storedPref;
+    setVariantPrefState(initialPref);
+
+    const initialVariant: UiVariant =
+      initialPref === "auto" ? (isStandalone ? "ios" : "web") : initialPref;
     setVariantState(initialVariant);
     document.documentElement.dataset.variant = initialVariant;
-    // 只有显式用 ?ios= 才写进存储 —— 否则 standalone 是"跟着环境走"，
+    // 只有显式用 ?ios= 才写进存储 —— 否则 auto 是"跟着环境走"，
     // 用户从主屏幕切回浏览器标签时会自动回到 web 观感，不会锁死。
-    if (forcedIos || forcedWeb) localStorage.setItem(VARIANT_KEY, initialVariant);
+    if (forcedIos || forcedWeb) localStorage.setItem(VARIANT_KEY, initialPref);
 
     /**
      * 监听系统偏好变化。
@@ -187,11 +232,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     mq?.addEventListener("change", onChange);
 
     // 从浏览器标签装到主屏幕（或反过来）时实时跟随
-    const onSa = (e: MediaQueryListEvent) => {
-      setStandalone(e.matches);
+    const onSa = () => {
+      const sa = detectStandalone();
+      setStandalone(sa);
       const pinned = localStorage.getItem(VARIANT_KEY);
+      // 手动锁定过（ios / web）就不跟着环境跳，只有 auto 才跟随
       if (pinned === "ios" || pinned === "web") return;
-      const next: UiVariant = e.matches ? "ios" : "web";
+      const next: UiVariant = sa ? "ios" : "web";
       setVariantState(next);
       document.documentElement.dataset.variant = next;
     };
@@ -248,8 +295,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setVariant = React.useCallback((next: UiVariant) => {
     setVariantState(next);
+    setVariantPrefState(next);
     localStorage.setItem(VARIANT_KEY, next);
     document.documentElement.dataset.variant = next;
+  }, []);
+
+  /**
+   * 设置意图。auto 不直接决定外观 —— 要按当前是否在 standalone 里再算一次，
+   * 否则用户在浏览器里切到 auto 会瞬间变成 web，切到主屏幕又不会自动变 ios。
+   */
+  const setVariantPref = React.useCallback((next: VariantPref) => {
+    setVariantPrefState(next);
+    localStorage.setItem(VARIANT_KEY, next);
+    const resolved: UiVariant = next === "auto" ? (detectStandalone() ? "ios" : "web") : next;
+    setVariantState(resolved);
+    document.documentElement.dataset.variant = resolved;
   }, []);
 
   const resolvedTheme: ResolvedTheme =
@@ -267,6 +327,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setPreset,
       variant,
       setVariant,
+      variantPref,
+      setVariantPref,
       standalone,
     }),
     [
@@ -280,6 +342,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setPreset,
       variant,
       setVariant,
+      variantPref,
+      setVariantPref,
       standalone,
     ],
   );
@@ -322,14 +386,23 @@ r.dataset.theme=${JSON.stringify(THEME_IDS)}.indexOf(p)>=0?p:'${SITE_THEME}';
 export const variantInitScript = `(function(){try{
 var r=document.documentElement;
 var q=location.search;
-var force1=/[?&]ios=1(?![\w=])/.test(q);
-var force0=/[?&]ios=0(?![\w=])/.test(q);
+var force1=/[?&]ios=1(?![\\w=])/.test(q);
+var force0=/[?&]ios=0(?![\\w=])/.test(q);
 var s=localStorage.getItem('${VARIANT_KEY}');
-var sa=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
-var v='web';
+var sa=false;
+try{
+  var mm=window.matchMedia;
+  if(mm){
+    sa=mm('(display-mode: standalone)').matches||mm('(display-mode: fullscreen)').matches||mm('(display-mode: minimal-ui)').matches;
+  }
+}catch(e){}
+try{ if(!sa){ sa=navigator.standalone===true; } }catch(e){}
+var v;
 if(force0)v='web';
 else if(force1)v='ios';
 else if(s==='ios'||s==='web')v=s;
-else if(sa)v='ios';
+else v=sa?'ios':'web';
 r.setAttribute('data-variant',v);
+if(force0){try{localStorage.setItem('${VARIANT_KEY}','web');}catch(e){}}
+else if(force1){try{localStorage.setItem('${VARIANT_KEY}','ios');}catch(e){}}
 }catch(e){document.documentElement.setAttribute('data-variant','web');}})();`;

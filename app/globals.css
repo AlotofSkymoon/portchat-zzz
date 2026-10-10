@@ -3259,6 +3259,63 @@ html[data-variant="ios"] body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ---- 一眼能认出来的差异 ----
+   上面那些（字体、圆角、模糊、安全区）单独看很难察觉，
+   深色模式下尤其如此。这里补几处肉眼可见的：
+   iOS system blue 强调色、iOS 分段控件、蓝色圆形发送按钮。 */
+
+html[data-variant="ios"] {
+  --primary: 211 100% 50%;   /* #007aff iOS system blue（浅色） */
+  --ring: 211 100% 50%;
+}
+
+html[data-variant="ios"].dark {
+  --primary: 211 100% 62%;   /* #0a84ff iOS system blue（深色） */
+  --ring: 211 100% 62%;
+}
+
+/* 顶栏 / 底栏：iOS 毛玻璃的"厚材质"—— 更强模糊 + 顶边高光 */
+html[data-variant="ios"] .liquid-bar {
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  border-top: 0.5px solid color-mix(in srgb, #fff 14%, transparent);
+}
+
+/* iOS 分段控件：选中项是胶囊，不是描边 */
+html[data-variant="ios"] [data-ios-segment] {
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+  border-radius: var(--r-default);
+  padding: 2px;
+}
+html[data-variant="ios"] [data-ios-segment] > * {
+  border-radius: calc(var(--r-default) - 2px);
+}
+html[data-variant="ios"] [data-ios-segment] > [data-active="true"] {
+  background: var(--bg);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+}
+
+/* 发送按钮：蓝色圆形，iOS 消息 App 的那个 */
+html[data-variant="ios"] [data-ios-send] {
+  background: hsl(var(--primary));
+  color: #fff;
+  border-radius: 9999px;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.35);
+}
+
+/* 列表分组标题：iOS 设置里的样式 —— 大写 + 字距 + 上移 */
+html[data-variant="ios"] [data-ios-group-title] {
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--fg) 55%, transparent);
+}
+
 /* ---- reduced motion：淡入替代位移 ---- */
 @media (prefers-reduced-motion: reduce) {
   html[data-variant="ios"] .liquid-glass,

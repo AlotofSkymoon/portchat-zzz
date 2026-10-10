@@ -55,8 +55,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {/* 界面变体必须在首帧前定下来，否则会先渲染 web 观感再跳成 iOS 观感 */}
         <script dangerouslySetInnerHTML={{ __html: variantInitScript }} />
-        {/* apple-mobile-web-app-* 三个标签已由 metadata.appleWebApp 生成，这里只补它不管的 */}
+        {/* iOS 从主屏幕打开时是否全屏运行，只认这两个 meta —— 不靠 manifest 的 display。
+            少了它们，加到主屏幕会以普通 Safari 打开（带地址栏），
+            display-mode: standalone 永远不匹配，iOS 观感也就永远不会自动解锁。
+            这里手写而不依赖 metadata.appleWebApp 生成，避免框架版本变化导致标签消失。 */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content={SITE_NAME} />
         <meta name="format-detection" content="telephone=no" />
         {/* 拉丁字形是首屏必需的（SF Pro），优先预加载；中日韩部分按需加载 */}
         <link

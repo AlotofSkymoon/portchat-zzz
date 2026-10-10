@@ -45,7 +45,7 @@ import {
   type CustomProviderConfig,
   type ProviderId,
 } from "@/lib/config";
-import { Plus, Pencil, Search, Check as CheckIcon, X as XIcon } from "lucide-react";
+import { Plus, Pencil, Search, Check as CheckIcon, X as XIcon, Smartphone } from "lucide-react";
 import {
   ALLOW_CUSTOM_BASE_URL,
   ALLOW_CUSTOM_KEY,
@@ -863,7 +863,7 @@ export function SettingsDialog({
     };
   }, [open]);
 
-  const { preset, setPreset } = useTheme();
+  const { preset, setPreset, variantPref, setVariantPref, standalone } = useTheme();
 
   /**
    * 权限分流：普通用户只能改「配色主题」和「自己的 API Key」。
@@ -1070,6 +1070,38 @@ export function SettingsDialog({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* iOS 观感：auto 跟随环境（从主屏幕打开自动切），ios / web 手动锁定 */}
+          <div className="space-y-2 rounded-xl border border-border/70 bg-card/40 p-3">
+            <Label className="flex items-center gap-2">
+              <Smartphone className="h-4 w-4" />
+              {t("settings.iosLook")}
+            </Label>
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  ["auto", t("settings.iosLookAuto")],
+                  ["ios", t("settings.iosLookOn")],
+                  ["web", t("settings.iosLookOff")],
+                ] as const
+              ).map(([v, label]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setVariantPref(v)}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-sm transition-colors",
+                    variantPref === v ? "border-primary bg-primary/10" : "border-border hover:bg-muted",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-fg-tertiary">
+              {standalone ? t("settings.iosLookDetected") : t("settings.iosLookNotDetected")}
+            </p>
           </div>
 
           {/* 界面语言：简体 → 繁体 → 英文 → 法文 */}
