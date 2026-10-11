@@ -295,7 +295,7 @@ html.theme-transitioning *::after {
   }
 
   /* ==========================================================================
-     主题预设：data-theme="fuwari" | data-theme="violet-rose"
+     主题预设：data-theme="anthropic" | data-theme="sidefolio" | data-theme="material3"
      放在 :root 与 .dark 之后，通过更高特异性覆盖明暗基础色
      ========================================================================== */
 
@@ -616,136 +616,7 @@ body {
    圆角中等（Claude 卡片 16-24px，控件 8px），不做大圆角糖果风。
    行高放宽到 1.6，读起来像在读一本书而不是在操作仪表盘。
    ========================================================================== */
-[data-theme="swiftui"] {
-  /* ---- 字体：SF 系列是系统字体，无需额外加载 ---- */
-  /* 中文必须排在 -apple-system 之前：SF Pro 不含汉字，一旦让系统字体先匹配，
-     中文就会落到 PingFang / Noto，昭源環方永远轮不上 */
-  --font-sans: "SF Pro Text", "SF Pro Display", var(--font-tc), -apple-system,
-    BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
-  --font-serif: "New York", "SF Pro Serif", var(--font-tc), Georgia, Cambria, serif;
-  --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  /* ---- 颜色：Apple system colors（light） ----
-     systemGroupedBackground #F2F2F7 / secondarySystemGroupedBackground #FFFFFF
-     label #000 / secondaryLabel #3C3C43 / separator rgba(60,60,67,.29)
-     systemBlue #007AFF / systemRed #FF3B30 ---- */
-  --background: 240 24% 96%;
-  --foreground: 0 0% 0%;
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 0%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 0%;
 
-  --primary: 211 100% 50%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 240 2% 57%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 240 24% 96%;
-  --muted-foreground: 240 2% 57%;
-  --accent: 240 11% 91%;
-  --accent-foreground: 0 0% 0%;
-  --destructive: 3 100% 59%;
-  --destructive-foreground: 0 0% 100%;
-
-  --border: 240 2% 78%;
-  --input: 240 2% 78%;
-  --ring: 211 100% 50%;
-
-  --sidebar: 240 24% 96%;
-  --sidebar-foreground: 0 0% 0%;
-  --assistant-bubble: 0 0% 100%;
-  --user-bubble: 211 100% 50%;
-  --user-bubble-foreground: 0 0% 100%;
-
-  --text-secondary: 240 6% 25%;
-  --text-tertiary: 240 2% 57%;
-  --text-quaternary: 240 5% 79%;
-  /* ---- 形状：SwiftUI 连续圆角，单元格偏方、卡片偏圆 ---- */
-  --radius-ctrl: var(--r-xl);   /* 10px SwiftUI 按钮 */
-  --radius-card: var(--r-2xl);   /* 14px SwiftUI 卡片 */
-  --radius-panel: var(--r-4xl);   /* 20px SwiftUI 大面板 */
-  --radius-pill: 999px;
-
-  --r-sm: 0.375rem;
-  --r-default: 0.625rem;
-  --r-md: 0.75rem;
-  --r-lg: 0.875rem;
-  --r-xl: 1rem;
-  --r-2xl: 1.25rem;
-  --r-3xl: 1.5rem;
-  --r-4xl: 1.75rem;
-  /* ---- 表面：SwiftUI 几乎不用阴影，靠 0.5px 发丝分隔线分层 ---- */
-  --shadow-card: 0 0.5px 1px 0 hsl(0 0% 0% / 0.04);
-  --shadow-panel: 0 8px 30px -10px hsl(0 0% 0% / 0.14);
-  --card-border-w: 0.5px;
-  --card-border: 240 2% 78%;
-  /* ---- 玻璃：Apple 材质，厚模糊 + 高饱和 ---- */
-  --lg-tint: 0 0% 100%;
-  --lg-tint-a1: 0.72;
-  --lg-tint-a2: 0.58;
-  --lg-blur: 26px;
-  --lg-saturate: 180%;
-  --lg-edge-a: 0.6;
-  --lg-spec-a: 0.14;
-  --lg-thick-a: 0.05;
-  --glass-bg: 0 0% 100%;
-  --glass-border: 240 2% 78%;
-  --density-gap: 1.1;
-  --leading-body: 1.5;
-
-  /* ---- 旧变量兼容 ---- */
-  --radius: 0.75rem;
-  --radius-ios: 0.625rem;
-  --radius-ios-lg: 1.25rem;
-  --radius-ios-xl: 1.5rem;
-}
-
-[data-theme="swiftui"].dark {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
-    --card: 240 3% 11%;
-    --card-foreground: 0 0% 100%;
-    --popover: 240 2% 18%;
-    --popover-foreground: 0 0% 100%;
-  
-    --primary: 210 100% 52%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 2% 57%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 240 2% 18%;
-    --muted-foreground: 240 2% 57%;
-    --accent: 240 2% 23%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 3 100% 61%;
-    --destructive-foreground: 0 0% 100%;
-  
-    --border: 240 2% 22%;
-    --input: 240 2% 22%;
-    --ring: 210 100% 52%;
-  
-    --sidebar: 240 3% 11%;
-    --sidebar-foreground: 0 0% 100%;
-    --assistant-bubble: 240 3% 11%;
-    --user-bubble: 210 100% 52%;
-    --user-bubble-foreground: 0 0% 100%;
-  
-    --text-secondary: 240 33% 94%;
-    --text-tertiary: 240 2% 57%;
-    --text-quaternary: 240 1% 39%;
-  --shadow-card: 0 0.5px 1px 0 hsl(0 0% 0% / 0.3);
-  --shadow-panel: 0 10px 34px -10px hsl(0 0% 0% / 0.6);
-  --card-border-w: 0.5px;
-  --card-border: 240 2% 22%;
-  --lg-tint: 0 0% 12%;
-  --lg-tint-a1: 0.66;
-  --lg-tint-a2: 0.5;
-  --lg-blur: 26px;
-  --lg-saturate: 180%;
-  --lg-edge-a: 0.35;
-  --lg-spec-a: 0.1;
-  --lg-thick-a: 0.04;
-  --glass-bg: 240 3% 11%;
-  --glass-border: 240 2% 22%;
-}
 
 [data-theme="material3"] {
   /* ---- 字体：Roboto 是 Material 3 的基准字体 ---- */
@@ -753,45 +624,63 @@ body {
     BlinkMacSystemFont, system-ui, sans-serif;
   --font-serif: "Roboto Serif", var(--font-tc), Georgia, Cambria, serif;
   --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  /* ---- 颜色：Material Design 3 baseline purple（官方色值） ----
-     primary #6750A4 / primary-container #EADDFF / secondary #625B71
-     tertiary #7D5260 / error #B3261E / surface #FEF7FF
-     surface-container 五级 #F7F2FA #F3EDF7 #ECE6F0 #E6E0E9 ---- */
-  --background: 292 100% 98%;
-  --foreground: 264 8% 12%;
-  --card: 0 0% 100%;
+
+  /* ---- MD3 baseline purple（material.io 官方基线调色板，原值取用） ----
+     primary #6750A4 / primary-container #EADDFF / on-primary-container #21005D
+     secondary #625B71 / secondary-container #E8DEF8 / tertiary #7D5260
+     error #B3261E / surface #FEF7FF / surface-variant #E7E0EC
+     outline #79747E / outline-variant #CAC4D0 ---- */
+
+  /* 表面阶梯：M3 用 container 层级表达高度，不靠叠半透明色 */
+  --md-sc-lowest: 0 0% 100%;        /* #FFFFFF */
+  --md-sc-low: 278 44% 96%;         /* #F7F2FA */
+  --md-sc: 276 38% 95%;             /* #F3EDF7 */
+  --md-sc-high: 276 25% 92%;        /* #ECE6F0 */
+  --md-sc-highest: 280 17% 90%;     /* #E6E0E9 */
+  --md-container: 263 100% 93%;     /* primary-container #EADDFF */
+  --md-on-container: 261 100% 18%;  /* #21005D */
+  --md-tonal: 263 65% 92%;          /* secondary-container #E8DEF8 */
+  --md-on-tonal: 253 26% 13%;       /* #1D192B */
+  --md-outline: 270 4% 47%;         /* #79747E */
+  --md-outline-variant: 270 11% 79%;/* #CAC4D0 */
+
+  --background: 292 100% 98%;       /* surface */
+  --foreground: 264 8% 12%;         /* on-surface */
+  --card: 278 44% 96%;              /* surface-container-low */
   --card-foreground: 264 8% 12%;
-  --popover: 278 44% 96%;
+  --popover: 276 25% 92%;           /* surface-container-high：菜单浮在表面之上 */
   --popover-foreground: 264 8% 12%;
 
   --primary: 256 34% 48%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 259 11% 40%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 275 24% 90%;
+  --secondary: 263 65% 92%;         /* secondary-container */
+  --secondary-foreground: 253 26% 13%;
+  --muted: 275 24% 90%;             /* surface-variant */
   --muted-foreground: 264 7% 29%;
-  --accent: 263 65% 92%;
+  --accent: 263 65% 92%;            /* secondary-container：hover 落点 */
   --accent-foreground: 253 26% 13%;
   --destructive: 3 71% 41%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 270 11% 79%;
-  --input: 270 11% 79%;
+  --border: 270 11% 79%;            /* outline-variant：发丝分隔线 */
+  --input: 270 4% 47%;              /* outline：输入框描边 */
   --ring: 256 34% 48%;
 
-  --sidebar: 276 38% 95%;
+  --sidebar: 276 38% 95%;           /* surface-container */
   --sidebar-foreground: 264 8% 12%;
-  --assistant-bubble: 0 0% 100%;
-  --user-bubble: 263 100% 93%;
+  --assistant-bubble: 278 44% 96%;  /* surface-container-low */
+  --user-bubble: 263 100% 93%;      /* primary-container：M3 里"我的发言"用主色容器 */
   --user-bubble-foreground: 261 100% 18%;
 
   --text-secondary: 264 7% 29%;
-  --text-tertiary: 259 11% 40%;
-  --text-quaternary: 270 4% 47%;
-  /* ---- 形状：Material 3 形状标度，小控件更圆、大卡片收敛 ---- */
-  --radius-ctrl: var(--r-xl);    /* 20px M3 full 按钮 */
-  --radius-card: var(--r-2xl);    /* 12px M3 medium 卡片 */
-  --radius-panel: var(--r-4xl);   /* 28px M3 large */
+  --text-tertiary: 270 4% 47%;
+  --text-quaternary: 270 11% 79%;
+
+  /* ---- 形状：M3 形状标度（extra-small 4 / small 8 / medium 12 / large 16 / extra-large 28）
+     按钮走 full（20px，40px 高即全圆），卡片走 large 16px，弹层走 extra-large 28px ---- */
+  --radius-ctrl: var(--r-xl);     /* 20px：M3 filled button */
+  --radius-card: var(--r-lg);     /* 16px：M3 large */
+  --radius-panel: var(--r-3xl);   /* 28px：M3 extra-large，对话框 */
   --radius-pill: 999px;
 
   --r-sm: 0.25rem;
@@ -802,20 +691,46 @@ body {
   --r-2xl: 1.5rem;
   --r-3xl: 1.75rem;
   --r-4xl: 2rem;
-  /* ---- 表面：M3 用高度层级阴影（level1 / level3） ---- */
-  --shadow-card: 0 1px 2px 0 hsl(260 20% 20% / 0.3), 0 1px 3px 1px hsl(260 20% 20% / 0.15);
-  --shadow-panel: 0 4px 8px 3px hsl(260 20% 20% / 0.15), 0 1px 3px 0 hsl(260 20% 20% / 0.3);
+
+  /* ---- 高度：M3 elevation level 1–3（官方阴影，不是通用模糊大投影） ---- */
+  --md-elev-1: 0 1px 2px 0 rgba(0, 0, 0, 0.30), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+  --md-elev-2: 0 1px 2px 0 rgba(0, 0, 0, 0.30), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  --md-elev-3: 0 4px 8px 3px rgba(0, 0, 0, 0.15), 0 1px 3px 0 rgba(0, 0, 0, 0.30);
+  --shadow-1: var(--md-elev-1);
+  --shadow-2: var(--md-elev-2);
+  --shadow-3: var(--md-elev-3);
+  --shadow-4: var(--md-elev-3);
+  --shadow-card: var(--md-elev-1);
+  --shadow-panel: var(--md-elev-3);
   --card-border-w: 1px;
   --card-border: 270 11% 79%;
-  /* ---- 玻璃：M3 强调表面不透明，玻璃只做轻微分隔 ---- */
+
+  /* ---- 运动：M3 emphasized 曲线 + short/medium 时长 ---- */
+  --motion-instant: 100ms;
+  --motion-fast: 200ms;     /* short4 */
+  --motion-base: 300ms;     /* medium2 */
+  --motion-slow: 400ms;     /* medium4 */
+  --motion-ease-out: cubic-bezier(0.05, 0.7, 0.1, 1);      /* emphasized decelerate */
+  --motion-ease-in: cubic-bezier(0.3, 0, 0.8, 0.15);       /* emphasized accelerate */
+  --motion-ease-in-out: cubic-bezier(0.2, 0, 0, 1);        /* standard */
+  --motion-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ---- 控件：M3 表面不透明，交互用状态层（8% / 12% 叠加）而不是改底色 ---- */
+  --control-bg: #ffffff;
+  --control-bg-hover: #ffffff;
+  --control-bg-active: #ffffff;
+  --control-border: rgba(103, 80, 164, 0.5);   /* primary 50% */
+  --control-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.10);
+
+  /* ---- 玻璃：M3 强调表面不透明，玻璃只留极轻的分隔 ---- */
   --lg-tint: 292 100% 98%;
-  --lg-tint-a1: 0.8;
-  --lg-tint-a2: 0.68;
-  --lg-blur: 14px;
-  --lg-saturate: 125%;
-  --lg-edge-a: 0.5;
-  --lg-spec-a: 0.06;
-  --lg-thick-a: 0.03;
+  --lg-tint-a1: 0.9;
+  --lg-tint-a2: 0.82;
+  --lg-blur: 10px;
+  --lg-saturate: 110%;
+  --lg-edge-a: 0.4;
+  --lg-spec-a: 0.04;
+  --lg-thick-a: 0.02;
   --glass-bg: 0 0% 100%;
   --glass-border: 270 11% 79%;
   --density-gap: 1.1;
@@ -829,52 +744,222 @@ body {
 }
 
 [data-theme="material3"].dark {
-    --background: 260 14% 8%;
-    --foreground: 280 17% 90%;
-    --card: 257 10% 14%;
-    --card-foreground: 280 17% 90%;
-    --popover: 257 8% 17%;
-    --popover-foreground: 280 17% 90%;
-  
-    --primary: 258 100% 87%;
-    --primary-foreground: 259 58% 28%;
-    --secondary: 263 27% 81%;
-    --secondary-foreground: 258 18% 22%;
-    --muted: 264 7% 29%;
-    --muted-foreground: 270 11% 79%;
-    --accent: 258 13% 31%;
-    --accent-foreground: 263 65% 92%;
-    --destructive: 3 70% 83%;
-    --destructive-foreground: 3 71% 22%;
-  
-    --border: 264 7% 29%;
-    --input: 264 7% 29%;
-    --ring: 258 100% 87%;
-  
-    --sidebar: 264 8% 12%;
-    --sidebar-foreground: 280 17% 90%;
-    --assistant-bubble: 264 8% 12%;
-    --user-bubble: 257 43% 38%;
-    --user-bubble-foreground: 263 100% 93%;
-  
-    --text-secondary: 270 11% 79%;
-    --text-tertiary: 264 5% 58%;
-    --text-quaternary: 270 4% 47%;
-  --shadow-card: 0 1px 2px 0 hsl(0 0% 0% / 0.6), 0 1px 3px 1px hsl(0 0% 0% / 0.3);
-  --shadow-panel: 0 4px 8px 3px hsl(0 0% 0% / 0.3), 0 1px 3px 0 hsl(0 0% 0% / 0.6);
+  --md-sc-lowest: 260 19% 6%;       /* #0F0D13 */
+  --md-sc-low: 264 8% 12%;          /* #1D1B20 */
+  --md-sc: 257 10% 14%;             /* #211F26 */
+  --md-sc-high: 257 8% 17%;         /* #2B2930 */
+  --md-sc-highest: 257 6% 22%;      /* #36343B */
+  --md-container: 257 43% 38%;      /* primary-container #4F378B */
+  --md-on-container: 263 100% 93%;  /* #EADDFF */
+  --md-tonal: 258 13% 31%;          /* secondary-container #4A4458 */
+  --md-on-tonal: 263 65% 92%;       /* #E8DEF8 */
+  --md-outline: 264 5% 58%;         /* #938F99 */
+  --md-outline-variant: 264 7% 29%; /* #49454F */
+
+  --background: 260 14% 8%;
+  --foreground: 280 17% 90%;
+  --card: 264 8% 12%;               /* surface-container-low */
+  --card-foreground: 280 17% 90%;
+  --popover: 257 8% 17%;            /* surface-container-high */
+  --popover-foreground: 280 17% 90%;
+
+  --primary: 258 100% 87%;
+  --primary-foreground: 259 58% 28%;
+  --secondary: 258 13% 31%;         /* secondary-container */
+  --secondary-foreground: 263 65% 92%;
+  --muted: 264 7% 29%;
+  --muted-foreground: 270 11% 79%;
+  --accent: 258 13% 31%;
+  --accent-foreground: 263 65% 92%;
+  --destructive: 3 70% 83%;
+  --destructive-foreground: 3 71% 22%;
+
+  --border: 264 7% 29%;             /* outline-variant */
+  --input: 264 5% 58%;              /* outline */
+  --ring: 258 100% 87%;
+
+  --sidebar: 257 10% 14%;           /* surface-container */
+  --sidebar-foreground: 280 17% 90%;
+  --assistant-bubble: 264 8% 12%;
+  --user-bubble: 257 43% 38%;       /* primary-container */
+  --user-bubble-foreground: 263 100% 93%;
+
+  --text-secondary: 270 11% 79%;
+  --text-tertiary: 264 5% 58%;
+  --text-quaternary: 264 7% 29%;
+
+  /* 深色下阴影更重，否则抬升看不出来 */
+  --md-elev-1: 0 1px 3px 0 rgba(0, 0, 0, 0.60);
+  --md-elev-2: 0 2px 6px 1px rgba(0, 0, 0, 0.60);
+  --md-elev-3: 0 4px 12px 2px rgba(0, 0, 0, 0.70);
+  --shadow-1: var(--md-elev-1);
+  --shadow-2: var(--md-elev-2);
+  --shadow-3: var(--md-elev-3);
+  --shadow-4: var(--md-elev-3);
+  --shadow-card: var(--md-elev-1);
+  --shadow-panel: var(--md-elev-3);
   --card-border-w: 1px;
   --card-border: 264 7% 29%;
+
+  --control-bg: hsl(var(--md-sc-low));
+  --control-bg-hover: hsl(var(--md-sc-low));
+  --control-bg-active: hsl(var(--md-sc-low));
+  --control-border: rgba(208, 188, 255, 0.45);  /* primary 45% */
+  --control-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.40);
+
   --lg-tint: 260 14% 8%;
-  --lg-tint-a1: 0.78;
-  --lg-tint-a2: 0.64;
-  --lg-blur: 16px;
-  --lg-saturate: 120%;
-  --lg-edge-a: 0.3;
-  --lg-spec-a: 0.05;
-  --lg-thick-a: 0.03;
+  --lg-tint-a1: 0.88;
+  --lg-tint-a2: 0.78;
+  --lg-blur: 12px;
+  --lg-saturate: 105%;
+  --lg-edge-a: 0.28;
+  --lg-spec-a: 0.04;
+  --lg-thick-a: 0.02;
   --glass-bg: 264 8% 12%;
   --glass-border: 264 7% 29%;
 }
+
+/* --------------------------------------------------------------------------
+   Material 3 组件层
+
+   光换色不像 M3。M3 的三个识别特征在这里补齐：
+     1. 状态层（state layer）—— hover 叠 8%、按下叠 12%，而不是 brightness 提亮
+     2. 高度（elevation）—— level1/2/3 表达"浮起来多少"，不用彩色发光
+     3. 形状（shape）—— 按钮 full、卡片 large、弹层 extra-large
+   -------------------------------------------------------------------------- */
+
+/* ---- 1. 状态层 ---- */
+[data-theme="material3"] .pot-ctrl,
+[data-theme="material3"] button[class*="border-border"] {
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="material3"] .pot-ctrl::after,
+[data-theme="material3"] button[class*="border-border"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-instant) var(--motion-ease-out);
+}
+
+[data-theme="material3"] .pot-ctrl:hover:not(:disabled)::after,
+[data-theme="material3"] button[class*="border-border"]:hover:not(:disabled)::after {
+  opacity: 0.08;
+}
+
+[data-theme="material3"] .pot-ctrl:active:not(:disabled)::after,
+[data-theme="material3"] button[class*="border-border"]:active:not(:disabled)::after {
+  opacity: 0.12;
+}
+
+/* 主色底的按钮状态层要用"上层文字色"，否则在深紫上叠主色等于没叠 */
+[data-theme="material3"] [class*="bg-primary"]::after,
+[data-theme="material3"] [class*="brand-gradient"]::after {
+  background: hsl(var(--primary-foreground));
+}
+
+/* ---- 2. 主按钮：M3 filled button 是纯色，不是渐变 ---- */
+[data-theme="material3"] .brand-gradient,
+[data-theme="material3"] [class*="brand-gradient"] {
+  background-image: none !important;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: var(--md-elev-1);
+  transition: box-shadow var(--motion-fast) var(--motion-ease-out),
+    transform var(--motion-fast) var(--motion-ease-out);
+}
+
+[data-theme="material3"] .brand-gradient:hover:not(:disabled),
+[data-theme="material3"] [class*="brand-gradient"]:hover:not(:disabled) {
+  box-shadow: var(--md-elev-2);
+}
+
+[data-theme="material3"] .brand-gradient:active:not(:disabled),
+[data-theme="material3"] [class*="brand-gradient"]:active:not(:disabled) {
+  box-shadow: var(--md-elev-1);
+  transform: scale(0.985);
+}
+
+/* M3 tonal button：次要按钮走 secondary-container，不用同一颗主色 */
+[data-theme="material3"] [class*="bg-secondary"]:not([class*="bg-secondary-foreground"]) {
+  background-color: hsl(var(--md-tonal));
+  color: hsl(var(--md-on-tonal));
+}
+
+/* ---- 3. 卡片：M3 elevated card = surface-container-low + level1 ---- */
+[data-theme="material3"] [class*="bg-card"] {
+  background-color: hsl(var(--md-sc-low));
+  box-shadow: var(--md-elev-1);
+}
+
+[data-theme="material3"] [class*="bg-card"]:hover {
+  box-shadow: var(--md-elev-2);
+}
+
+/* ---- 4. 开关：M3 switch 的滑块会在选中时"长大"（16 → 24px） ---- */
+[data-theme="material3"] button[role="switch"] {
+  width: 52px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  background-color: hsl(var(--md-sc-highest));
+  box-shadow: inset 0 0 0 2px hsl(var(--md-outline));
+  transition: background-color var(--motion-fast) var(--motion-ease-emphasized),
+    box-shadow var(--motion-fast) var(--motion-ease-emphasized);
+}
+
+[data-theme="material3"] button[role="switch"][data-state="checked"] {
+  background-color: hsl(var(--primary));
+  box-shadow: inset 0 0 0 2px hsl(var(--primary));
+}
+
+[data-theme="material3"] button[role="switch"] > span {
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background-color: hsl(var(--md-outline));
+  box-shadow: none;
+  transition: width var(--motion-fast) var(--motion-ease-emphasized),
+    height var(--motion-fast) var(--motion-ease-emphasized),
+    transform var(--motion-fast) var(--motion-ease-emphasized),
+    background-color var(--motion-fast) var(--motion-ease-out);
+}
+
+[data-theme="material3"] button[role="switch"][data-state="checked"] > span {
+  width: 24px;
+  height: 24px;
+  background-color: hsl(var(--primary-foreground));
+  transform: translateX(18px);
+}
+
+/* ---- 5. 焦点环：M3 用 3px secondary，不用 2px ring ---- */
+[data-theme="material3"] :focus-visible {
+  outline: 3px solid hsl(var(--secondary));
+  outline-offset: 2px;
+}
+
+/* ---- 6. 输入框聚焦：M3 outlined field 从 1px outline 变 2px primary ---- */
+[data-theme="material3"] input:focus,
+[data-theme="material3"] textarea:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px hsl(var(--primary));
+}
+
+/* ---- 7. 减少动效：状态层仍要看得见，只是不再过渡 ---- */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="material3"] .pot-ctrl::after,
+  [data-theme="material3"] button[class*="border-border"]::after,
+  [data-theme="material3"] button[role="switch"] > span {
+    transition: none;
+  }
+}
+
 
 [data-theme="anthropic"] {
   /* ---- 字体：Styrene B → Inter；Tiempos/Copernicus → Source Serif 4 ----
@@ -1082,88 +1167,6 @@ body {
    组织信息。圆角中等偏大、卡片有轻微抬起感、色相由单一 --hue 驱动。
    整体是"清爽、有序、内容为主"的气质。
    ========================================================================== */
-[data-theme="fuwari"] {
-  --hue: 205;
-
-  --font-sans: "Montserrat", var(--font-tc), -apple-system, BlinkMacSystemFont,
-    system-ui, sans-serif;
-  --font-serif: "Source Serif 4", var(--font-tc), Georgia, Cambria,
-    "Times New Roman", serif;
-  --font-mono: "SuperSFMonoV1", ui-monospace, SFMono-Regular, Menlo, monospace;
-
-  --background: var(--hue) 20% 97%;
-  --foreground: var(--hue) 15% 15%;
-  --card: 0 0% 100%;
-  --card-foreground: var(--hue) 15% 15%;
-  --popover: 0 0% 100%;
-  --popover-foreground: var(--hue) 15% 15%;
-
-  --primary: var(--hue) 78% 52%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: var(--hue) 30% 95%;
-  --secondary-foreground: var(--hue) 30% 28%;
-  --muted: var(--hue) 24% 96%;
-  --muted-foreground: var(--hue) 8% 45%;
-  --accent: var(--hue) 40% 94%;
-  --accent-foreground: var(--hue) 45% 32%;
-
-  --border: var(--hue) 18% 90%;
-  --input: var(--hue) 18% 90%;
-  --ring: var(--hue) 78% 52%;
-
-  --sidebar: var(--hue) 22% 98%;
-  --sidebar-foreground: var(--hue) 15% 20%;
-  --assistant-bubble: 0 0% 100%;
-  --user-bubble: var(--hue) 55% 95%;
-  --user-bubble-foreground: var(--hue) 25% 18%;
-
-  --text-secondary: var(--hue) 10% 35%;
-  --text-tertiary: var(--hue) 8% 50%;
-  --text-quaternary: var(--hue) 6% 62%;
-
-  /* ---- 形状：非常圆润（用户要求）—— 卡片近乎胶囊 ---- */
-  --radius-ctrl: var(--r-xl);
-  --radius-card: var(--r-2xl);
-  --radius-panel: var(--r-4xl);
-  --radius-pill: 999px;
-
-  /* fuwari：最圆润的一档，卡片近乎胶囊 */
-  --r-sm: 0.75rem;
-  --r-default: 1.75rem;
-  --r-md: 1.75rem;
-  --r-lg: 2rem;
-  --r-xl: 2.25rem;
-  --r-2xl: 2.75rem;
-  --r-3xl: 3rem;
-  --r-4xl: 3.5rem;
-
-  /* ---- 表面：卡片有明确的存在感和轻微抬起 ---- */
-  --shadow-card:
-    0 1px 2px 0 hsl(var(--hue) 20% 20% / 0.04),
-    0 4px 12px -4px hsl(var(--hue) 20% 20% / 0.06);
-  --shadow-panel: 0 16px 40px -16px hsl(var(--hue) 25% 20% / 0.18);
-  --card-border-w: 1px;
-  --card-border: var(--hue) 18% 90%;
-
-  --density-gap: 1;
-  --leading-body: 1.55;
-
-  --lg-tint: 0 0% 100%;
-  --lg-tint-a1: 0.66;
-  --lg-tint-a2: 0.50;
-  --lg-blur: 14px;
-  --lg-saturate: 120%;
-  --lg-edge-a: 0.60;
-  --lg-spec-a: 0.10;
-  --lg-thick-a: 0.03;
-  --glass-bg: 0 0% 100%;
-  --glass-border: var(--hue) 18% 88%;
-
-  --radius: 1.75rem;
-  --radius-ios: 1.5rem;
-  --radius-ios-lg: 2.25rem;
-  --radius-ios-xl: 2.75rem;
-}
 
 /*
  * 这里原本有一条"强制所有 rounded-* 归为 1.75rem"的规则，
@@ -1171,54 +1174,6 @@ body {
  * 那条规则反而会把 fuwari 的 rounded-2xl（2.75rem）压回 1.75rem，越改越方。
  */
 
-[data-theme="fuwari"].dark {
-  --destructive: 0 72% 55%;
-  --destructive-foreground: 0 0% 100%;
-  --background: var(--hue) 12% 9%;
-  --foreground: var(--hue) 10% 92%;
-  --card: var(--hue) 10% 13%;
-  --card-foreground: var(--hue) 10% 92%;
-  --popover: var(--hue) 10% 14%;
-  --popover-foreground: var(--hue) 10% 92%;
-
-  --primary: var(--hue) 80% 66%;
-  --primary-foreground: var(--hue) 30% 12%;
-  --secondary: var(--hue) 8% 18%;
-  --secondary-foreground: var(--hue) 10% 88%;
-  --muted: var(--hue) 8% 17%;
-  --muted-foreground: var(--hue) 6% 62%;
-  --accent: var(--hue) 16% 20%;
-  --accent-foreground: var(--hue) 12% 90%;
-
-  --border: var(--hue) 8% 20%;
-  --input: var(--hue) 8% 20%;
-  --ring: var(--hue) 80% 66%;
-
-  --sidebar: var(--hue) 12% 8%;
-  --sidebar-foreground: var(--hue) 10% 86%;
-  --assistant-bubble: var(--hue) 10% 14%;
-  --user-bubble: var(--hue) 22% 20%;
-  --user-bubble-foreground: var(--hue) 10% 92%;
-
-  --text-secondary: var(--hue) 8% 76%;
-  --text-tertiary: var(--hue) 6% 60%;
-  --text-quaternary: var(--hue) 5% 46%;
-
-  --shadow-card:
-    0 1px 2px 0 hsl(0 0% 0% / 0.3),
-    0 4px 14px -4px hsl(0 0% 0% / 0.35);
-  --shadow-panel: 0 20px 48px -20px hsl(0 0% 0% / 0.55);
-  --card-border: var(--hue) 8% 20%;
-
-  --lg-tint: var(--hue) 10% 24%;
-  --lg-tint-a1: 0.46;
-  --lg-tint-a2: 0.32;
-  --lg-edge-a: 0.14;
-  --lg-spec-a: 0.05;
-  --lg-thick-a: 0.18;
-  --glass-bg: var(--hue) 10% 22%;
-  --glass-border: var(--hue) 8% 26%;
-}
 
 /* ==========================================================================
    Violet Rose —— 「柔光糖果玻璃」
@@ -1227,166 +1182,16 @@ body {
    特征是"软"：圆角最大、阴影带色彩扩散（不是中性灰）、
    卡片是实心的（背景已经很花，再全站半透明会糊成一片）。
    ========================================================================== */
-[data-theme="violet-rose"] {
-  --font-sans: "Montserrat", var(--font-tc), -apple-system, BlinkMacSystemFont,
-    system-ui, sans-serif;
-  --font-serif: "Source Serif 4", var(--font-tc), Georgia, Cambria,
-    "Times New Roman", serif;
-  --font-mono: "SuperSFMonoV1", ui-monospace, SFMono-Regular, Menlo, monospace;
-
-  --background: 295 45% 96%;
-  --foreground: 285 20% 16%;
-  --card: 0 0% 100%;
-  --card-foreground: 285 20% 16%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 285 20% 16%;
-
-  --primary: 292 72% 58%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 300 40% 96%;
-  --secondary-foreground: 292 40% 32%;
-  --muted: 295 30% 96%;
-  --muted-foreground: 292 10% 48%;
-  --accent: 320 60% 96%;
-  --accent-foreground: 320 50% 34%;
-
-  --border: 295 22% 90%;
-  --input: 295 22% 90%;
-  --ring: 292 72% 58%;
-
-  --sidebar: 0 0% 100%;
-  --sidebar-foreground: 285 20% 18%;
-  --assistant-bubble: 0 0% 100%;
-  --user-bubble: 315 55% 95%;
-  --user-bubble-foreground: 292 30% 20%;
-
-  --text-secondary: 292 12% 36%;
-  --text-tertiary: 292 10% 50%;
-  --text-quaternary: 292 8% 62%;
-
-  /* ---- 形状：**完全无圆角**（用户要求）—— 利落的直角切边 ---- */
-  --radius-ctrl: var(--r-xl);
-  --radius-card: var(--r-2xl);
-  --radius-panel: var(--r-4xl);
-  --radius-pill: 0;
-
-  /* violet-rose：完全直角，量表也一并归零 */
-  --r-sm: 0;
-  --r-default: 0;
-  --r-md: 0;
-  --r-lg: 0;
-  --r-xl: 0;
-  --r-2xl: 0;
-  --r-3xl: 0;
-  --r-4xl: 0;
-
-  /* ---- 表面：带紫色调的柔和扩散阴影 ---- */
-  --shadow-card:
-    0 2px 8px -2px hsl(295 40% 40% / 0.08),
-    0 12px 28px -12px hsl(295 45% 45% / 0.18);
-  --shadow-panel:
-    0 4px 16px -4px hsl(295 40% 40% / 0.12),
-    0 24px 56px -20px hsl(295 50% 50% / 0.28);
-  --card-border-w: 1px;
-  --card-border: 295 22% 90%;
-
-  --density-gap: 1.05;
-  --leading-body: 1.6;
-
-  --lg-tint: 0 0% 100%;
-  --lg-tint-a1: 0.74;
-  --lg-tint-a2: 0.60;
-  --lg-blur: 18px;
-  --lg-saturate: 140%;
-  --lg-edge-a: 0.65;
-  --lg-spec-a: 0.12;
-  --lg-thick-a: 0.04;
-  --glass-bg: 0 0% 100%;
-  --glass-border: 295 20% 88%;
-
-  --radius: 0;
-  --radius-ios: 0;
-  --radius-ios-lg: 0;
-  --radius-ios-xl: 0;
-}
 
 /*
  * Violet Rose 要**彻底无圆角**：直角切边。
  * 组件里大量写死了 rounded-*，这里统一压平。
  * 只有头像和圆形指示器保留圆形（否则会变成难看的正方形色块）。
  */
-[data-theme="violet-rose"] .rounded-sm,
-[data-theme="violet-rose"] .rounded,
-[data-theme="violet-rose"] .rounded-md,
-[data-theme="violet-rose"] .rounded-lg,
-[data-theme="violet-rose"] .rounded-xl,
-[data-theme="violet-rose"] .rounded-2xl,
-[data-theme="violet-rose"] .rounded-3xl {
-  border-radius: 0;
-}
 /* 例外：头像、状态点、开关这类"本身就是圆的东西"保持圆形 */
-[data-theme="violet-rose"] .rounded-full,
-[data-theme="violet-rose"] [class*="rounded-full"] {
-  border-radius: 999px !important;
-}
 
-[data-theme="violet-rose"].dark {
-  --destructive: 0 72% 55%;
-  --destructive-foreground: 0 0% 100%;
-  --background: 285 18% 10%;
-  --foreground: 295 15% 92%;
-  --card: 288 14% 14%;
-  --card-foreground: 295 15% 92%;
-  --popover: 288 14% 15%;
-  --popover-foreground: 295 15% 92%;
-
-  --primary: 292 76% 70%;
-  --primary-foreground: 288 40% 12%;
-  --secondary: 290 12% 19%;
-  --secondary-foreground: 295 15% 90%;
-  --muted: 290 10% 18%;
-  --muted-foreground: 292 8% 64%;
-  --accent: 300 18% 22%;
-  --accent-foreground: 295 15% 92%;
-
-  --border: 288 10% 22%;
-  --input: 288 10% 22%;
-  --ring: 292 76% 70%;
-
-  --sidebar: 288 14% 12%;
-  --sidebar-foreground: 295 15% 88%;
-  --assistant-bubble: 288 14% 15%;
-  --user-bubble: 300 22% 22%;
-  --user-bubble-foreground: 295 15% 92%;
-
-  --text-secondary: 292 10% 76%;
-  --text-tertiary: 292 8% 60%;
-  --text-quaternary: 292 6% 46%;
-
-  --shadow-card:
-    0 2px 8px -2px hsl(0 0% 0% / 0.3),
-    0 12px 28px -12px hsl(295 30% 30% / 0.35);
-  --shadow-panel: 0 24px 56px -20px hsl(0 0% 0% / 0.55);
-  --card-border: 288 10% 22%;
-
-  --lg-tint: 290 12% 28%;
-  --lg-tint-a1: 0.48;
-  --lg-tint-a2: 0.34;
-  --lg-edge-a: 0.16;
-  --lg-spec-a: 0.06;
-  --lg-thick-a: 0.18;
-  --glass-bg: 290 12% 26%;
-  --glass-border: 288 10% 30%;
-}
 
 /* Violet Rose 的背景渐变：只在浅色下铺，深色下用纯色更耐看 */
-[data-theme="violet-rose"] body {
-  background-image:
-    radial-gradient(ellipse 80% 60% at 12% 8%, hsl(320 70% 95% / 0.9), transparent 60%),
-    radial-gradient(ellipse 70% 55% at 88% 12%, hsl(285 65% 95% / 0.9), transparent 58%),
-    radial-gradient(ellipse 90% 60% at 50% 100%, hsl(340 60% 96% / 0.7), transparent 62%);
-  background-attachment: fixed;
-}
 
 
   /* ==========================================================================
@@ -1395,97 +1200,7 @@ body {
      原版用 OKLCH 且整站配色由单一 --hue 驱动，这里用 HSL 达到同样效果：
      改 --hue 一个数就能整体换色，默认是清透的青蓝。
      ========================================================================== */
-  [data-theme="fuwari"] {
-    --hue: 205;                      /* 色相：改这一个数即可整体换色 */
 
-    --background: var(--hue) 20% 97%;
-    --foreground: var(--hue) 15% 15%;
-    --card: 0 0% 100%;
-    --card-foreground: var(--hue) 15% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: var(--hue) 15% 15%;
-
-    --primary: var(--hue) 78% 52%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: var(--hue) 30% 95%;
-    --secondary-foreground: var(--hue) 30% 28%;
-    --muted: var(--hue) 24% 96%;
-    --muted-foreground: var(--hue) 8% 45%;
-    --accent: var(--hue) 40% 94%;
-    --accent-foreground: var(--hue) 45% 32%;
-
-    --border: var(--hue) 18% 90%;
-    --input: var(--hue) 18% 90%;
-    --ring: var(--hue) 78% 52%;
-
-    --sidebar: var(--hue) 22% 98%;
-    --sidebar-foreground: var(--hue) 15% 20%;
-    --assistant-bubble: 0 0% 100%;
-    --user-bubble: var(--hue) 55% 95%;
-    --user-bubble-foreground: var(--hue) 25% 18%;
-
-    --text-secondary: var(--hue) 10% 35%;
-    --text-tertiary: var(--hue) 8% 50%;
-    --text-quaternary: var(--hue) 6% 62%;
-
-    /* Fuwari 有 card-glass：很轻的玻璃，主要靠边框和留白 */
-    --lg-tint: 0 0% 100%;
-    --lg-tint-a1: 0.62;
-    --lg-tint-a2: 0.46;
-    --lg-blur: 14px;
-    --lg-saturate: 120%;
-    --lg-edge-a: 0.60;
-    --lg-spec-a: 0.10;
-    --lg-thick-a: 0.03;
-    --glass-bg: 0 0% 100%;
-    --glass-border: var(--hue) 18% 88%;
-    /* 圆角适中：博客的卡片感 */
-    --radius: 0.75rem;
-    --radius-ios: 0.875rem;
-    --radius-ios-lg: 1rem;
-    --radius-ios-xl: 1.25rem;
-  }
-
-  [data-theme="fuwari"].dark {
-    --background: var(--hue) 12% 9%;
-    --foreground: var(--hue) 10% 92%;
-    --card: var(--hue) 10% 13%;
-    --card-foreground: var(--hue) 10% 92%;
-    --popover: var(--hue) 10% 14%;
-    --popover-foreground: var(--hue) 10% 92%;
-
-    --primary: var(--hue) 80% 66%;
-    --primary-foreground: var(--hue) 30% 12%;
-    --secondary: var(--hue) 8% 18%;
-    --secondary-foreground: var(--hue) 10% 88%;
-    --muted: var(--hue) 8% 17%;
-    --muted-foreground: var(--hue) 6% 62%;
-    --accent: var(--hue) 16% 20%;
-    --accent-foreground: var(--hue) 12% 90%;
-
-    --border: var(--hue) 8% 20%;
-    --input: var(--hue) 8% 20%;
-    --ring: var(--hue) 80% 66%;
-
-    --sidebar: var(--hue) 12% 8%;
-    --sidebar-foreground: var(--hue) 10% 86%;
-    --assistant-bubble: var(--hue) 10% 14%;
-    --user-bubble: var(--hue) 22% 20%;
-    --user-bubble-foreground: var(--hue) 10% 92%;
-
-    --text-secondary: var(--hue) 8% 76%;
-    --text-tertiary: var(--hue) 6% 60%;
-    --text-quaternary: var(--hue) 5% 46%;
-
-    --lg-tint: var(--hue) 10% 24%;
-    --lg-tint-a1: 0.42;
-    --lg-tint-a2: 0.28;
-    --lg-edge-a: 0.14;
-    --lg-spec-a: 0.05;
-    --lg-thick-a: 0.16;
-    --glass-bg: var(--hue) 10% 22%;
-    --glass-border: var(--hue) 8% 26%;
-  }
 
   /* ==========================================================================
      Violet Rose —— 紫粉渐变 + 白色圆角卡片（玫瑰点缀）
@@ -1493,105 +1208,9 @@ body {
      内容区是**不透明的白色圆角卡片**浮在上面，而不是全站半透明。
      渐变只用在背景和主按钮，卡片保持干净的白。
      ========================================================================== */
-  [data-theme="violet-rose"] {
-    --background: 295 45% 96%;
-    --foreground: 285 20% 16%;
-    --card: 0 0% 100%;
-    --card-foreground: 285 20% 16%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 285 20% 16%;
 
-    --primary: 292 72% 58%;          /* 玫瑰紫 */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 300 40% 96%;
-    --secondary-foreground: 292 40% 32%;
-    --muted: 295 30% 96%;
-    --muted-foreground: 292 10% 48%;
-    --accent: 320 60% 96%;
-    --accent-foreground: 320 50% 34%;
-
-    --border: 295 22% 90%;
-    --input: 295 22% 90%;
-    --ring: 292 72% 58%;
-
-    --sidebar: 0 0% 100%;
-    --sidebar-foreground: 285 20% 18%;
-    --assistant-bubble: 0 0% 100%;
-    --user-bubble: 315 55% 95%;
-    --user-bubble-foreground: 292 30% 20%;
-
-    --text-secondary: 292 12% 36%;
-    --text-tertiary: 292 10% 50%;
-    --text-quaternary: 292 8% 62%;
-
-    /* 卡片是实心的，玻璃感留给顶栏/浮层：背景渐变已经很花，
-       再让所有东西半透明会糊成一片 */
-    --lg-tint: 0 0% 100%;
-    --lg-tint-a1: 0.72;
-    --lg-tint-a2: 0.58;
-    --lg-blur: 18px;
-    --lg-saturate: 140%;
-    --lg-edge-a: 0.65;
-    --lg-spec-a: 0.12;
-    --lg-thick-a: 0.04;
-    --glass-bg: 0 0% 100%;
-    --glass-border: 295 20% 88%;
-    /* 圆角偏大：配合柔光渐变的柔和感 */
-    --radius: 1rem;
-    --radius-ios: 1.125rem;
-    --radius-ios-lg: 1.375rem;
-    --radius-ios-xl: 1.75rem;
-  }
-
-  [data-theme="violet-rose"].dark {
-    --background: 285 18% 10%;
-    --foreground: 295 15% 92%;
-    --card: 288 14% 14%;
-    --card-foreground: 295 15% 92%;
-    --popover: 288 14% 15%;
-    --popover-foreground: 295 15% 92%;
-
-    --primary: 292 76% 70%;
-    --primary-foreground: 288 40% 12%;
-    --secondary: 290 12% 19%;
-    --secondary-foreground: 295 15% 90%;
-    --muted: 290 10% 18%;
-    --muted-foreground: 292 8% 64%;
-    --accent: 300 18% 22%;
-    --accent-foreground: 295 15% 92%;
-
-    --border: 288 10% 22%;
-    --input: 288 10% 22%;
-    --ring: 292 76% 70%;
-
-    --sidebar: 288 14% 12%;
-    --sidebar-foreground: 295 15% 88%;
-    --assistant-bubble: 288 14% 15%;
-    --user-bubble: 300 22% 22%;
-    --user-bubble-foreground: 295 15% 92%;
-
-    --text-secondary: 292 10% 76%;
-    --text-tertiary: 292 8% 60%;
-    --text-quaternary: 292 6% 46%;
-
-    --lg-tint: 290 12% 28%;
-    --lg-tint-a1: 0.46;
-    --lg-tint-a2: 0.32;
-    --lg-edge-a: 0.16;
-    --lg-spec-a: 0.06;
-    --lg-thick-a: 0.18;
-    --glass-bg: 290 12% 26%;
-    --glass-border: 288 10% 30%;
-  }
 
   /* Violet Rose 的背景渐变：只在浅色下铺，深色下用纯色更耐看 */
-  [data-theme="violet-rose"] body {
-    background-image:
-      radial-gradient(ellipse 80% 60% at 12% 8%, hsl(320 70% 95% / 0.9), transparent 60%),
-      radial-gradient(ellipse 70% 55% at 88% 12%, hsl(285 65% 95% / 0.9), transparent 58%),
-      radial-gradient(ellipse 90% 60% at 50% 100%, hsl(340 60% 96% / 0.7), transparent 62%);
-    background-attachment: fixed;
-  }
 
   /* ==========================================================================
      Sidefolio —— 「开发者作品集 / 侧栏工作台」
@@ -1755,134 +1374,7 @@ body {
      作品集用衬线的是**标题**，正文换衬线会让聊天记录难读。
      这里提供变量，组件想用就用。
      ========================================================================== */
-  [data-theme="minimalist"] {
-    --hue: 215; /* 石板蓝：低饱和，改这个数可换整体色调 */
 
-    --font-sans: "Inter", var(--font-tc), -apple-system, BlinkMacSystemFont,
-      system-ui, sans-serif;
-    --font-serif: "Source Serif 4", var(--font-tc), Georgia, Cambria,
-      "Times New Roman", serif;
-    --font-mono: "SuperSFMonoV1", ui-monospace, SFMono-Regular, Menlo, monospace;
-
-    --background: 30 20% 99%; /* 极淡的暖白，比纯白更"纸" */
-    --foreground: var(--hue) 15% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: var(--hue) 15% 12%;
-    --popover: 0 0% 100%;
-    --popover-foreground: var(--hue) 15% 12%;
-
-    --primary: var(--hue) 45% 40%; /* 低饱和深蓝，不抢戏 */
-    --primary-foreground: 0 0% 100%;
-    --secondary: var(--hue) 15% 96%;
-    --secondary-foreground: var(--hue) 20% 22%;
-    --muted: var(--hue) 15% 96%;
-    --muted-foreground: var(--hue) 8% 46%;
-    --accent: var(--hue) 20% 94%;
-    --accent-foreground: var(--hue) 30% 26%;
-    --destructive: 6 55% 48%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: var(--hue) 12% 91%;
-    --input: var(--hue) 12% 91%;
-    --ring: var(--hue) 45% 40%;
-
-    --sidebar: 30 16% 98%;
-    --sidebar-foreground: var(--hue) 15% 14%;
-    --assistant-bubble: 0 0% 100%;
-    --user-bubble: var(--hue) 18% 95%;
-    --user-bubble-foreground: var(--hue) 18% 16%;
-
-    --text-secondary: var(--hue) 10% 32%;
-    --text-tertiary: var(--hue) 8% 48%;
-    --text-quaternary: var(--hue) 6% 57%;
-
-    /* ---- 形状：极小圆角，接近直角 ---- */
-    --radius-ctrl: var(--r-xl);
-    --radius-card: var(--r-2xl);
-    --radius-panel: var(--r-4xl);
-    --radius-pill: 999px;
-
-    --r-sm: 0.125rem;
-    --r-default: 0.25rem;
-    --r-md: 0.25rem;
-    --r-lg: 0.375rem;
-    --r-xl: 0.5rem;
-    --r-2xl: 0.625rem;
-    --r-3xl: 0.75rem;
-    --r-4xl: 1rem;
-
-    /* ---- 表面：无阴影，纯靠留白和发丝描边 ---- */
-    --shadow-card: 0 0 0 0 hsl(0 0% 0% / 0);
-    --shadow-panel: 0 1px 3px 0 hsl(var(--hue) 20% 20% / 0.06);
-    --card-border-w: 1px;
-    --card-border: var(--hue) 12% 91%;
-
-    /* ---- 密度：五套里最宽松，行高最高 ---- */
-    --density-gap: 1.35;
-    --leading-body: 1.75;
-
-    --lg-tint: 0 0% 100%;
-    --lg-tint-a1: 0.86;
-    --lg-tint-a2: 0.72;
-    --lg-blur: 8px;
-    --lg-saturate: 105%;
-    --lg-edge-a: 0.45;
-    --lg-spec-a: 0.05;
-    --lg-thick-a: 0.02;
-    --glass-bg: 0 0% 100%;
-    --glass-border: var(--hue) 12% 91%;
-
-    --radius: 0.25rem;
-    --radius-ios: 0.375rem;
-    --radius-ios-lg: 0.5rem;
-    --radius-ios-xl: 0.625rem;
-  }
-
-  [data-theme="minimalist"].dark {
-    --destructive: 6 55% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --background: var(--hue) 12% 7%;
-    --foreground: var(--hue) 10% 90%;
-    --card: var(--hue) 10% 10%;
-    --card-foreground: var(--hue) 10% 90%;
-    --popover: var(--hue) 10% 11%;
-    --popover-foreground: var(--hue) 10% 90%;
-
-    --primary: var(--hue) 55% 68%;
-    --primary-foreground: var(--hue) 30% 10%;
-    --secondary: var(--hue) 8% 15%;
-    --secondary-foreground: var(--hue) 10% 86%;
-    --muted: var(--hue) 8% 14%;
-    --muted-foreground: var(--hue) 6% 58%;
-    --accent: var(--hue) 12% 18%;
-    --accent-foreground: var(--hue) 10% 88%;
-
-    --border: var(--hue) 8% 18%;
-    --input: var(--hue) 8% 18%;
-    --ring: var(--hue) 55% 68%;
-
-    --sidebar: var(--hue) 12% 8%;
-    --sidebar-foreground: var(--hue) 10% 88%;
-    --assistant-bubble: var(--hue) 10% 11%;
-    --user-bubble: var(--hue) 16% 17%;
-    --user-bubble-foreground: var(--hue) 10% 90%;
-
-    --text-secondary: var(--hue) 8% 76%;
-    --text-tertiary: var(--hue) 6% 60%;
-    --text-quaternary: var(--hue) 5% 46%;
-
-    --shadow-panel: 0 1px 3px 0 hsl(0 0% 0% / 0.4);
-    --card-border: var(--hue) 8% 18%;
-
-    --lg-tint: var(--hue) 10% 22%;
-    --lg-tint-a1: 0.40;
-    --lg-tint-a2: 0.26;
-    --lg-edge-a: 0.14;
-    --lg-spec-a: 0.04;
-    --lg-thick-a: 0.12;
-    --glass-bg: var(--hue) 10% 18%;
-    --glass-border: var(--hue) 8% 22%;
-  }
 
   /* ==========================================================================
      iOS 26 液态玻璃（Liquid Glass）

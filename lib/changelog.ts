@@ -29,6 +29,16 @@ export const CHANGELOG: ChangelogDay[] = [
     title: { zh: "全站圆角统一为一套量表", en: "One radius scale for the whole site" },
     entries: [
       {
+        tag: "improve",
+        zh: "配色主题只保留 Anthropic、Sidefolio、Material 3 三套，其余移除",
+        en: "Only Anthropic, Sidefolio and Material 3 presets remain",
+      },
+      {
+        tag: "improve",
+        zh: "Material 3 主题重做：官方 baseline purple 色值、五级表面容器、状态层（8% / 12%）、三级高度阴影、M3 形状标度与 emphasized 曲线",
+        en: "Material 3 rebuilt: baseline purple tokens, five surface containers, 8%/12% state layers, three elevation levels, M3 shape scale and emphasized easing",
+      },
+      {
         tag: "fix",
         zh: "圆角不再各走各的：顶栏、模型按钮、设置卡片用的是一套大圆角变量，而页面里绝大多数组件走的是 Tailwind 的 rounded-*，两者数值差了一倍多，所以同一个画面里顶栏很圆、下面的卡片却是方的。现在所有圆角都来自同一套量表，换主题时整站一起变",
         en: "Radius no longer comes from two competing scales: the top bar, model button and settings cards used one set of large radius variables while most of the page used Tailwind rounded-*, and the two differed by more than double — so the bar looked round while the cards below looked square. Every corner now comes from one scale that shifts together when you switch themes",

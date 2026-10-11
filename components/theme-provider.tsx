@@ -263,16 +263,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
     if (forcedIos) unlocked = true;
     setIosUnlockedState(unlocked);
-    // 未解锁却存着 swiftui（换设备、清了标记等），回落到站点默认主题，
-    // 免得看到一个"应该锁着"的主题。
-    if (initialPreset === "swiftui" && !unlocked) {
-      initialPreset = SITE_THEME;
-      try {
-        localStorage.setItem(PRESET_KEY, initialPreset);
-      } catch {
-        /* 写不进就算了，下次还会再回落一次 */
-      }
-    }
 
     // 旧的存储值只有 "ios" / "web"，等价于手动锁定；"auto" 是新增的跟随态。
     const storedPref: VariantPref =
@@ -450,8 +440,6 @@ var r=document.documentElement;
 if(d)r.classList.add('dark');else r.classList.remove('dark');
 var p=localStorage.getItem('${PRESET_KEY}');
 r.dataset.theme=${JSON.stringify(THEME_IDS)}.indexOf(p)>=0?p:'${SITE_THEME}';
-// SwiftUI 主题锁：未解锁（没在 iOS 主屏幕装过）就回落，避免首屏闪一下锁定主题
-if(r.dataset.theme==='swiftui'&&localStorage.getItem('${IOS_UNLOCK_KEY}')!=='1'){r.dataset.theme='${SITE_THEME}';}
 }catch(e){document.documentElement.classList.remove('dark');}})();`;
 
 /**
