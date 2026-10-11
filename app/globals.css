@@ -1,4 +1,5 @@
-@tailwind base;
+/* UnoCSS：一条指令同时产出 preflight + utilities（原来这里是三条 @tailwind） */
+@unocss all;
 
 /* 让 --angle 可被动画驱动 */
   @property --angle {
@@ -7,8 +8,6 @@
     inherits: false;
   }
 
-@tailwind components;
-@tailwind utilities;
 
 /* ==========================================================================
    字体：Montserrat（英文/数字）+ 昭源環方 Chiron GoRound TC（中文）
