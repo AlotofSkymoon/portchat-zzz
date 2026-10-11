@@ -26,6 +26,32 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-10-11",
+    title: { zh: "登录改用令牌 & 同一网络重复使用即作废", en: "Sign-in token replaces QR, voided on reuse" },
+    entries: [
+      {
+        tag: "new",
+        zh: "登录令牌取代扫码：已登录设备在设置里生成一串令牌，另一台设备直接粘贴到登录页即可登录，不用再扫二维码。旧的 /qr 链接形态仍然兼容",
+        en: "A sign-in token replaces the QR code: a signed-in device generates a token in Settings, and another device simply pastes it into the sign-in page. The old /qr link form still works",
+      },
+      {
+        tag: "new",
+        zh: "同一网络 24 小时内第二次使用同一令牌，令牌立即作废：每次提交都给「IP × 令牌」记一次数，第二次提交时先作废再返回，不管这次能不能通过校验 —— 把令牌转给别人用就没意义了",
+        en: "Reusing the same token from the same network twice within 24 hours voids it on the spot. Every submission is counted per IP × token; the second one voids the token before validation, whether or not it would have passed. Sharing a token with someone else is pointless",
+      },
+      {
+        tag: "improve",
+        zh: "IP 不落明文：只存哈希前 16 位，避免把登录记录变成一份可回溯的 IP 清单",
+        en: "IPs are never stored in plaintext — only the first 16 hex digits of a hash, so login records do not turn into a traceable IP list",
+      },
+      {
+        tag: "fix",
+        zh: "令牌粘贴容错：复制时带上的空格、换行，以及整条 /qr 链接都能正确解析；含非法字符或超长的输入会直接拒绝，不再送到存储层",
+        en: "Pasted tokens are forgiving: stray spaces, line breaks and even a full /qr link parse correctly. Input with illegal characters or excessive length is rejected before reaching storage",
+      },
+    ],
+  },
+  {
+    date: "2026-10-11",
     title: { zh: "朗读不再念符号", en: "Read-aloud no longer reads symbols" },
     entries: [
       {

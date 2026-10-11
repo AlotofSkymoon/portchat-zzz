@@ -8,12 +8,13 @@
  */
 
 import * as React from "react";
-import { Fingerprint, Github, Loader2, Mail, QrCode, ShieldCheck } from "lucide-react";
+import { Copy, Fingerprint, Github, KeyRound, Loader2, Mail, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { timeoutSignal } from "@/lib/fetch-timeout";
+import { formatLoginToken } from "@/lib/qr-login";
 import { useI18n } from "@/components/i18n-provider";
 
 /**
@@ -839,27 +840,45 @@ export function PasskeyCard() {
  * ------------------------------------------------------------------ */
 
 /**
- * 二维码登录卡片：在这台已登录的设备上生成二维码，另一台设备扫一下就登录。
+ * 登录令牌卡片：在这台已登录的设备上生成一串令牌，另一台设备粘贴到登录页即可登录。
  *
  * ⚠️ 两个刻意的取舍：
- *   1. 二维码只在点击时才生成，且 5 分钟后自动失效 —— 常驻显示等于把登录凭证贴在屏幕上
- *   2. 兑换成功后服务端立刻销毁令牌，所以这里轮询到 claimed 就把二维码撤掉
+ *   1. 令牌只在点击时才生成，且 5 分钟后自动失效 —— 常驻显示等于把登录凭证贴在屏幕上
+ *   2. 兑换成功后服务端立刻销毁令牌，所以这里轮询到 claimed 就把令牌撤掉
  */
 export function QrLoginCard() {
   const { t } = useI18n();
   const [busy, setBusy] = React.useState(false);
-  const [matrix, setMatrix] = React.useState<boolean[][] | null>(null);
-  const [path, setPath] = React.useState("");
-  const [viewBox, setViewBox] = React.useState(0);
+  const [token, setToken] = React.useState("");
   const [qrId, setQrId] = React.useState("");
   const [left, setLeft] = React.useState(0);
 
   const stop = React.useCallback(() => {
-    setMatrix(null);
-    setPath("");
+    setToken("");
     setQrId("");
     setLeft(0);
   }, []);
+
+  async function copyToken(text: string) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // 非 HTTPS 或老浏览器没有 clipboard API，退回隐藏 textarea
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      toast.success(t("settings.qrCopied"));
+    } catch {
+      toast.error(t("settings.qrCopyFailed"));
+    }
+  }
 
   // 轮询状态 + 倒计时
   React.useEffect(() => {
@@ -879,6 +898,7 @@ export function QrLoginCard() {
             stop();
             toast.success(t("settings.qrClaimed"));
           }
+
         }
       } catch {
         /* 网络抖动不撤码，等过期 */
@@ -897,16 +917,16 @@ export function QrLoginCard() {
         method: "POST",
         signal: timeoutSignal(8_000),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string; id?: string; payload?: string };
-      if (!res.ok || !data.payload || !data.id) {
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        id?: string;
+        token?: string;
+      };
+      if (!res.ok || !data.token || !data.id) {
         toast.error(data.error ?? t("common.retryLater"));
         return;
       }
-      const { qrMatrix, qrSvgPath, qrViewBox } = await import("@/lib/qr");
-      const m = qrMatrix(data.payload);
-      setMatrix(m);
-      setPath(qrSvgPath(m));
-      setViewBox(qrViewBox(m));
+      setToken(data.token);
       setQrId(data.id);
       setLeft(300);
     } catch {
@@ -929,22 +949,35 @@ export function QrLoginCard() {
           <p className="text-xs text-muted-foreground">{t("settings.qrLoginDesc")}</p>
           <p className="mt-1 text-[11px] text-amber-600/90 dark:text-amber-400/90">{t("settings.qrExperimental")}</p>
         </div>
-        <QrCode className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+        <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
       </div>
 
-      {matrix && path ? (
+      {token ? (
         <div className="space-y-2">
-          <div className="mx-auto w-40 rounded-lg bg-white p-2">
-            <svg viewBox={`0 0 ${viewBox} ${viewBox}`} className="h-full w-full" role="img" aria-label="QR">
-              <path d={path} fill="#000" />
-            </svg>
+          <div className="rounded-lg border border-border/70 bg-muted/40 p-2">
+            <p className="break-all font-mono text-[11px] leading-relaxed select-all">
+              {formatLoginToken(token)}
+            </p>
+          </div>
+          <p className="text-[11px] text-muted-foreground">{t("settings.qrTokenHint")}</p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="flex-1"
+              onClick={() => void copyToken(token)}
+            >
+              <Copy className="mr-1.5 h-3.5 w-3.5" />
+              {t("settings.qrCopy")}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={stop}>
+              {t("settings.qrCancel")}
+            </Button>
           </div>
           <p className="text-center text-[11px] text-muted-foreground">
             {t("settings.qrExpiresIn")} {Math.ceil(left / 60)} {t("settings.qrMinutes")}
           </p>
-          <Button type="button" variant="ghost" size="sm" className="w-full" onClick={stop}>
-            {t("settings.qrCancel")}
-          </Button>
         </div>
       ) : (
         <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => void create()}>

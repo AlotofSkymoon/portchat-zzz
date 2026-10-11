@@ -3,7 +3,17 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Fingerprint, Github, Loader2, LogIn, Sparkles, UserPlus } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Fingerprint,
+  Github,
+  KeyRound,
+  Loader2,
+  LogIn,
+  Sparkles,
+  UserPlus,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/components/i18n-provider";
@@ -89,6 +99,42 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       !!navigator.credentials?.get;
     setPasskeyReady(supported);
   }, [mode]);
+
+  /* ---- 登录令牌：另一台已登录设备生成的一串字符，粘贴到这里即可登录 ---- */
+  const [tokenOpen, setTokenOpen] = React.useState(false);
+  const [loginToken, setLoginToken] = React.useState("");
+  const [tokenBusy, setTokenBusy] = React.useState(false);
+
+  async function loginWithToken() {
+    if (tokenBusy) return;
+    const value = loginToken.trim();
+    if (!value) {
+      toast.error(t("auth.tokenRequired"));
+      return;
+    }
+    setTokenBusy(true);
+    try {
+      const res = await fetch("/api/auth/qr/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: value }),
+        signal: timeoutSignal(10_000),
+      });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        toast.error(data.error ?? t("auth.tokenFailed"));
+        return;
+      }
+      toast.success(t("auth.loginOk"));
+      setLoginToken("");
+      router.push(redirectTo);
+      router.refresh();
+    } catch {
+      toast.error(t("auth.networkError"));
+    } finally {
+      setTokenBusy(false);
+    }
+  }
 
   async function loginWithPasskey() {
     if (passkeyBusy) return;
@@ -478,6 +524,56 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           ) : null}
           {isLogin && passkeyReady ? (
             <p className="text-center text-[11px] text-muted-foreground">{t("auth.passkeyExperimental")}</p>
+          ) : null}
+
+          {isLogin ? (
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setTokenOpen((o) => !o)}
+                className="flex w-full items-center justify-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <KeyRound className="h-3.5 w-3.5" />
+                {t("auth.useToken")}
+                {tokenOpen ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )}
+              </button>
+
+              {tokenOpen ? (
+                <div className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-3">
+                  <Input
+                    id="login-token"
+                    value={loginToken}
+                    onChange={(e) => setLoginToken(e.target.value)}
+                    placeholder={t("auth.tokenPlaceholder")}
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="font-mono text-xs"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={tokenBusy || loading}
+                    onClick={() => void loginWithToken()}
+                  >
+                    {tokenBusy ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <KeyRound className="h-4 w-4" />
+                    )}
+                    {t("auth.tokenLogin")}
+                    <span className="ml-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                      {t("auth.experimentalBadge")}
+                    </span>
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground">{t("auth.tokenHint")}</p>
+                </div>
+              ) : null}
+            </div>
           ) : null}
 
           {githubEnabled ? (
