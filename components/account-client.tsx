@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { useI18n } from "@/components/i18n-provider";
 import {
+  DeleteAccountCard,
   EmailCard,
   GithubBindCard,
   NicknameCard,
@@ -203,6 +204,7 @@ export function AccountClient({ user }: { user: AccountUser }) {
               <PasskeyCard />
               <QrLoginCard />
               <TwoFactorCard />
+              <DeleteAccountCard />
             </div>
 
             <div className="h-px bg-border" />

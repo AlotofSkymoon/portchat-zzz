@@ -50,7 +50,6 @@ const DEST_LABELS: Record<string, string> = {
   "/account": "route.account",
   "/login": "route.login",
   "/register": "route.register",
-  "/pc": "route.pc",
   "/leaderboard": "route.leaderboard",
 };
 

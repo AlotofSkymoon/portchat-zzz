@@ -4,6 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  AlertTriangle,
+  Camera,
   ChevronDown,
   ChevronUp,
   Fingerprint,
@@ -22,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { QrScanner } from "@/components/qr-scanner";
 
 /** base64url → ArrayBuffer（WebAuthn 的 challenge 必须是二进制） */
 function b64urlToBuffer(b64url: string): ArrayBuffer {
@@ -104,10 +107,40 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [tokenOpen, setTokenOpen] = React.useState(false);
   const [loginToken, setLoginToken] = React.useState("");
   const [tokenBusy, setTokenBusy] = React.useState(false);
+  const [scanOpen, setScanOpen] = React.useState(false);
 
-  async function loginWithToken() {
+  /* ---- 待注销提醒：登录当下必须让人看见，否则一进聊天就忘了这事 ---- */
+  const [deleteInMinutes, setDeleteInMinutes] = React.useState<number | null>(null);
+
+  /**
+   * 登录成功后先查一次注销状态。
+   *
+   * 为什么拦在跳转前：真进了聊天页，顶部横幅很容易被当成普通公告划走；
+   * 而「账号还有 X 分钟就没了」是此刻最该知道的事。
+   * 查不到（未登录 / 接口挂了）一律放行，不能因为这一个检查让人登不进去。
+   */
+  async function proceedAfterLogin() {
+    try {
+      const res = await fetch("/api/account/delete", { signal: timeoutSignal(6_000) });
+      const data = (await res.json().catch(() => ({}))) as {
+        pending?: boolean;
+        minutesLeft?: number;
+      };
+      if (res.ok && data.pending) {
+        setDeleteInMinutes(data.minutesLeft ?? 0);
+        return;
+      }
+    } catch {
+      /* 查不到就正常放行 */
+    }
+    router.push(redirectTo);
+    router.refresh();
+  }
+
+  /** 用令牌换会话。扫码和粘贴两条路都走这里，逻辑只有一份 */
+  async function claimWithToken(raw: string) {
     if (tokenBusy) return;
-    const value = loginToken.trim();
+    const value = raw.trim();
     if (!value) {
       toast.error(t("auth.tokenRequired"));
       return;
@@ -127,8 +160,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       }
       toast.success(t("auth.loginOk"));
       setLoginToken("");
-      router.push(redirectTo);
-      router.refresh();
+      setScanOpen(false);
+      await proceedAfterLogin();
     } catch {
       toast.error(t("auth.networkError"));
     } finally {
@@ -201,8 +234,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         return;
       }
       toast.success(t("auth.passkeyOk"));
-      router.replace(redirectTo);
-      router.refresh();
+      await proceedAfterLogin();
     } catch {
       toast.error(t("auth.passkeyFailed"));
     } finally {
@@ -364,8 +396,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
        * 下一台设备登录时才发现想不起来。多一步输入等于一次记忆确认。
        */
       if (isLogin) {
-        router.push(redirectTo);
-        router.refresh();
+        await proceedAfterLogin();
       } else {
         const qs = redirectTo && redirectTo !== "/chat" ? `?redirect=${encodeURIComponent(redirectTo)}` : "";
         router.push(`/login${qs}`);
@@ -392,6 +423,46 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/*
+          待注销横幅。
+          放在表单最上面而不是 toast：toast 几秒就没了，
+          而这件事需要用户当场做决定（取消还是继续）。
+        */}
+        {deleteInMinutes === null ? null : (
+          <div className="mb-4 space-y-2 rounded-xl border border-destructive/50 bg-destructive/10 px-3 py-3">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              {t("auth.deletePendingTitle")}
+            </p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {t("auth.deletePendingDesc", { minutes: String(deleteInMinutes) })}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="flex-1"
+                onClick={() => router.push("/account")}
+              >
+                {t("auth.deleteGoCancel")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  setDeleteInMinutes(null);
+                  router.push(redirectTo);
+                  router.refresh();
+                }}
+              >
+                {t("auth.deleteContinue")}
+              </Button>
+            </div>
+          </div>
+        )}
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">{t("auth.email")}</Label>
@@ -558,7 +629,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                     variant="outline"
                     className="w-full"
                     disabled={tokenBusy || loading}
-                    onClick={() => void loginWithToken()}
+                    onClick={() => void claimWithToken(loginToken)}
                   >
                     {tokenBusy ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -572,6 +643,22 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                   </Button>
                   <p className="text-[11px] text-muted-foreground">{t("auth.tokenHint")}</p>
                 </div>
+              ) : null}
+
+              {tokenOpen ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={tokenBusy || loading}
+                  onClick={() => setScanOpen(true)}
+                >
+                  <Camera className="h-4 w-4" />
+                  {t("auth.scanLogin")}
+                  <span className="ml-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                    {t("auth.experimentalBadge")}
+                  </span>
+                </Button>
               ) : null}
             </div>
           ) : null}
@@ -615,6 +702,18 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           </p>
         </form>
       </CardContent>
+
+      {/*
+       * 扫码登录：二维码里只有令牌本身，扫到就直接去换会话。
+       * 放在 form 外面 —— 放进 form 里按回车会触发表单提交。
+       */}
+      {isLogin ? (
+        <QrScanner
+          open={scanOpen}
+          onClose={() => setScanOpen(false)}
+          onResult={(text) => void claimWithToken(text)}
+        />
+      ) : null}
     </Card>
   );
 }

@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { timeoutSignal } from "@/lib/fetch-timeout";
 import {
+  DeleteAccountCard,
   EmailCard,
   GithubBindCard,
   NicknameCard,
@@ -1659,6 +1660,9 @@ export function SettingsDialog({
 
           {/* 扫码登录 */}
           {user ? <QrLoginCard /> : null}
+
+          {/* 注销账号（100 分钟宽限期） */}
+          {user ? <DeleteAccountCard /> : null}
 
           {/* 云端保存 —— 仅管理员可见（站点级配置已移到 /admin） */}
           {!isAdmin ? null : user ? (

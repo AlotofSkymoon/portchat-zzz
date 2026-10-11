@@ -8,7 +8,18 @@
  */
 
 import * as React from "react";
-import { Copy, Fingerprint, Github, KeyRound, Loader2, Mail, ShieldCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  Copy,
+  Download,
+  Fingerprint,
+  Github,
+  KeyRound,
+  Loader2,
+  Mail,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -852,11 +863,14 @@ export function QrLoginCard() {
   const [token, setToken] = React.useState("");
   const [qrId, setQrId] = React.useState("");
   const [left, setLeft] = React.useState(0);
+  /** 二维码（SVG path + 画布边长）：内容**只有令牌本身**，不含任何网址 */
+  const [qr, setQr] = React.useState<{ d: string; size: number } | null>(null);
 
   const stop = React.useCallback(() => {
     setToken("");
     setQrId("");
     setLeft(0);
+    setQr(null);
   }, []);
 
   async function copyToken(text: string) {
@@ -929,6 +943,14 @@ export function QrLoginCard() {
       setToken(data.token);
       setQrId(data.id);
       setLeft(300);
+      // 按需加载 qrcode（几十 KB），不点生成就不会打进首屏
+      try {
+        const { qrMatrix, qrSvgPath, qrViewBox } = await import("@/lib/qr");
+        const m = qrMatrix(data.token);
+        setQr({ d: qrSvgPath(m), size: qrViewBox(m) });
+      } catch {
+        setQr(null); // 画不出码也能复制令牌，不阻断
+      }
     } catch {
       toast.error(t("common.retryLater"));
     } finally {
@@ -954,6 +976,25 @@ export function QrLoginCard() {
 
       {token ? (
         <div className="space-y-2">
+          {qr ? (
+            <div className="flex justify-center">
+              {/*
+               * 白底是必须的：二维码没有静默区/反色大多数扫码器认不出，
+               * 而页面本身是深色主题，直接画会变成黑底黑码。
+               */}
+              <div className="rounded-lg bg-white p-3">
+                <svg
+                  viewBox={`0 0 ${qr.size} ${qr.size}`}
+                  className="h-40 w-40"
+                  shapeRendering="crispEdges"
+                  role="img"
+                  aria-label={t("settings.qrLogin")}
+                >
+                  <path d={qr.d} fill="#000" />
+                </svg>
+              </div>
+            </div>
+          ) : null}
           <div className="rounded-lg border border-border/70 bg-muted/40 p-2">
             <p className="break-all font-mono text-[11px] leading-relaxed select-all">
               {formatLoginToken(token)}
@@ -983,6 +1024,312 @@ export function QrLoginCard() {
         <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => void create()}>
           {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
           {t("settings.qrGenerate")}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                 注销账号                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * 注销账号（100 分钟宽限期）。
+ *
+ * 三道验证：GitHub 认证 + 密码 + 两步验证，齐全才进入宽限期；
+ * 期间随时可以「登入后用两步验证取消」，也可以先导出聊天记录。
+ *
+ * ⚠️ 为什么 GitHub 那一步是跳走再回来：
+ * OAuth 只能在 GitHub 的页面上完成，没法在当前页面里静默做完一次。
+ * 回调带着 ?gh_verified=1 回来，这里读到就把那一步标成已完成。
+ */
+export function DeleteAccountCard() {
+  const { t } = useI18n();
+  const [open, setOpen] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [ghVerified, setGhVerified] = React.useState(false);
+  const [ghBound, setGhBound] = React.useState(false);
+  const [pending, setPending] = React.useState<{ minutesLeft: number } | null>(null);
+  const [password, setPassword] = React.useState("");
+  const [code, setCode] = React.useState("");
+  const [cancelCode, setCancelCode] = React.useState("");
+
+  async function loadStatus() {
+    try {
+      const res = await fetch("/api/account/delete", { signal: timeoutSignal(6_000) });
+      const data = (await res.json().catch(() => ({}))) as {
+        pending?: boolean;
+        minutesLeft?: number;
+      };
+      setPending(data.pending ? { minutesLeft: data.minutesLeft ?? 0 } : null);
+    } catch {
+      /* 拉不到就当没申请，不弹错误打扰用户 */
+    }
+  }
+
+  React.useEffect(() => {
+    void loadStatus();
+
+    // GitHub 认证回来的标记（不用 useSearchParams：那会要求 Suspense 边界）
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get("gh_verified") === "1") {
+      setGhVerified(true);
+      setOpen(true);
+      // 把参数从地址栏抹掉，刷新不会重复提示
+      qs.delete("gh_verified");
+      const clean = qs.toString();
+      window.history.replaceState({}, "", window.location.pathname + (clean ? `?${clean}` : ""));
+    }
+
+    void fetch("/api/auth/oauth/github/bind", { signal: timeoutSignal(6_000) })
+      .then((r) => r.json())
+      .then((d: { enabled?: boolean; bound?: boolean }) => {
+        setGhBound(!!d.bound && !!d.enabled);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  // 待注销时每分钟刷新一次剩余时间
+  React.useEffect(() => {
+    if (!pending) return;
+    const timer = window.setInterval(() => void loadStatus(), 60_000);
+    return () => window.clearInterval(timer);
+  }, [pending]);
+
+  async function requestDelete() {
+    if (busy) return;
+    if (ghBound && !ghVerified) {
+      toast.error(t("settings.deleteGithubStep"));
+      return;
+    }
+    if (!password || !code) {
+      toast.error(t("settings.deleteNeedFields"));
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, code }),
+        signal: timeoutSignal(12_000),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        needGithub?: boolean;
+        minutesLeft?: number;
+      };
+      if (!res.ok || !data.ok) {
+        if (data.needGithub) toast.error(t("settings.deleteGithubStep"));
+        else toast.error(data.error ?? t("common.retryLater"));
+        return;
+      }
+      toast.success(t("settings.deleteScheduled"));
+      setPassword("");
+      setCode("");
+      setOpen(false);
+      setGhVerified(false);
+      await loadStatus();
+    } catch {
+      toast.error(t("common.retryLater"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancelDelete() {
+    if (busy) return;
+    if (!cancelCode.trim()) {
+      toast.error(t("settings.deleteNeedCode"));
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/account/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: cancelCode.trim() }),
+        signal: timeoutSignal(12_000),
+      });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        toast.error(data.error ?? t("common.retryLater"));
+        return;
+      }
+      toast.success(t("settings.deleteCancelled"));
+      setCancelCode("");
+      setPending(null);
+    } catch {
+      toast.error(t("common.retryLater"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function exportData() {
+    try {
+      const res = await fetch("/api/account/export", { signal: timeoutSignal(20_000) });
+      if (!res.ok) {
+        toast.error(t("settings.deleteExportFailed"));
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pot-chat-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error(t("settings.deleteExportFailed"));
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border border-destructive/40 bg-destructive/5 px-3 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="pr-3">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-destructive">
+            <Trash2 className="h-3.5 w-3.5" />
+            {t("settings.deleteAccount")}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t("settings.deleteAccountDesc")}</p>
+        </div>
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive/70" />
+      </div>
+
+      {pending ? (
+        <div className="space-y-2">
+          <p className="text-xs text-destructive">
+            {t("settings.deletePendingPrefix")} {pending.minutesLeft}{" "}
+            {t("settings.deleteMinutesUnit")}
+          </p>
+          <p className="text-[11px] text-muted-foreground">{t("settings.deleteCancelHint")}</p>
+          <div className="flex gap-2">
+            <Input
+              value={cancelCode}
+              onChange={(e) => setCancelCode(e.target.value)}
+              placeholder={t("settings.deleteCancelCode")}
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              className="font-mono text-xs"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="shrink-0"
+              disabled={busy}
+              onClick={() => void cancelDelete()}
+            >
+              {t("settings.deleteCancel")}
+            </Button>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => void exportData()}
+          >
+            <Download className="mr-1.5 h-3.5 w-3.5" />
+            {t("settings.deleteExport")}
+          </Button>
+        </div>
+      ) : open ? (
+        <div className="space-y-2">
+          {/* 第 1 步：GitHub 认证（没绑定 GitHub 的账号跳过这一步） */}
+          {ghBound ? (
+            <div className="rounded-lg border border-border/70 bg-muted/30 px-2.5 py-2">
+              <p className="flex items-center gap-1.5 text-xs font-medium">
+                <Github className="h-3.5 w-3.5" />
+                1. {t("settings.deleteGithubStep")}
+              </p>
+              {ghVerified ? (
+                <p className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400">
+                  {t("settings.deleteGithubDone")}
+                </p>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-1.5 w-full"
+                  onClick={() => {
+                    window.location.href =
+                      "/api/auth/oauth/github?mode=verify&redirect=/account";
+                  }}
+                >
+                  <Github className="mr-1.5 h-3.5 w-3.5" />
+                  {t("settings.deleteGithubVerify")}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <p className="text-[11px] text-muted-foreground">{t("settings.deleteGithubUnbound")}</p>
+          )}
+
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={t("settings.deletePasswordLabel")}
+            autoComplete="current-password"
+            className="text-xs"
+          />
+          <Input
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder={t("settings.deleteCodeLabel")}
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            className="font-mono text-xs"
+          />
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="flex-1"
+              disabled={busy}
+              onClick={() => void requestDelete()}
+            >
+              {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+              {t("settings.deleteSubmit")}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setOpen(false);
+                setPassword("");
+                setCode("");
+              }}
+            >
+              {t("common.cancel")}
+            </Button>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => void exportData()}
+          >
+            <Download className="mr-1.5 h-3.5 w-3.5" />
+            {t("settings.deleteExport")}
+          </Button>
+        </div>
+      ) : (
+        <Button type="button" variant="destructive" size="sm" onClick={() => setOpen(true)}>
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+          {t("settings.deleteRequest")}
         </Button>
       )}
     </div>

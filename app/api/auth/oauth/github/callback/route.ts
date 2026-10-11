@@ -49,10 +49,12 @@ export async function GET(request: Request) {
   const raw = store.get(STATE_COOKIE)?.value || "";
   store.set(STATE_COOKIE, "", { path: "/", maxAge: 0 }); // state 一次性
 
-  let saved: { state: string; redirect: string; mode?: "login" | "bind"; host?: string } = {
-    state: "",
-    redirect: "/chat",
-  };
+  let saved: {
+    state: string;
+    redirect: string;
+    mode?: "login" | "bind" | "verify";
+    host?: string;
+  } = { state: "", redirect: "/chat" };
   try {
     saved = JSON.parse(raw);
   } catch {
@@ -62,7 +64,8 @@ export async function GET(request: Request) {
   if (!saved.state || saved.state !== returnedState) return fail(request, "state");
   if (!code) return fail(request, "no_code");
 
-  const mode: "login" | "bind" = saved.mode === "bind" ? "bind" : "login";
+  const mode: "login" | "bind" | "verify" =
+    saved.mode === "bind" ? "bind" : saved.mode === "verify" ? "verify" : "login";
 
   /*
    * 取凭证的域名：优先用发起时记下的（保证换 token 用的是同一个 App 的
@@ -136,6 +139,31 @@ export async function GET(request: Request) {
   const email = (gh.email || `${gh.login}@users.noreply.github.com`).toLowerCase();
 
   const redis = getRedis();
+
+  /* --------------------------- 身份证明模式 --------------------------- */
+  /*
+   * 注销账号的三要素之一。
+   *
+   * 这里只做一件事：确认「当前登录的人确实握着这个 GitHub 账号」，
+   * 然后在服务端记一个 10 分钟有效的标记。不建会话、不改绑定关系。
+   */
+  if (mode === "verify") {
+    const current = await getCurrentUser();
+    if (!current) return fail(request, "need_login", saved.redirect || "/account");
+
+    const bound = readOAuth(current)?.github;
+    // 必须和当前账号已绑定的 GitHub 是同一个 —— 随便拿个别人的号来验不算数
+    if (!bound?.id || bound.id !== githubId) {
+      return fail(request, "github_mismatch", saved.redirect || "/account");
+    }
+
+    const { markGithubVerified } = await import("@/lib/account-deletion");
+    await markGithubVerified(current.id, gh.login);
+
+    const done = new URL(saved.redirect || "/account", request.url);
+    done.searchParams.set("gh_verified", "1");
+    return NextResponse.redirect(done);
+  }
 
   /* --------------------------- 绑定模式 --------------------------- */
   /*

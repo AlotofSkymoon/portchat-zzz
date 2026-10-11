@@ -60,13 +60,16 @@ export async function GET(request: Request) {
   const redirect = /^\/(?!\/)/.test(raw) ? raw : "/chat";
 
   /*
-   * 两种用途：
+   * 三种用途：
    *   login（默认） —— 用 GitHub 登录/注册，回调会建会话
    *   bind          —— 已登录用户把 GitHub 绑到现有账号，回调只写绑定关系
-   * 必须在发起时就判登录态：未登录却走 bind，回调才发现的话用户已经白跳一趟。
+   *   verify        —— 注销账号时的身份证明，回调只记一个"已认证"标记
+   * 必须在发起时就判登录态：未登录却走 bind/verify，回调才发现的话用户已经白跳一趟。
    */
-  const mode = url.searchParams.get("mode") === "bind" ? "bind" : "login";
-  if (mode === "bind" && !(await getCurrentUser())) {
+  const rawMode = url.searchParams.get("mode");
+  const mode: "login" | "bind" | "verify" =
+    rawMode === "bind" ? "bind" : rawMode === "verify" ? "verify" : "login";
+  if (mode !== "login" && !(await getCurrentUser())) {
     return NextResponse.json({ error: st(request, "api.notLoggedIn") }, { status: 401 });
   }
 

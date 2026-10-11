@@ -26,6 +26,32 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-10-11",
+    title: { zh: "扫码回归 + 移除云电脑 + 注销账号可反悔", en: "QR scan returns, cloud PC removed, reversible deletion" },
+    entries: [
+      {
+        tag: "new",
+        zh: "扫码登录回归：二维码里现在只有登录令牌本身，不再是一串网址；登录页新增「扫码登录」，点开调用相机取景，识别到令牌后自动完成登录。相机被拒、设备没有摄像头、非 HTTPS 环境都会给出明确提示，不会黑屏",
+        en: "QR sign-in is back: the code now contains only the login token, not a URL. The sign-in page gained a Scan option that opens the camera; once the token is recognised, sign-in completes automatically. Denied permission, missing cameras and non-HTTPS contexts all get a clear message instead of a black screen",
+      },
+      {
+        tag: "new",
+        zh: "注销账号需要三要素并留 100 分钟反悔期：GitHub 认证 + 密码 + 两步验证齐全才受理（未绑定 GitHub 的账号退化为密码 + 两步验证），受理后 100 分钟内可以再做一次两步验证取消，也可以先把聊天记录导出成文件",
+        en: "Deleting an account now needs three factors and offers a 100-minute grace period: GitHub verification plus password plus two-factor (accounts without GitHub fall back to password plus two-factor). During those 100 minutes another two-factor check cancels the deletion, and you can export your chats first",
+      },
+      {
+        tag: "improve",
+        zh: "登录当下就能看到注销提醒：账号处于宽限期时，登录成功会先显示醒目横幅告知剩余时间，并给出「去设置取消」与「仍然继续」两个选择，不会一进聊天就被划走",
+        en: "You see the deletion warning the moment you sign in: if the account is in its grace period, sign-in shows a prominent banner with the time left and two choices — cancel it in Settings, or continue anyway",
+      },
+      {
+        tag: "improve",
+        zh: "移除云电脑：页面、顶部入口、过渡名称与相关文案全部清理",
+        en: "Cloud PC removed: the page, the top-bar entry, its transition name and all related copy are gone",
+      },
+    ],
+  },
+  {
+    date: "2026-10-11",
     title: { zh: "登录改用令牌 & 同一网络重复使用即作废", en: "Sign-in token replaces QR, voided on reuse" },
     entries: [
       {

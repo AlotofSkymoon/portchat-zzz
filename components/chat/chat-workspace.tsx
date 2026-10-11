@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ImagePlus,
-  Monitor,
   Eraser,
   Menu,
   PanelLeftOpen,
@@ -1576,12 +1575,6 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
               <Link href="/leaderboard" className="gap-1.5">
                 <Trophy className="h-4 w-4" />
                 <span className="hidden lg:inline">{t("route.leaderboard")}</span>
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild title={t("chat.cloudPc")}>
-              <Link href="/pc" className="gap-1.5">
-                <Monitor className="h-4 w-4" />
-                <span className="hidden lg:inline">{t("chat.cloudPc")}</span>
               </Link>
             </Button>
             {!isEmpty ? (
