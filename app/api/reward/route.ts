@@ -62,7 +62,7 @@ export async function GET(request: Request) {
       { text: `Congratulations! You ranked #1 for ${hit.period}.`, size: 13, gap: 10 },
       { text: `Messages sent: ${hit.count}`, size: 13 },
       { text: "", size: 8, gap: 10 },
-      { text: "Prize: a free second-level domain", size: 13, bold: true, gap: 8 },
+      { text: "Prize: a free domain", size: 13, bold: true, gap: 8 },
       { text: `Domain: ${hit.domain}`, size: 14, bold: true },
       { text: `Transfer code: ${hit.transferCode}`, size: 14, bold: true },
       ...(hit.note ? [{ text: `Note: ${hit.note}`, size: 11 }] : []),

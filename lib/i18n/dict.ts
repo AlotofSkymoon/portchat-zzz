@@ -1090,7 +1090,7 @@ const DICT: Record<string, Entry> = {
   "account.cloudSyncFailed": { "zh-CN": "切换失败，请重试", "zh-TW": "切換失敗，請重試", en: "Failed to switch, try again", fr: "Échec, réessayez" },
   "account.cloudSyncOffHint": { "zh-CN": "默认开启。关闭需要验证身份（密码 / 两步验证 / Passkey / 邮箱验证码）。", "zh-TW": "預設開啟。關閉需要驗證身分（密碼 / 兩步驟驗證 / Passkey / 電子郵件驗證碼）。", en: "On by default. Turning it off requires verification (password / 2FA / passkey / email code).", fr: "Activée par défaut. La désactiver nécessite une vérification (mot de passe / 2FA / Passkey / code e-mail)." },
   "admin.rewardTitle": { "zh-CN": "月度奖励", "zh-TW": "月度獎勵", en: "Monthly reward", fr: "Récompense mensuelle" },
-  "admin.rewardDesc": { "zh-CN": "每月聊天次数第一名赠送一个二级域名（管理员不计入）。", "zh-TW": "每月聊天次數第一名贈送一個二級網域（管理員不計入）。", en: "Top chatter of the month gets a free subdomain (admins excluded).", fr: "Le meilleur participant du mois reçoit un sous-domaine (admins exclus)." },
+  "admin.rewardDesc": { "zh-CN": "每月聊天次数第一名赠送一个域名（管理员不计入）。", "zh-TW": "每月聊天次數第一名贈送一個網域（管理員不計入）。", en: "Top chatter of the month gets a free domain (admins excluded).", fr: "Le meilleur participant du mois reçoit un domaine (admins exclus)." },
   "admin.rewardPending": { "zh-CN": "待发奖", "zh-TW": "待發獎", en: "Pending", fr: "En attente" },
   "admin.rewardDone": { "zh-CN": "已发放", "zh-TW": "已發放", en: "Sent", fr: "Envoyé" },
   "admin.rewardNone": { "zh-CN": "暂无数据", "zh-TW": "暫無資料", en: "No data", fr: "Aucune donnée" },

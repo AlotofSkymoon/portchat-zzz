@@ -111,12 +111,12 @@ export const DEFAULT_NAV: NavCategory[] = [
         url: "https://www.gname.com/",
         desc: "Gname 免费域名活动",
       },
-      { id: "cccc", name: "cc.cc聚合页", url: "https://cc.cc/", desc: "免费二级域名" },
+      { id: "cccc", name: "cc.cc聚合页", url: "https://cc.cc/", desc: "免费域名" },
       {
         id: "katabump",
         name: "katabump免费域名",
         url: "https://katabump.com/",
-        desc: "免费二级域名",
+        desc: "免费域名",
         recommended: true,
       },
       {
@@ -171,7 +171,7 @@ export const DEFAULT_NAV: NavCategory[] = [
         id: "pagedrop",
         name: "pagedrop",
         url: "https://pagedrop.io/",
-        desc: "临时部署单页面，链接大陆可用，二级域名",
+        desc: "临时部署单页面，链接大陆可用，免费域名",
       },
       {
         id: "pagebowl",
@@ -691,7 +691,7 @@ export const DEFAULT_NAV: NavCategory[] = [
         id: "euorg",
         name: "eu.org",
         url: "http://www.eu.org/",
-        desc: "历史最久的免费二级域名，审核慢但永久",
+        desc: "历史最久的免费域名，审核慢但永久",
         recommended: true,
       },
       {
