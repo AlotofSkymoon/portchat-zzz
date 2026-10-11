@@ -3672,3 +3672,14 @@ html[data-variant="ios"] [data-ios-group-title] {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---- 更新日志折叠：grid 0fr/1fr 高度过渡（内容无焦点元素，折叠时 aria-hidden） ---- */
+.cl-fold {
+  transition: grid-template-rows var(--motion-fast) var(--motion-ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-fold {
+    transition: none;
+  }
+}

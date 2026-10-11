@@ -30,6 +30,11 @@ export const CHANGELOG: ChangelogDay[] = [
     entries: [
       {
         tag: "improve",
+        zh: "更新日志每天可折叠：点日期标题即可展开或收起，右上角有「全部展开 / 全部收起」。默认只展开最新一天，每节右侧标出当天条目数",
+        en: "Changelog days are collapsible: click a date heading to expand or collapse it, and use Expand all / Collapse all in the top-right corner. Only the newest day is open by default, and each heading shows how many entries that day holds",
+      },
+      {
+        tag: "improve",
         zh: "去 AI 味重构（第一轮）：新增一套设计 Token（间距 4px 基数、圆角四档、描边三档、表面层级、阴影四档、动效四档时长与四条曲线），组件不再各写各的数值。首页三色极光压成单色极淡光晕、标题渐变文字改成品牌色单色、卡片与侧边栏去掉无效的毛玻璃、按钮与输入框圆角降到 6px / 10px、彩色外发光全部改中性投影、消息入场从 550ms 缩到 240ms、正文加上 72 字符单行上限",
         en: "De-AI redesign, round one: a design token layer now covers spacing, a four-step radius scale, three border weights, surface elevation, four shadow levels and four motion durations with four easing curves, so components stop inventing their own numbers. The landing page's tri-colour aurora became a single faint brand glow, gradient headlines became solid brand colour, cards and the sidebar dropped their useless backdrop blur, button and input radii dropped to 6px / 10px, coloured glows became neutral shadows, message entry shrank from 550ms to 240ms and body text is capped at 72 characters per line",
       },

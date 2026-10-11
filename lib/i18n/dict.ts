@@ -462,6 +462,8 @@ const DICT: Record<string, Entry> = {
   /* ---- 落地页 ---- */
   "route.sponsor": { "zh-CN": "赞助支持", "zh-TW": "贊助支持", en: "Sponsor", fr: "Soutenir" },
   "route.changelog": { "zh-CN": "更新日志", "zh-TW": "更新日誌", en: "Changelog", fr: "Journal des versions" },
+  "changelog.expandAll": { "zh-CN": "全部展开", "zh-TW": "全部展開", en: "Expand all", fr: "Tout déplier" },
+  "changelog.collapseAll": { "zh-CN": "全部收起", "zh-TW": "全部收起", en: "Collapse all", fr: "Tout replier" },
   "route.admin": { "zh-CN": "管理员面板", "zh-TW": "管理員面板", en: "Admin panel", fr: "Panneau d'administration" },
   "route.account": { "zh-CN": "账户设置", "zh-TW": "帳戶設定", en: "Account", fr: "Compte" },
   "route.login": { "zh-CN": "登录", "zh-TW": "登入", en: "Log in", fr: "Connexion" },
