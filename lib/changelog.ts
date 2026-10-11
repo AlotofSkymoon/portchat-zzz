@@ -41,6 +41,26 @@ export const CHANGELOG: ChangelogDay[] = [
     entries: [
       {
         tag: "improve",
+        zh: "全站圆角回到圆润的一套：前一轮去 AI 味把按钮压到 6px，是全站最方的一档，看着难受。现在按钮、输入框、卡片、气泡与顶栏、模型切换、设置卡片共用同一套量表（10 / 20 / 26 / 32 / 38 / 44 / 52px），换主题时整站一起变，不会再上面圆、下面方",
+        en: "Radii are round again across the site: the previous de-AI pass pushed buttons down to 6px, the squarest step in the scale, which felt harsh. Buttons, inputs, cards and bubbles now share one scale with the top bar, model switcher and settings cards (10 / 20 / 26 / 32 / 38 / 44 / 52px), so a theme changes everything at once instead of leaving rounded chrome above square content",
+      },
+      {
+        tag: "improve",
+        zh: "账号相关设置全部收进「账号」页：昵称、邮箱、两步验证、GitHub 绑定、登录令牌、注销账号、云端保存只在账号页出现，设置里只留聊天本身的配置，并留一行说明告诉这些东西去哪了",
+        en: "Everything account-related now lives on the Account page: nickname, email, two-factor, GitHub link, login token, deletion and cloud sync appear only there. Settings keeps just the chat configuration, with a line pointing to where the account items went",
+      },
+      {
+        tag: "improve",
+        zh: "云端保存改为强制开启：不再有开关，登录后一定会从服务端拉回历史对话，换设备也能接着聊，不会再出现进来一片空白以为记录没了",
+        en: "Cloud save is now always on: the toggle is gone, and signing in always pulls your history back from the server, so switching devices keeps the conversation instead of showing an empty screen",
+      },
+      {
+        tag: "fix",
+        zh: "移除 Passkey 登录：登录页按钮、二次认证选项、账号页绑定卡片、后台接口与底层代码全部清除，二次认证回到密码 / 两步验证 / 邮箱验证码三选一",
+        en: "Passkey sign-in removed: the button on the sign-in page, the second-factor option, the binding card on the account page, the API routes and the underlying code are all gone. Second-factor verification is back to password, two-factor or email code",
+      },
+      {
+        tag: "improve",
         zh: "更新日志每天可折叠：点日期标题即可展开或收起，右上角有「全部展开 / 全部收起」。默认只展开最新一天，每节右侧标出当天条目数",
         en: "Changelog days are collapsible: click a date heading to expand or collapse it, and use Expand all / Collapse all in the top-right corner. Only the newest day is open by default, and each heading shows how many entries that day holds",
       },

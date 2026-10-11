@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 /**
  * 二次认证（reauth）：关闭云端保存这类敏感操作前先过一道。
  *
- * 四种方式任选其一：密码 / 两步验证 / Passkey / 邮箱验证码。
+ * 三种方式任选其一：密码 / 两步验证 / 邮箱验证码。
  * 通过后发一张 **10 分钟有效的一次性凭证**，后续敏感操作带上它即可。
  *
  * ⚠️ 为什么是"发凭证"而不是"直接改状态"：
@@ -105,16 +105,6 @@ export async function POST(request: Request) {
     }
     await consumeCode(user.email);
     return NextResponse.json({ ok: true, token: await issueGrant(user.id) });
-  }
-
-  /* ---------------------------- Passkey ---------------------------- */
-  if (method === "passkey") {
-    // Passkey 的断言校验在 /api/passkey/authenticate/verify（mode=reauth）里完成，
-    // 那边成功后会直接下发凭证，这里只做转发提示，避免两套校验逻辑不一致。
-    return NextResponse.json(
-      { error: st(request, "err.badRequest") },
-      { status: 400 },
-    );
   }
 
   return NextResponse.json({ error: st(request, "err.badRequest") }, { status: 400 });

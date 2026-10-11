@@ -393,9 +393,9 @@ export class CloudflareStore implements Store {
    * ⚠️ 用户 key 走 D1 的固定列映射，**只认下面这几列**：
    *    id / email / password_hash / role / created_at
    *
-   * 任何没在映射里的字段（passkeys、twoFactor、nickname、emailVerified…）
+   * 任何没在映射里的字段（twoFactor、nickname、emailVerified…）
    * 都会被**静默丢弃** —— 写入不报错、读取永远是空。已经踩过一次：
-   * Passkey 早先存在用户记录里，绑定返回成功、列表却空、登录永远说
+   * 凭据早先存在用户记录里，绑定返回成功、列表却空、登录永远说
    * 「没有对应的账号」，三个症状一个根因，日志上完全看不出异常。
    *
    * 所以这类数据请**单独存 key**（走下面「非用户 hash → 整体存 JSON」的分支），

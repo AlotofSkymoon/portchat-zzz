@@ -19,15 +19,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { timeoutSignal } from "@/lib/fetch-timeout";
-import {
-  DeleteAccountCard,
-  EmailCard,
-  GithubBindCard,
-  NicknameCard,
-  PasskeyCard,
-  QrLoginCard,
-  TwoFactorCard,
-} from "@/components/account-cards";
 import { useI18n } from "@/components/i18n-provider";
 import { usePresetProviders } from "@/lib/use-preset-providers";
 import { LocalePicker } from "@/components/locale-picker";
@@ -104,8 +95,6 @@ interface SettingsDialogProps {
   settings: ChatSettings;
   onSave: (settings: ChatSettings) => void;
   user: { id: string; email: string; role: string } | null;
-  cloudSync: boolean;
-  onCloudSyncChange: (value: boolean) => void;
   onClearAll: () => void;
   /** 昵称/邮箱改完了调一下，用来刷新顶栏显示（可选） */
   onUserChanged?: () => void;
@@ -836,8 +825,6 @@ export function SettingsDialog({
   settings,
   onSave,
   user,
-  cloudSync,
-  onCloudSyncChange,
   onClearAll,
   onUserChanged,
 }: SettingsDialogProps) {
@@ -1644,40 +1631,14 @@ export function SettingsDialog({
           {/* 朗读语音 —— 设备默认挑的往往最机械，这里让用户自己试听选 */}
           <SpeechCard />
 
-          {/* 昵称与邮箱账号 —— 放在最前，账号相关的最常用 */}
-          {user ? <NicknameCard onChanged={onUserChanged ?? (() => {})} /> : null}
-
-          {user ? <EmailCard onChanged={onUserChanged ?? (() => {})} /> : null}
-
-          {/* 两步验证（TOTP） */}
-          {user ? <TwoFactorCard /> : null}
-
-          {/* GitHub 绑定 */}
-          {user ? <GithubBindCard /> : null}
-
-          {/* Passkey（指纹 / 面容） */}
-          {user ? <PasskeyCard /> : null}
-
-          {/* 扫码登录 */}
-          {user ? <QrLoginCard /> : null}
-
-          {/* 注销账号（100 分钟宽限期） */}
-          {user ? <DeleteAccountCard /> : null}
-
-          {/* 云端保存 —— 仅管理员可见（站点级配置已移到 /admin） */}
-          {!isAdmin ? null : user ? (
-            <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card/40 px-3 py-3">
-              <div className="pr-3">
-                <p className="text-sm font-medium">{t("settings.cloudSave")}</p>
-                <p className="text-xs text-muted-foreground">{t("settings.cloudSaveDesc")}</p>
-              </div>
-              <Switch checked={cloudSync} onCheckedChange={onCloudSyncChange} />
+          {/* 账号相关（昵称 / 邮箱 / 两步验证 / GitHub / 登录令牌 / 注销 / 云端保存）
+              全部移到「账号」页面，设置里只留聊天本身的配置 */}
+          {user ? (
+            <div className="rounded-xl border border-border/70 bg-card/40 px-3 py-3">
+              <p className="text-sm font-medium">{t("settings.accountMovedTitle")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("settings.accountMovedDesc")}</p>
             </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-border px-3 py-3 text-xs text-muted-foreground">
-              {t("settings.cloudSaveLoginHint")}
-            </div>
-          )}
+          ) : null}
 
           {/* 普通用户提示：高级配置已移至管理员面板 */}
           {isAdmin ? null : (

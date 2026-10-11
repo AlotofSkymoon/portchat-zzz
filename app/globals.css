@@ -229,11 +229,7 @@ html.theme-transitioning *::after {
     --input: 228 20% 91%;
     --ring: 230 99% 65%;
 
-    /* ⚠️ 原来是 0.85rem（13.6px）—— 按钮、输入框、卡片、气泡全用同一个值，
-       这是 shadcn / Tailwind 默认值固化后最普遍的统一指纹。
-       降到 0.625rem（10px）作基准，并新增 --radius-xs/sm/md/lg 四档
-       （见下方设计 Token 层），组件按尺寸取用，不再一刀切。 */
-    --radius: 0.625rem;
+    --radius: 0.85rem;
 
     /* ==========================================================================
        iOS 26 连续圆角（Continuous Corner）
@@ -566,14 +562,14 @@ body::after {
    * 之前这两套是分开的（面板 40px、卡片 32px，而 rounded-xl 只有 12px），
    * 于是同一个界面里顶栏很圆、下面的卡片却是方的。现在合并成一套。
    */
-  --r-sm: 0.5rem;      /* 8px   标签、滑块轨道 */
-  --r-default: 0.75rem; /* 12px 默认 */
-  --r-md: 0.875rem;    /* 14px */
-  --r-lg: 1rem;        /* 16px 按钮、输入框 */
-  --r-xl: 1.25rem;     /* 20px */
-  --r-2xl: 1.5rem;     /* 24px 卡片、气泡 */
-  --r-3xl: 1.75rem;    /* 28px 大卡片 */
-  --r-4xl: 2rem;       /* 32px 弹层、顶栏 */
+  --r-sm: 0.625rem;    /* 10px  标签、滑块轨道 */
+  --r-default: 1.25rem; /* 20px 默认 */
+  --r-md: 1.25rem;     /* 20px */
+  --r-lg: 1.625rem;    /* 26px */
+  --r-xl: 2rem;        /* 32px 按钮、输入框 */
+  --r-2xl: 2.375rem;   /* 38px 卡片、气泡 */
+  --r-3xl: 2.75rem;    /* 44px 大卡片 */
+  --r-4xl: 3.25rem;    /* 52px 弹层、顶栏 */
 
   --radius-ctrl: var(--r-xl);
   --radius-card: var(--r-2xl);

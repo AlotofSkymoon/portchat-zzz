@@ -352,7 +352,7 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
             原先气泡比大卡片还圆（卡片 16px），层级反了 —— 气泡是内容，
             不该比容器更"软"。现在气泡 16px = 卡片，右下角 6px 做出指向感。 */}
         {message.content ? (
-          <div className="msg-user max-w-[85%] rounded-[var(--radius-lg)] rounded-br-[var(--radius-sm)] bg-[hsl(var(--user-bubble))] px-4 py-2.5 text-[15px] leading-[1.75] text-[hsl(var(--user-bubble-foreground))] sm:max-w-[75%]">
+          <div className="msg-user max-w-[85%] rounded-lg rounded-br-sm bg-[hsl(var(--user-bubble))] px-4 py-2.5 text-[15px] leading-[1.75] text-[hsl(var(--user-bubble-foreground))] sm:max-w-[75%]">
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
           </div>
         ) : null}

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Fingerprint, KeyRound, Loader2, Mail, ShieldCheck } from "lucide-react";
+import { KeyRound, Loader2, Mail, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/components/i18n-provider";
@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 /**
- * 二次认证弹窗：密码 / 两步验证 / Passkey / 邮箱验证码，四选一。
+ * 二次认证弹窗：密码 / 两步验证 / 邮箱验证码，三选一。
  *
  * 用在「关闭云端保存」这类危险方向上 —— 开启是更安全的一侧，不该拦。
  * 通过后拿到一张一次性凭证（10 分钟有效、用后即焚），交给调用方去完成真正的操作。
@@ -27,9 +27,9 @@ import { cn } from "@/lib/utils";
  * 改状态的是目标接口，它自己会校验凭证，前端跳过弹窗直接调会被拒。
  */
 
-type Method = "password" | "totp" | "email" | "passkey";
+type Method = "password" | "totp" | "email";
 
-const METHODS: Method[] = ["password", "totp", "email", "passkey"];
+const METHODS: Method[] = ["password", "totp", "email"];
 
 function toB64url(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
@@ -96,87 +96,9 @@ export function ReauthDialog({
     }
   }
 
-  /** Passkey：拿挑战 → 浏览器签名 → 交给服务端验，成功后直接拿凭证 */
-  async function verifyPasskey(): Promise<string | null> {
-    if (typeof window === "undefined" || !window.PublicKeyCredential) {
-      toast.error(t("reauth.passkeyUnsupported"));
-      return null;
-    }
-    const optRes = await fetch("/api/passkey/authenticate/options", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "reauth" }),
-    });
-    const opt = (await optRes.json()) as {
-      error?: string;
-      chalId?: string;
-      challenge?: string;
-      allowCredentials?: { id: string; type: string; transports?: string[] }[];
-      timeout?: number;
-    };
-    if (!optRes.ok || !opt.chalId || !opt.challenge) {
-      toast.error(opt.error ?? t("reauth.passkeyFailed"));
-      return null;
-    }
-
-    const assertion = (await navigator.credentials.get({
-      publicKey: {
-        challenge: fromB64url(opt.challenge),
-        allowCredentials: (opt.allowCredentials ?? []).map((c) => ({
-          id: fromB64url(c.id),
-          type: "public-key" as const,
-          transports: (c.transports ?? []) as AuthenticatorTransport[],
-        })),
-        userVerification: "preferred",
-        timeout: opt.timeout ?? 60_000,
-      },
-    })) as PublicKeyCredential | null;
-
-    if (!assertion) {
-      toast.error(t("reauth.passkeyFailed"));
-      return null;
-    }
-    const resp = assertion.response as AuthenticatorAssertionResponse;
-
-    const verRes = await fetch("/api/passkey/authenticate/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chalId: opt.chalId,
-        credential: {
-          id: assertion.id,
-          rawId: assertion.id,
-          response: {
-            clientDataJSON: toB64url(resp.clientDataJSON),
-            authenticatorData: toB64url(resp.authenticatorData),
-            signature: toB64url(resp.signature),
-            userHandle: resp.userHandle ? toB64url(resp.userHandle) : null,
-          },
-        },
-      }),
-    });
-    const ver = (await verRes.json()) as { error?: string; token?: string };
-    if (!verRes.ok || !ver.token) {
-      toast.error(ver.error ?? t("reauth.passkeyFailed"));
-      return null;
-    }
-    return ver.token;
-  }
-
   async function submit(e?: React.FormEvent) {
     e?.preventDefault();
     if (busy) return;
-
-    if (method === "passkey") {
-      setBusy(true);
-      const token = await verifyPasskey();
-      setBusy(false);
-      if (token) {
-        onVerified(token);
-        onClose();
-      }
-      return;
-    }
 
     if (method === "email" && !sentTo) {
       await sendEmailCode();
@@ -216,8 +138,7 @@ export function ReauthDialog({
   const icon = (m: Method) => {
     if (m === "password") return <KeyRound className="h-3.5 w-3.5" />;
     if (m === "totp") return <ShieldCheck className="h-3.5 w-3.5" />;
-    if (m === "email") return <Mail className="h-3.5 w-3.5" />;
-    return <Fingerprint className="h-3.5 w-3.5" />;
+    return <Mail className="h-3.5 w-3.5" />;
   };
 
   return (
@@ -253,16 +174,7 @@ export function ReauthDialog({
           ))}
         </div>
 
-        {method === "passkey" ? (
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">{t("reauth.passkeyHint")}</p>
-            <Button className="w-full" onClick={() => submit()} disabled={busy}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
-              {t("reauth.verifyNow")}
-            </Button>
-          </div>
-        ) : (
-          <form onSubmit={submit} className="space-y-3">
+        <form onSubmit={submit} className="space-y-3">
             {method === "password" || method === "totp" ? (
               <div className="space-y-2">
                 <Label htmlFor="reauth-input">
@@ -302,8 +214,7 @@ export function ReauthDialog({
                 {t("reauth.verifyNow")}
               </Button>
             </div>
-          </form>
-        )}
+        </form>
       </DialogContent>
     </Dialog>
   );

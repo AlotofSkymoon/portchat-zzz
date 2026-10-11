@@ -41,8 +41,6 @@ export async function POST(request: Request) {
     period?: string;
     transferCode?: string;
     domain?: string;
-    note?: string;
-    imageUrl?: string;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -53,8 +51,6 @@ export async function POST(request: Request) {
   const period = (body.period ?? "").slice(0, 7);
   const transferCode = (body.transferCode ?? "").trim();
   const domain = (body.domain ?? "").trim();
-  const imageUrl = (body.imageUrl ?? "").trim();
-  const note = (body.note ?? "").trim();
 
   if (!period) return NextResponse.json({ error: "缺少周期" }, { status: 400 });
   if (!transferCode) {
@@ -82,8 +78,6 @@ export async function POST(request: Request) {
       count: candidate.count,
       transferCode,
       domain: domain || "（待管理员填写域名）",
-      note,
-      imageUrl,
       createdAt: Date.now(),
     });
     return NextResponse.json({

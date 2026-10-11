@@ -4,7 +4,7 @@
  * 规则（按需求）：
  * - 每月 1 日 00:00（Asia/Shanghai）重置，周期键是 YYYY-MM，旧周期自然过期
  * - 榜首赠送一个域名；**管理员不算**，由第二名递补
- * - 有人登顶时，管理员面板会出现「待发奖」，管理员填域名转移码后生成 PDF
+ * - 有人登顶时，管理员面板会出现「待发奖」，管理员填**转移码 + 域名**后生成 PDF
  * - PDF 由获奖者自行下载，内含转移码
  *
  * ⚠️ 为什么奖励记录按 period 存一份：
@@ -29,10 +29,6 @@ export type RewardRecord = {
   transferCode: string;
   /** 域名本体，如 xxxx.dnshe.com */
   domain: string;
-  /** 附言 */
-  note: string;
-  /** 管理员附的图片地址，可空 */
-  imageUrl: string;
   createdAt: number;
 };
 

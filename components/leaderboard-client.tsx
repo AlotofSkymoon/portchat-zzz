@@ -31,8 +31,6 @@ type StatsData = {
   myReward: {
     period: string;
     domain: string;
-    note: string;
-    imageUrl: string;
     count: number;
   } | null;
 };
@@ -44,7 +42,7 @@ function fmtReset(ms: number): string {
 }
 
 export function LeaderboardClient() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [data, setData] = React.useState<StatsData | null>(null);
   const [error, setError] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -150,11 +148,8 @@ export function LeaderboardClient() {
             {data.myReward.period} · {t("leaderboard.rewardCount")} {data.myReward.count}
           </p>
           <p className="font-mono text-sm">{data.myReward.domain}</p>
-          {data.myReward.note ? (
-            <p className="text-xs text-muted-foreground">{data.myReward.note}</p>
-          ) : null}
           <Button asChild size="sm" variant="secondary">
-            <a href="/api/reward?format=pdf" download>
+            <a href={`/api/reward?format=pdf&lang=${locale}`} download>
               <Download className="mr-1.5 h-3.5 w-3.5" />
               {t("leaderboard.downloadPdf")}
             </a>

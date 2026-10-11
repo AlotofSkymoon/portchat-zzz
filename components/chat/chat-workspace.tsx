@@ -21,7 +21,6 @@ import { useI18n } from "@/components/i18n-provider";
 import { ChatFooter } from "@/components/chat/chat-footer";
 import { ChatInput } from "@/components/chat/chat-input";
 import { EmptyState } from "@/components/chat/empty-state";
-import { ReauthDialog } from "@/components/reauth-dialog";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { SettingsDialog, type ChatSettings } from "@/components/chat/settings-dialog";
 import { probeImageUrl } from "@/lib/image-probe";
@@ -119,10 +118,14 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
   const [settings, setSettings] = React.useState<ChatSettings>(DEFAULT_SETTINGS);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const [cloudSync, setCloudSync] = React.useState(true);
-  /* 关闭云端保存属于危险方向，必须先过二次认证 */
-  const [reauthOpen, setReauthOpen] = React.useState(false);
-  const [cloudSyncBusy, setCloudSyncBusy] = React.useState(false);
+  /**
+   * 云端保存：**强制开启**。
+   *
+   * 之前是「默认开启 + 可关闭」，结果是只要能关，就一定有人关掉，
+   * 换设备登录后看到空空的历史，以为数据丢了。
+   * 现在不做开关，恒为 true —— 登录后一定会去云端拉历史。
+   */
+  const cloudSync = true;
   /* ---- 附件 + 拖拽 ---- */
   const [attachments, setAttachments] = React.useState<Attachment[]>([]);
   const [dragging, setDragging] = React.useState(false);
@@ -228,38 +231,12 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
       setWebSearch(localStorage.getItem(LS_KEYS.webSearch) === "true");
     /* 旧版本存的是 medium，normalizeEffort 会归并成 high */
     setEffort(normalizeEffort(localStorage.getItem(LS_KEYS.effort)));
-      setCloudSync(localStorage.getItem(LS_KEYS.cloudSync) === "true");
       setSidebarCollapsed(localStorage.getItem(LS_KEYS.sidebarCollapsed) === "1");
     } catch {
       /* 忽略 */
     }
     setMounted(true);
 
-    /**
-     * 云端保存的初始值 = 用户自己的选择 > 管理员设的站点默认值。
-     *
-     * ⚠️ 这里之前只读 localStorage，压根没去取管理员的 cloudSaveDefault，
-     * 所以管理员在面板里开了「默认开启」，用户刷新后还是关的。
-     *
-     * 判断依据用 localStorage 里**有没有这个键**，而不是值本身：
-     * 用户手动关掉后存的是 "false"，若按值判断就会被默认值覆盖回去。
-     */
-    fetch("/api/site-settings")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { settings?: { cloudSaveDefault?: boolean } } | null) => {
-        const siteDefault = Boolean(d?.settings?.cloudSaveDefault);
-        if (!siteDefault) return; // 默认关闭时无需处理
-        try {
-          if (localStorage.getItem(LS_KEYS.cloudSyncSetByUser) === "1") return;
-          if (localStorage.getItem(LS_KEYS.cloudSync) !== null) return;
-          setCloudSync(true);
-        } catch {
-          /* 忽略 */
-        }
-      })
-      .catch(() => {
-        /* 拿不到站点设置就维持本地值 */
-      });
   }, []);
 
   // 探测对象存储：站点托管 或 用户自己配置了 都算就绪
@@ -282,70 +259,6 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
   }, [settings.s3?.enabled]);
 
   /**
-   * 真正落地的切换（拿到二次认证凭证后才走这里）。
-   * 除了存值，还要打上「用户已设置」标记 ——
-   * 之后管理员的默认值就不能再覆盖这个选择了。
-   */
-  const commitCloudSync = React.useCallback(
-    async (next: boolean, token?: string) => {
-      setCloudSync(next);
-      try {
-        localStorage.setItem(LS_KEYS.cloudSyncSetByUser, "1");
-        localStorage.setItem(LS_KEYS.cloudSync, String(next));
-      } catch {
-        /* 忽略 */
-      }
-      if (!user) return;
-      setCloudSyncBusy(true);
-      try {
-        const res = await fetch("/api/user/cloud-sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ enabled: next, reauthToken: token ?? "" }),
-        });
-        const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        if (!res.ok) {
-          setCloudSync(!next);
-          toast.error(data?.error ?? t("account.cloudSyncFailed"));
-        }
-      } catch {
-        setCloudSync(!next);
-      } finally {
-        setCloudSyncBusy(false);
-      }
-    },
-    [t, user],
-  );
-
-  /**
-   * 开关回调：开启直接放行（更安全的一侧不该拦），
-   * 关闭则先弹二次认证 —— 关掉后记录只剩本机，属于不可逆的方向。
-   */
-  const handleCloudSyncChange = React.useCallback(
-    (next: boolean) => {
-      if (next) {
-        void commitCloudSync(true);
-        return;
-      }
-      if (!user) {
-        void commitCloudSync(false);
-        return;
-      }
-      setReauthOpen(true);
-    },
-    [commitCloudSync, user],
-  );
-
-  React.useEffect(() => {
-    if (!mounted) return;
-    try {
-      localStorage.setItem(LS_KEYS.cloudSync, String(cloudSync));
-    } catch {
-      /* 忽略 */
-    }
-  }, [cloudSync, mounted]);
-
-  /**
    * 登录后把云端会话拉回来。
    *
    * ⚠️ 这是「同一个站、换个浏览器历史记录就不见了」的根因修复：
@@ -353,7 +266,7 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
    * 于是换设备登录后本地 localStorage 是空的，看起来像数据丢了。
    *
    * 只在「已登录 + 云端保存开启」时拉，避免给免登录访客发无用请求。
-   * 同一个用户+开关组合只拉一次（cloudSync 由关变开时会再拉一次）。
+   * 同一个用户只拉一次（cloudSync 恒为 true，所以 key 里其实就是 userId）。
    */
   const pulledKeyRef = React.useRef<string>("");
   React.useEffect(() => {
@@ -989,7 +902,6 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
     messagesRef.current = [];
     setMessages([]);
     setSettings(DEFAULT_SETTINGS);
-    setCloudSync(false);
     clearAllConversations();
     try {
       Object.values(LS_KEYS).forEach((k) => {
@@ -1728,22 +1640,10 @@ export function ChatWorkspace({ user }: { user: SafeUser | null }) {
         settings={settings}
         onSave={saveSettings}
         user={user}
-        cloudSync={cloudSync}
-        onCloudSyncChange={handleCloudSyncChange}
         onClearAll={clearAllData}
         onUserChanged={() => router.refresh()}
       />
 
-      <ReauthDialog
-        open={reauthOpen}
-        onClose={() => setReauthOpen(false)}
-        onVerified={(token) => {
-          setReauthOpen(false);
-          void commitCloudSync(false, token);
-        }}
-        title={t("reauth.cloudTitle")}
-        description={t("reauth.cloudDescription")}
-      />
     </div>
   );
 }

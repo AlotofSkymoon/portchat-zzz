@@ -583,17 +583,16 @@ function SiteSettingsCard() {
               />
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/30 px-3 py-3">
+            <div className="rounded-xl border border-border/70 bg-muted/30 px-3 py-3">
               <div className="pr-3">
                 <p className="text-sm font-medium">{t("admin.cloudSaveDefault")}</p>
                 <p className="text-xs text-muted-foreground">
-                  {t("admin.cloudSaveDefaultHint")}
+                  {t("admin.cloudSaveForcedHint")}
                 </p>
               </div>
-              <Switch
-                checked={form.cloudSaveDefault}
-                onCheckedChange={(v) => setForm((f) => ({ ...f, cloudSaveDefault: v }))}
-              />
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                {t("admin.cloudSaveForcedNote")}
+              </p>
             </div>
 
             {/* ---- 页脚 / 备案：在面板里填，不用改环境变量 ---- */}
@@ -968,8 +967,6 @@ function RewardCard() {
   const [openFor, setOpenFor] = React.useState("");
   const [code, setCode] = React.useState("");
   const [domain, setDomain] = React.useState("");
-  const [imageUrl, setImageUrl] = React.useState("");
-  const [note, setNote] = React.useState("");
   const [saving, setSaving] = React.useState(false);
 
   const load = React.useCallback(async () => {
@@ -999,7 +996,7 @@ function RewardCard() {
       const res = await fetch("/api/admin/reward", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ period, transferCode: code, domain, note, imageUrl }),
+        body: JSON.stringify({ period, transferCode: code, domain }),
         signal: timeoutSignal(15_000),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string; label?: string };
@@ -1011,8 +1008,6 @@ function RewardCard() {
       setOpenFor("");
       setCode("");
       setDomain("");
-      setImageUrl("");
-      setNote("");
       void load();
     } catch {
       toast.error(t("auth.networkError"));
@@ -1099,24 +1094,7 @@ function RewardCard() {
                     <Input
                       value={domain}
                       onChange={(e) => setDomain(e.target.value)}
-                      placeholder="xxx.dnshe.com"
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>{t("common.optional")} · {t("admin.rewardImage")}</Label>
-                    <Input
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      placeholder="https://…"
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>{t("common.optional")} · {t("admin.rewardNote")}</Label>
-                    <Input
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
+                      placeholder={t("admin.rewardDomainHint")}
                       autoComplete="off"
                     />
                   </div>

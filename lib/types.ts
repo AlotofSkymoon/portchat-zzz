@@ -290,7 +290,7 @@ export interface SiteSettings {
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   defaultBaseUrl: "",
   defaultModel: "",
-  // 默认开启云端保存；用户想关掉需要通过密码 / 2FA / Passkey / 邮箱验证码验证身份
+  // 默认开启云端保存；用户想关掉需要通过密码 / 2FA / 邮箱验证码验证身份
   cloudSaveDefault: true,
   icpText: "",
   icpUrl: "",

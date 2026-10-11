@@ -70,8 +70,6 @@ async function getRewardFor(userId: string, period: string) {
     return {
       period: hit.period,
       domain: hit.domain,
-      note: hit.note,
-      imageUrl: hit.imageUrl,
       count: hit.count,
     };
   } catch {
