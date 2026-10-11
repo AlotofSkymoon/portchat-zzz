@@ -155,13 +155,13 @@ export function Sidebar({
           "fixed inset-y-0 left-0 z-50 shrink-0 overflow-hidden border-r border-border bg-[hsl(var(--sidebar))] transition-[width,transform] [transition-duration:420ms] ease-elegant",
           /* 阴影改用 token：原来是写死的 rgba(0,0,0,.08)，浅色下勉强够用、
              深色下等于没有。--shadow-2 在两套主题下分别定义，自动适配。 */
-          "md:relative md:my-2 md:ml-2 md:h-[calc(100vh-1rem)] md:w-[260px] md:translate-x-0 md:rounded-[22px] md:border md:border-[var(--border-default)] md:shadow-[var(--shadow-2)]",
+          "md:relative md:my-2 md:ml-2 md:h-[calc(100vh-1rem)] md:w-[260px] md:translate-x-0 md:rounded-[var(--radius-card)] md:border md:border-[var(--border-default)] md:shadow-[var(--shadow-2)]",
           open ? "w-[260px] translate-x-0" : "w-0 -translate-x-full",
           collapsed && "md:w-0 md:my-0 md:ml-0 md:border-0 md:shadow-none",
         )}
         aria-hidden={collapsed ? true : undefined}
       >
-        <div className="flex h-full w-[260px] flex-col md:overflow-hidden md:rounded-[22px]">
+        <div className="flex h-full w-[260px] flex-col md:overflow-hidden md:rounded-[var(--radius-card)]">
           {/* 顶部：Logo + 收起/关闭 */}
           <div className="flex items-center justify-between px-3 py-3">
             <Link href="/" className="flex items-center gap-2">
