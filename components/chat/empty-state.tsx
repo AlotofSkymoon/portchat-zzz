@@ -40,7 +40,7 @@ export function EmptyState({ onPick }: { onPick: (text: string) => void }) {
           <img
             src="/logo-icon.png"
             alt={t("chat.emptyAlt")}
-            className="h-[172px] w-[172px] animate-logo-bob object-contain drop-shadow-[0_10px_24px_rgba(46,125,246,0.28)]"
+            className="h-[172px] w-[172px] animate-logo-bob object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.28)]"
             draggable={false}
           />
         </span>

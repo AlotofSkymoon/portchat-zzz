@@ -148,8 +148,14 @@ export function Sidebar({
       */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 shrink-0 overflow-hidden border-r border-border bg-[hsl(var(--sidebar))] backdrop-blur-xl transition-[width,transform] [transition-duration:420ms] ease-elegant",
-          "md:relative md:my-2 md:ml-2 md:h-[calc(100vh-1rem)] md:w-[260px] md:translate-x-0 md:rounded-[22px] md:border md:border-border/60 md:shadow-[0_8px_30px_rgb(0_0_0/0.08)]",
+          /* ⚠️ 去掉了 backdrop-blur-xl：背景 hsl(var(--sidebar)) 是**不透明**色，
+             模糊层被它完全挡住 —— 不但没有任何视觉效果，还要为整块 260px 宽、
+             满屏高的区域每帧做一次高斯模糊，滚动时是实打实的掉帧源。
+             判据很简单：背景不透明就不需要 blur。 */
+          "fixed inset-y-0 left-0 z-50 shrink-0 overflow-hidden border-r border-border bg-[hsl(var(--sidebar))] transition-[width,transform] [transition-duration:420ms] ease-elegant",
+          /* 阴影改用 token：原来是写死的 rgba(0,0,0,.08)，浅色下勉强够用、
+             深色下等于没有。--shadow-2 在两套主题下分别定义，自动适配。 */
+          "md:relative md:my-2 md:ml-2 md:h-[calc(100vh-1rem)] md:w-[260px] md:translate-x-0 md:rounded-[22px] md:border md:border-[var(--border-default)] md:shadow-[var(--shadow-2)]",
           open ? "w-[260px] translate-x-0" : "w-0 -translate-x-full",
           collapsed && "md:w-0 md:my-0 md:ml-0 md:border-0 md:shadow-none",
         )}

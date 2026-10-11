@@ -229,7 +229,11 @@ html.theme-transitioning *::after {
     --input: 228 20% 91%;
     --ring: 230 99% 65%;
 
-    --radius: 0.85rem;
+    /* ⚠️ 原来是 0.85rem（13.6px）—— 按钮、输入框、卡片、气泡全用同一个值，
+       这是 shadcn / Tailwind 默认值固化后最普遍的统一指纹。
+       降到 0.625rem（10px）作基准，并新增 --radius-xs/sm/md/lg 四档
+       （见下方设计 Token 层），组件按尺寸取用，不再一刀切。 */
+    --radius: 0.625rem;
 
     /* ==========================================================================
        iOS 26 连续圆角（Continuous Corner）
@@ -349,6 +353,113 @@ html.theme-transitioning *::after {
   --text-tertiary: 0 0% 62%;
   --text-quaternary: 0 0% 48%;
   --card-border: 0 0% 20%;
+}
+
+/* ==========================================================================
+   设计 Token 层（去 AI 味）
+
+   这一层不替代上面的主题变量，而是补上三样它们没有的东西：
+     1. 层级：surface / border 用「白叠层」而不是阴影 —— 深色界面里阴影几乎
+        看不见，层级只能靠亮度差。叠层用 rgba 与底色无关，任何主题都能叠。
+     2. 标度：圆角拆成四档，取代 shadcn 时代那个万能的 --radius。
+     3. 动效：四档时长 + 四条曲线，取代随手写的 ease / 300ms。
+
+   ⚠️ 纪律：组件里禁止再写 bg-[#1A1A1A]、rounded-2xl、transition-[all] 300ms，
+   一律引用这里的变量。这条纪律比换成什么具体数值更重要。
+   ========================================================================== */
+
+:root {
+  /* ---- 间距标度：4px 基数 ---- */
+  --space-1: 0.125rem;   /* 2px  */
+  --space-2: 0.25rem;    /* 4px  */
+  --space-3: 0.5rem;     /* 8px  */
+  --space-4: 0.75rem;    /* 12px */
+  --space-5: 1rem;       /* 16px —— 组件内基础 */
+  --space-6: 1.5rem;     /* 24px */
+  --space-7: 2rem;       /* 32px */
+  --space-8: 3rem;       /* 48px */
+  --space-9: 4rem;       /* 64px */
+
+  /* ---- 圆角四档 ----
+     关键不是"小一点"，而是**随元素尺寸变化**：
+     标签 2px、按钮/输入框 6px、气泡/小卡 10px、大卡/弹窗 16px。
+     同一个界面里出现三四种圆角是对的，全都一样才是模板感。 */
+  --radius-xs: 0.125rem;  /* 2px  标签、复选框、滑块轨道 */
+  --radius-sm: 0.375rem;  /* 6px  按钮、输入框、侧边栏条目 */
+  --radius-md: 0.625rem;  /* 10px 消息气泡、小卡片 */
+  --radius-lg: 1rem;      /* 16px 大卡片、弹窗 */
+
+  /* ---- 描边三档（浅色：黑叠层）---- */
+  --border-subtle: rgba(0, 0, 0, 0.06);   /* 隐性分隔 */
+  --border-default: rgba(0, 0, 0, 0.10);  /* 组件边界 */
+  --border-strong: rgba(0, 0, 0, 0.20);   /* 聚焦、激活 */
+
+  /* ---- 表面层级（浅色：黑叠层）---- */
+  --surface-1: rgba(0, 0, 0, 0.030);
+  --surface-2: rgba(0, 0, 0, 0.045);
+  --surface-3: rgba(0, 0, 0, 0.060);
+  --surface-modal: rgba(0, 0, 0, 0.080);
+
+  /* ---- 阴影：中性偏冷，不带品牌色 ---- */
+  --shadow-1: 0 1px 2px 0 rgba(16, 20, 28, 0.08);
+  --shadow-2: 0 2px 6px -1px rgba(16, 20, 28, 0.10), 0 1px 2px -1px rgba(16, 20, 28, 0.06);
+  --shadow-3: 0 8px 20px -4px rgba(16, 20, 28, 0.14), 0 2px 6px -2px rgba(16, 20, 28, 0.08);
+  --shadow-4: 0 20px 40px -8px rgba(16, 20, 28, 0.22), 0 4px 12px -4px rgba(16, 20, 28, 0.12);
+
+  /* ---- 动效：四档时长 ----
+     规律：元素越小、移动距离越短、频率越高，时长越短。
+     同一时刻屏幕上只允许一个 slow 级动画。 */
+  --motion-instant: 80ms;   /* hover 颜色、focus 环、开关内点位移 */
+  --motion-fast: 160ms;     /* 按钮按下、tooltip、chip 状态 */
+  --motion-base: 240ms;     /* 菜单展开、下拉、消息插入 */
+  --motion-slow: 400ms;     /* 模态、抽屉、路由转场 */
+
+  /* ---- 动效：四条曲线 ---- */
+  --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);        /* 默认出场、滑入 */
+  --motion-ease-in: cubic-bezier(0.4, 0, 1, 1);            /* 退场，干脆结束 */
+  --motion-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);    /* 开关、toggle */
+  --motion-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);    /* 大面板、路由级 */
+
+  /* ---- 排版 ---- */
+  --text-body-size: 0.875rem;   /* 14px 正文下限，再小在夜间 OLED 上会累 */
+  --text-body-leading: 1.6;     /* 行高，长文阅读场景的硬要求 */
+  --measure: 72ch;              /* 单行长度上限，超过就开始跳行找行首 */
+
+  /* ---- 材质：极淡噪点 ----
+     亮度变化 < 3%，不抢内容，但让纯色背景有"触感"。
+     这是对抗 AI 光滑感最便宜的一招。 */
+  --texture-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+}
+
+.dark {
+  /* ---- 描边三档（深色：白叠层，方向与浅色相反）---- */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  /* ---- 表面层级（深色：白叠层 5% → 14%）
+         这是深色界面唯一的可靠层级手段 —— 阴影在黑底上几乎不可见。 ---- */
+  --surface-1: rgba(255, 255, 255, 0.05);     /* 侧边栏、卡片 */
+  --surface-2: rgba(255, 255, 255, 0.07);     /* 悬浮面板、下拉 */
+  --surface-3: rgba(255, 255, 255, 0.09);     /* 弹出层 */
+  --surface-modal: rgba(255, 255, 255, 0.14); /* 模态框 */
+
+  /* ---- 阴影（深色下只是辅助信号，主要层级交给 surface-*）---- */
+  --shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
+  --shadow-2: 0 2px 6px -1px rgba(0, 0, 0, 0.35), 0 1px 2px -1px rgba(0, 0, 0, 0.30);
+  --shadow-3: 0 8px 20px -4px rgba(0, 0, 0, 0.45), 0 2px 6px -2px rgba(0, 0, 0, 0.40);
+  --shadow-4: 0 20px 40px -8px rgba(0, 0, 0, 0.55), 0 4px 12px -4px rgba(0, 0, 0, 0.40);
+}
+
+/* 噪点铺满视口：固定、不吃事件、不参与层级 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--texture-noise);
+  background-repeat: repeat;
 }
 
 :root {
@@ -1900,21 +2011,24 @@ body {
     z-index: -1;
     pointer-events: none;
     filter: blur(72px);
-    opacity: 0.55;
+    opacity: 0.70;   /* 单色光斑本身已压得很淡，靠这个补回一点存在感 */
   }
 
+  /* ⚠️ 原实现是紫 / 青 / 粉三色大光斑 + blur(72px) + 缓慢漂移，
+     这是 2020–2023 年 SaaS 落地页最典型的 AI 指纹，见到就想吐的那种。
+     现在改成**单一品牌色**的极淡光晕 —— 亮度变化压到 10% 以内，
+     只负责让顶部不那么空，不参与视觉表达。
+     真正的"材质"交给 body::after 那层 3.5% 噪点。 */
   .aurora::before {
     background:
-      radial-gradient(38% 44% at 18% 32%, hsl(var(--primary) / 0.42) 0%, transparent 62%),
-      radial-gradient(32% 38% at 68% 22%, hsl(280 85% 66% / 0.34) 0%, transparent 60%);
-    animation: aurora-drift-a 22s ease-in-out infinite alternate;
+      radial-gradient(42% 46% at 22% 28%, hsl(var(--primary) / 0.10) 0%, transparent 62%);
+    animation: aurora-drift-a 32s ease-in-out infinite alternate;
   }
 
   .aurora::after {
     background:
-      radial-gradient(34% 40% at 82% 58%, hsl(190 90% 60% / 0.30) 0%, transparent 62%),
-      radial-gradient(28% 34% at 32% 72%, hsl(330 85% 68% / 0.26) 0%, transparent 58%);
-    animation: aurora-drift-b 28s ease-in-out infinite alternate;
+      radial-gradient(38% 40% at 78% 66%, hsl(var(--primary) / 0.07) 0%, transparent 60%);
+    animation: aurora-drift-b 38s ease-in-out infinite alternate;
   }
 
   @keyframes aurora-drift-a {
@@ -2024,11 +2138,13 @@ body {
     inset: 0;
     border-radius: inherit;
     padding: 1px;
+    /* ⚠️ 原来是「品牌蓝 → 紫」双色 conic 旋转边 —— 渐变边框卡片是 AI 味清单
+       里的确定项。改成**单一品牌色**的低透明度旋转边：颜色只剩一支，
+       亮度压到 55%，动效仍然是绕边跑的光，但不再有紫蓝撞色。 */
     background: conic-gradient(
       from var(--angle, 0deg),
       transparent 0deg,
-      hsl(var(--primary) / 0.9) 60deg,
-      hsl(280 85% 70% / 0.7) 120deg,
+      hsl(var(--primary) / 0.55) 90deg,
       transparent 200deg,
       transparent 360deg
     );
@@ -2809,7 +2925,9 @@ body {
   display: grid;
   place-items: center;
   overflow: hidden;
-  box-shadow: 0 4px 14px rgba(255, 122, 198, 0.28);
+  /* ⚠️ 原来是粉色外发光 rgba(255,122,198,.28) —— 彩色光晕是 AI 味清单的确定项。
+     投影应该表达"悬浮高度"，而不是"这个元素会发光"。改中性。 */
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
 }
 
 .pt-badge img {

@@ -104,6 +104,19 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(10px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        /**
+         * 消息插入：取代原来 550ms 的 fade-in。
+         *
+         * ⚠️ 两个改动都有依据：
+         *  - 时长 550ms → 240ms。消息是**高频**事件，一次会话里要出现几十次，
+         *    550ms 的入场会让人觉得界面迟钝；240ms 是"新内容需要被看见"的下限。
+         *  - 位移 10px → 6px。位移越大越像"飞进来"，消息应该是"落到位"，
+         *    不是"从别处赶来"。
+         */
+        "message-in": {
+          from: { opacity: "0", transform: "translateY(6px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
         "gradient-pan": {
           "0%,100%": { backgroundPosition: "0% 50%" },
           "50%": { backgroundPosition: "100% 50%" },
@@ -138,6 +151,7 @@ const config: Config = {
         "accordion-down": "accordion-down 0.32s cubic-bezier(0.16, 1, 0.3, 1)",
         "accordion-up": "accordion-up 0.32s cubic-bezier(0.16, 1, 0.3, 1)",
         "fade-in": "fade-in 0.55s cubic-bezier(0.16, 1, 0.3, 1)",
+        "message-in": "message-in 240ms cubic-bezier(0.16, 1, 0.3, 1)",
         "gradient-pan": "gradient-pan 14s ease-in-out infinite",
         "caret": "caret 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         "dot": "dot 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite",

@@ -26,8 +26,18 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-10-11",
-    title: { zh: "扫码回归 + 移除云电脑 + 注销账号可反悔", en: "QR scan returns, cloud PC removed, reversible deletion" },
+    title: { zh: "扫码回归 + 移除云电脑 + 注销账号可反悔 + 去 AI 味重构", en: "QR scan returns, cloud PC removed, reversible deletion, de-AI redesign" },
     entries: [
+      {
+        tag: "improve",
+        zh: "去 AI 味重构（第一轮）：新增一套设计 Token（间距 4px 基数、圆角四档、描边三档、表面层级、阴影四档、动效四档时长与四条曲线），组件不再各写各的数值。首页三色极光压成单色极淡光晕、标题渐变文字改成品牌色单色、卡片与侧边栏去掉无效的毛玻璃、按钮与输入框圆角降到 6px / 10px、彩色外发光全部改中性投影、消息入场从 550ms 缩到 240ms、正文加上 72 字符单行上限",
+        en: "De-AI redesign, round one: a design token layer now covers spacing, a four-step radius scale, three border weights, surface elevation, four shadow levels and four motion durations with four easing curves, so components stop inventing their own numbers. The landing page's tri-colour aurora became a single faint brand glow, gradient headlines became solid brand colour, cards and the sidebar dropped their useless backdrop blur, button and input radii dropped to 6px / 10px, coloured glows became neutral shadows, message entry shrank from 550ms to 240ms and body text is capped at 72 characters per line",
+      },
+      {
+        tag: "fix",
+        zh: "按钮 hover 不再靠 brightness 提亮：原先是品牌色外发光 + 整体调亮，改投影抬升（悬浮高度变化）+ 按下时压回，反馈是物理的而不是滤镜",
+        en: "Button hover no longer relies on brightness: it used a brand-coloured glow plus a global brighten, and now raises the shadow instead (a change in elevation) with a press-back on click, so the feedback is physical rather than a filter",
+      },
       {
         tag: "new",
         zh: "扫码登录回归：二维码里现在只有登录令牌本身，不再是一串网址；登录页新增「扫码登录」，点开调用相机取景，识别到令牌后自动完成登录。相机被拒、设备没有摄像头、非 HTTPS 环境都会给出明确提示，不会黑屏",

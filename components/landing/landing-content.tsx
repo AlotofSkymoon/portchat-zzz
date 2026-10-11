@@ -135,7 +135,11 @@ export function LandingContent() {
           <h1 className="mt-5 text-[clamp(2rem,6vw,3.25rem)] font-bold leading-[1.12] tracking-tight">
             {t("landing.title1")}
             <br />
-            <span className="bg-gradient-to-r from-primary via-[hsl(280_85%_66%)] to-[hsl(190_90%_58%)] bg-clip-text text-transparent">
+            {/* ⚠️ 原来是「品牌蓝 → 紫 → 青」三色渐变文字。
+                渐变文字本身就在 AI 味禁用表里，三色渐变更是板上钉钉。
+                改成品蓝色单色：层级靠**字号与字重**（上面已 clamp 到 52px + bold），
+                不靠颜色数量。 */}
+            <span className="text-[hsl(var(--primary))]">
               {t("landing.title2")}
             </span>
           </h1>

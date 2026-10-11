@@ -7,7 +7,12 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
     <div
       ref={ref}
       className={cn(
-        "rounded-2xl border border-border/70 bg-card/80 text-card-foreground shadow-sm backdrop-blur-xl",
+        /* ⚠️ 原来是 bg-card/80 + backdrop-blur-xl —— 「半透明 + 毛玻璃 + 大圆角」
+           是 AI 生成卡片的最高频组合。判据很简单：**卡片后面有没有变化的内容**？
+           绝大多数卡片背后是纯色页面背景，模糊没有任何信息可模糊，
+           只会让文字发虚、增加 GPU 负担、并在滚动时掉帧。
+           改成不透明底 + 1px 描边 + 中性投影，层级靠亮度差而不是模糊。 */
+        "rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-card text-card-foreground shadow-[var(--shadow-1)]",
         className,
       )}
       {...props}

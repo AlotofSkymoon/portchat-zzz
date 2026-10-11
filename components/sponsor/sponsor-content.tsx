@@ -140,13 +140,15 @@ export function SponsorContent() {
                 ) : null}
               </>
             );
+            /* 原来是 hover:scale-[1.02] —— 无差别缩放弹跳是廉价感来源之一。
+               改成「描边变亮 + 底色加深」，反馈真实、不靠假动作。 */
             return w.href ? (
               <Link
                 key={w.titleKey}
                 href={w.href}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="rounded-[var(--radius-card)] border border-white/25 bg-[#082a63]/45 px-4 py-4 backdrop-blur-xl transition-transform hover:scale-[1.02]"
+                className="rounded-[var(--radius-card)] border border-white/25 bg-[#082a63]/45 px-4 py-4 backdrop-blur-xl transition-[border-color,background-color] duration-[var(--motion-fast)] ease-[var(--motion-ease-out)] hover:border-white/45 hover:bg-[#082a63]/60"
               >
                 {body}
               </Link>

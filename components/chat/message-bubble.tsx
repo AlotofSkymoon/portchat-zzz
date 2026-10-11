@@ -348,8 +348,11 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
             ))}
           </div>
         ) : null}
+        {/* ⚠️ 圆角 1.65rem(26px) → var(--radius-lg)(16px)。
+            原先气泡比大卡片还圆（卡片 16px），层级反了 —— 气泡是内容，
+            不该比容器更"软"。现在气泡 16px = 卡片，右下角 6px 做出指向感。 */}
         {message.content ? (
-          <div className="msg-user max-w-[85%] rounded-[1.65rem] rounded-br-[0.6rem] bg-[hsl(var(--user-bubble))] px-4 py-2.5 text-[15px] leading-[1.75] text-[hsl(var(--user-bubble-foreground))] sm:max-w-[75%]">
+          <div className="msg-user max-w-[85%] rounded-[var(--radius-lg)] rounded-br-[var(--radius-sm)] bg-[hsl(var(--user-bubble))] px-4 py-2.5 text-[15px] leading-[1.75] text-[hsl(var(--user-bubble-foreground))] sm:max-w-[75%]">
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
           </div>
         ) : null}
@@ -364,13 +367,17 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
   /* ---------------- 助手消息：左侧头像 + 纯文本 ---------------- */
   return (
     /* msg-assistant：Anthropic 主题下会换成衬线体（Claude 的标志性设计） */
-    <div className="msg-assistant flex animate-fade-in gap-3">
+    <div className="msg-assistant flex animate-message-in gap-3">
       {/* 头像：Pot（透明底，不需要蓝色圆底衬托） */}
       <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center">
         <PotAvatar />
       </div>
 
-      <div className="min-w-0 flex-1">
+      {/* ⚠️ max-w 是给正文量（measure）设上限，不是给卡片。
+          单行超过 ~72 个字符，眼睛回到行首就要靠找而不是靠肌肉记忆，
+          阅读速度会掉。WCAG 2.2 也把它写进了 SC 1.4.12。
+          代码块在 72ch 内横向滚动，不跟着撑宽。 */}
+      <div className="min-w-0 flex-1 lg:max-w-[72ch]">
         {/* 思考过程：有内容才渲染，流式时默认展开并显示"思考中" */}
         {message.reasoning ? (
           <ThinkingBlock
