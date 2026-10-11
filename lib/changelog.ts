@@ -26,6 +26,32 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-10-11",
+    title: { zh: "品牌换成 Pot & 过渡动画修正", en: "Pot branding & transition fix" },
+    entries: [
+      {
+        tag: "improve",
+        zh: "站名统一为 Pot：输入框提示语、欢迎语、两步验证发行方、Passkey 站点名、证书 PDF 全部改掉，不再出现旧名称",
+        en: "The site is now consistently called Pot: input placeholders, greeting, 2FA issuer, Passkey relying-party name and the certificate PDF no longer show the old name",
+      },
+      {
+        tag: "fix",
+        zh: "品牌图真正做了去背：之前那版只是加了个圆角，白色底仍整块留在图上，深色界面里是一张白卡片。现在按洪水填充重抠，白色「脸」保留、外框白底去掉",
+        en: "The brand image is now properly cut out. The previous version only rounded the corners and kept the whole white background, so it showed up as a white card on dark surfaces. It is now re-masked with flood fill: the white face stays, the outer white is gone",
+      },
+      {
+        tag: "fix",
+        zh: "过渡动画的纸飞机不再压到文字上：终点从航迹容器的 108% 收到 62%，机身右缘留在容器内，与文字留出 42px 间距",
+        en: "The paper plane no longer overlaps the text during page transitions: it now stops at 62% of the trail container instead of 108%, leaving a 42px gap before the label",
+      },
+      {
+        tag: "improve",
+        zh: "纸飞机改成只飞一趟并停在航线末端后轻微起伏，不再无限循环 —— 之前遮罩停留时间短于一趟飞行，每次收起时飞机停在哪全看运气",
+        en: "The paper plane now flies once and rests at the end of the trail with a gentle bob, instead of looping forever — the overlay used to close mid-flight, so where the plane stopped was pure luck",
+      },
+    ],
+  },
+  {
+    date: "2026-10-11",
     title: { zh: "助手自称简化 & 实验性标注", en: "Simpler self-intro & experimental labels" },
     entries: [
       {

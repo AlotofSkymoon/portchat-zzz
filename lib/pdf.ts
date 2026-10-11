@@ -102,7 +102,7 @@ export function buildPdf(lines: PdfLine[], opts: { title?: string } = {}): Buffe
   objects[catalogNo - 1] = { body: `<< /Type /Catalog /Pages ${pagesNo} 0 R >>` };
 
   const infoNo = add(
-    `<< /Title (${esc(opts.title ?? "Certificate")}) /Producer (Portchat) >>`,
+    `<< /Title (${esc(opts.title ?? "Certificate")}) /Producer (Pot) >>`,
   );
 
   // ---- 序列化 ----

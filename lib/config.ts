@@ -16,8 +16,8 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
   agnes: {
     id: "agnes",
     // 面向用户的显示名。provider id 仍是 agnes（上游服务商标识，改了会打错地址），
-    // 但界面上统一叫 Portchat —— 访客不需要知道背后接的是哪家。
-    label: "Portchat",
+    // 但界面上统一叫 Pot —— 访客不需要知道背后接的是哪家。
+    label: "Pot",
     baseUrl: "https://apihub.agnes-ai.com/v1",
     // 文生图走独立的 images 端点，不是 chat/completions
     hasPreset: true,

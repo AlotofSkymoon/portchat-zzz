@@ -70,7 +70,7 @@ export function otpauthUri(params: {
   account: string;
   issuer?: string;
 }): string {
-  const issuer = params.issuer ?? "Portchat";
+  const issuer = params.issuer ?? "Pot";
   const label = encodeURIComponent(`${issuer}:${params.account}`);
   const q = new URLSearchParams({
     secret: params.secret,

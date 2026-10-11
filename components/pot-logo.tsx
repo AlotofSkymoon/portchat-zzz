@@ -14,7 +14,7 @@ import { SITE_NAME } from "@/lib/site";
  */
 
 /** 图形标记：气泡本体（不含字标）。 */
-export function PortchatIcon({ className }: { className?: string }) {
+export function PotIcon({ className }: { className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -36,13 +36,13 @@ export function PortchatIcon({ className }: { className?: string }) {
  *
  * 断点落在 "P" 和 "ot" 之间：官方字标就是首字母蓝、其余橙。
  */
-export function PortchatLogo({ className }: { className?: string }) {
+export function PotLogo({ className }: { className?: string }) {
   return (
     <span
       className={cn("inline-flex items-center gap-2 text-foreground", className)}
     >
       <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center">
-        <PortchatIcon />
+        <PotIcon />
       </span>
       <span className="text-[15px] font-semibold leading-none tracking-[-0.01em]">
         <span className="text-[#2E7DF6] dark:text-[#4C9AFF]">P</span>

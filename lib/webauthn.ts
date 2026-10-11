@@ -219,7 +219,7 @@ export function rpConfig(request: Request): RpConfig {
   return {
     rpId,
     origin: process.env.PASSKEY_ORIGIN || url.origin,
-    rpName: process.env.PASSKEY_RP_NAME || "Portchat",
+    rpName: process.env.PASSKEY_RP_NAME || "Pot",
   };
 }
 

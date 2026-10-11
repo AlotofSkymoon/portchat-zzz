@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import { useI18n } from "@/components/i18n-provider";
-import { PortchatLogo } from "@/components/portchat-logo";
+import { PotLogo } from "@/components/pot-logo";
 import { BY_LINE, SPONSOR_ENABLED } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import type { Conversation } from "@/lib/use-conversations";
@@ -159,7 +159,7 @@ export function Sidebar({
           {/* 顶部：Logo + 收起/关闭 */}
           <div className="flex items-center justify-between px-3 py-3">
             <Link href="/" className="flex items-center gap-2">
-              <PortchatLogo />
+              <PotLogo />
             </Link>
             <div className="flex items-center gap-0.5">
               {onToggleCollapse ? (

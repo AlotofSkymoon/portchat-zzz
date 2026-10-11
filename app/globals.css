@@ -2919,10 +2919,17 @@ body {
 .pt-plane {
   position: absolute;
   top: 4px;
+  /* 必须给基准值：动画只在关键帧里改 left，没有基准时首帧前的落点不确定 */
+  left: 0;
   width: 44px;
   height: 30px;
   will-change: left, transform;
-  animation: pt-fly 900ms cubic-bezier(0.36, 0, 0.2, 1) infinite;
+  /*
+   * 只飞一趟、停在航线末端（forwards）。
+   * 之前是 infinite 循环：遮罩只停留 340ms 左右而一趟要 900ms，
+   * 于是每次收起时飞机停在哪全看运气，观感完全不可预期。
+   */
+  animation: pt-fly 620ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 /* 第二架错开半程，保证遮罩停留期间画面里始终有一架在飞 */
@@ -2935,6 +2942,13 @@ body {
   height: 100%;
   overflow: visible;
   filter: drop-shadow(0 3px 10px rgba(110, 160, 255, 0.38));
+  /* 落位后轻微起伏，避免飞完就变成一张静止贴图 */
+  animation: pt-bob 1.6s ease-in-out 620ms infinite;
+}
+
+@keyframes pt-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-3px) rotate(-3deg); }
 }
 
 /* 机身：主色 + 两片半透明折翼，层次靠透明度而不是描边 */
@@ -2948,15 +2962,15 @@ body {
 
 /*
  * left 用百分比是相对航迹容器（transform 的百分比是相对自身尺寸，走不出容器宽度）。
- * 循环播放而不是 forwards：只飞一趟的话，飞出画面后遮罩剩余时间就是一片空白。
+ *
+ * 终点 62% 是算出来的：航迹容器 190px，飞机宽 44px（约 23%），
+ * 62% + 23% = 85% —— 机身右缘仍留在容器内，不会冲进右边的文案区。
+ * 之前写 108%，飞机右缘落在 131% 处，直接压在文字上（就是「卡在文字旁边」）。
  */
 @keyframes pt-fly {
-  0%   { left: -20%; transform: translateY(5px)  rotate(-5deg) scale(0.88); opacity: 0; }
-  14%  { opacity: 1; }
-  40%  {             transform: translateY(-4px) rotate(3deg)  scale(1); }
-  72%  {             transform: translateY(2px)  rotate(-1deg) scale(0.98); }
-  88%  { opacity: 1; }
-  100% { left: 108%; transform: translateY(-8px) rotate(7deg)  scale(0.84); opacity: 0; }
+  0%   { left: -26%; transform: translateY(6px) rotate(-8deg) scale(0.86); opacity: 0; }
+  22%  { opacity: 1; }
+  100% { left: 62%;  transform: translateY(0)   rotate(0deg)  scale(1);    opacity: 1; }
 }
 
 /* --- 文案 --- */
@@ -3015,12 +3029,15 @@ body {
     animation: none;
     opacity: 0.7;
   }
-  /* 飞机不飞了也不能消失在画面外，静态停在航迹中段 */
+  /* 飞机不飞了也不能消失在画面外，静态停在航线末端 */
   .pt-plane {
     animation: none;
-    left: 38%;
+    left: 62%;
     transform: none;
     opacity: 1;
+  }
+  .pt-plane-svg {
+    animation: none;
   }
   .pt-plane-2 {
     display: none;
