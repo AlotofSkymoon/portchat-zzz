@@ -92,7 +92,7 @@ export function ChangelogContent() {
         <button
           type="button"
           onClick={() => setAll(!allOpen)}
-          className="rounded-full border border-border px-3 py-1 text-xs font-medium text-fg-tertiary transition-colors hover:border-accent hover:text-fg-primary"
+          className="pot-ctrl rounded-full px-3 py-1 text-xs font-medium text-fg-tertiary hover:text-fg-primary"
         >
           {allOpen ? t("changelog.collapseAll") : t("changelog.expandAll")}
         </button>

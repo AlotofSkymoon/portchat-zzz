@@ -400,6 +400,16 @@ html.theme-transitioning *::after {
   --surface-3: rgba(0, 0, 0, 0.060);
   --surface-modal: rgba(0, 0, 0, 0.080);
 
+  /* ---- 控件（按钮 / 输入框）专用 ----
+     浅色页面底是浅灰，按钮若也用浅灰就"融"进背景，只剩一条 10% 的描边，
+     看上去既没有边界、圆角也白给。这里让按钮改用纯白底压在浅灰页面上，
+     再配一条更明确的描边和一层极淡投影 —— 轮廓靠"比页面亮"而不是"比页面暗"。 */
+  --control-bg: #ffffff;
+  --control-bg-hover: #f6f7fa;
+  --control-bg-active: #eceff4;
+  --control-border: rgba(16, 20, 28, 0.16);
+  --control-shadow: 0 1px 2px 0 rgba(16, 20, 28, 0.06);
+
   /* ---- 阴影：中性偏冷，不带品牌色 ---- */
   --shadow-1: 0 1px 2px 0 rgba(16, 20, 28, 0.08);
   --shadow-2: 0 2px 6px -1px rgba(16, 20, 28, 0.10), 0 1px 2px -1px rgba(16, 20, 28, 0.06);
@@ -444,11 +454,92 @@ html.theme-transitioning *::after {
   --surface-3: rgba(255, 255, 255, 0.09);     /* 弹出层 */
   --surface-modal: rgba(255, 255, 255, 0.14); /* 模态框 */
 
+  /* 深色方向相反：按钮要比页面"亮"一档，靠白叠层而非白底 */
+  --control-bg: rgba(255, 255, 255, 0.09);
+  --control-bg-hover: rgba(255, 255, 255, 0.13);
+  --control-bg-active: rgba(255, 255, 255, 0.17);
+  --control-border: rgba(255, 255, 255, 0.16);
+  --control-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
+
   /* ---- 阴影（深色下只是辅助信号，主要层级交给 surface-*）---- */
   --shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
   --shadow-2: 0 2px 6px -1px rgba(0, 0, 0, 0.35), 0 1px 2px -1px rgba(0, 0, 0, 0.30);
   --shadow-3: 0 8px 20px -4px rgba(0, 0, 0, 0.45), 0 2px 6px -2px rgba(0, 0, 0, 0.40);
   --shadow-4: 0 20px 40px -8px rgba(0, 0, 0, 0.55), 0 4px 12px -4px rgba(0, 0, 0, 0.40);
+}
+
+/* --------------------------------------------------------------------------
+   控件外观：按钮 / 输入框的统一"有边界"外观
+
+   用法：把 pot-ctrl 加到按钮或输入框的 className 上（保留 rounded-* 控制圆角）。
+   它只负责"让人一眼看出这是个可按的东西"，不改尺寸、不改布局。
+   -------------------------------------------------------------------------- */
+.pot-ctrl {
+  background-color: var(--control-bg);
+  border: 1px solid var(--control-border);
+  box-shadow: var(--control-shadow);
+  transition:
+    background-color var(--motion-instant) var(--motion-ease-out),
+    border-color var(--motion-instant) var(--motion-ease-out),
+    box-shadow var(--motion-fast) var(--motion-ease-out),
+    transform var(--motion-fast) var(--motion-ease-out);
+}
+
+.pot-ctrl:hover:not(:disabled) {
+  background-color: var(--control-bg-hover);
+  box-shadow: var(--shadow-2);
+}
+
+.pot-ctrl:active:not(:disabled) {
+  background-color: var(--control-bg-active);
+  box-shadow: var(--shadow-1);
+  transform: scale(0.985);
+}
+
+.pot-ctrl:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* 兜底：页面里大量按钮只写了 `border border-border`，浅色下那条 10% 的描边
+   几乎看不见，按钮"融"进背景。这里统一给它们补控件底 + 淡投影，
+   不用逐个组件改。带主色/强调色底的按钮不参与（它们本来就有足够对比）。 */
+button[class*="border-border"]:not([class*="bg-primary"]):not([class*="bg-accent"]):not([class*="bg-destructive"]) {
+  background-color: var(--control-bg);
+  box-shadow: var(--control-shadow);
+  transition:
+    background-color var(--motion-instant) var(--motion-ease-out),
+    box-shadow var(--motion-fast) var(--motion-ease-out),
+    transform var(--motion-fast) var(--motion-ease-out);
+}
+
+button[class*="border-border"]:not([class*="bg-primary"]):not([class*="bg-accent"]):not([class*="bg-destructive"]):hover:not(:disabled) {
+  background-color: var(--control-bg-hover);
+  box-shadow: var(--shadow-2);
+}
+
+button[class*="border-border"]:not([class*="bg-primary"]):not([class*="bg-accent"]):not([class*="bg-destructive"]):active:not(:disabled) {
+  background-color: var(--control-bg-active);
+  box-shadow: var(--shadow-1);
+  transform: scale(0.985);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button[class*="border-border"]:not([class*="bg-primary"]):not([class*="bg-accent"]):not([class*="bg-destructive"]),
+  button[class*="border-border"]:not([class*="bg-primary"]):not([class*="bg-accent"]):not([class*="bg-destructive"]):hover:not(:disabled),
+  button[class*="border-border"]:not([class*="bg-primary"]):not([class*="bg-accent"]):not([class*="bg-destructive"]):active:not(:disabled) {
+    transition: none;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pot-ctrl,
+  .pot-ctrl:hover:not(:disabled),
+  .pot-ctrl:active:not(:disabled) {
+    transition: none;
+    transform: none;
+  }
 }
 
 /* 噪点铺满视口：固定、不吃事件、不参与层级 */
@@ -475,16 +566,18 @@ body::after {
   --radius-pill: 999px;
 
   /* ---- Tailwind 圆角量表（rounded-lg / rounded-xl 等实际取值）----
-   * 这里给的是"圆润"档：默认主题整体偏柔和。
+   * 梯度必须连续：6 → 10 → 12 → 14 → 16 → 20 → 24。
+   * 原档位（sm 10 / default 20 / lg 26 / xl 32 / 2xl 38）落差过大 ——
+   * 同一个界面里 10px 的按钮和 32px 的卡片并排，小的显得方硬、大的显得过圆。
    */
-  --r-sm: 0.625rem;
-  --r-default: 1.25rem;
-  --r-md: 1.25rem;
-  --r-lg: 1.625rem;
-  --r-xl: 2rem;
-  --r-2xl: 2.375rem;
-  --r-3xl: 2.75rem;
-  --r-4xl: 3.25rem;
+  --r-sm: 0.375rem;    /* 6px  标签、滑块轨道 */
+  --r-default: 0.625rem; /* 10px 默认 */
+  --r-md: 0.625rem;    /* 10px */
+  --r-lg: 0.75rem;     /* 12px 按钮、输入框 */
+  --r-xl: 0.875rem;    /* 14px */
+  --r-2xl: 1rem;       /* 16px 卡片、气泡 */
+  --r-3xl: 1.25rem;    /* 20px 大卡片 */
+  --r-4xl: 1.5rem;     /* 24px 弹层 */
 
   --shadow-card: 0 1px 2px 0 hsl(230 20% 20% / 0.05);
   --shadow-panel: 0 12px 32px -12px hsl(230 25% 20% / 0.15);
