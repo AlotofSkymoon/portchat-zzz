@@ -113,7 +113,7 @@ export function ChatInput({
          的规则取 --radius-md（10px），仍明显高于按钮的 6px，层次保住了。
          ⚠️ 另外补了过渡：原来 focus 时边框换色是瞬变的，描边亮起来会"啪"一下。 */
       className={cn(
-        "liquid-glass w-full !rounded-[var(--radius-md)] transition-[border-color] duration-[var(--motion-fast)] ease-[var(--motion-ease-out)] focus-within:!border-[hsl(var(--primary)/0.5)]",
+        "liquid-glass w-full !rounded-[var(--radius-md)] transition-[border-color] [transition-duration:var(--motion-fast)] [transition-timing-function:var(--motion-ease-out)] focus-within:!border-[hsl(var(--primary)/0.5)]",
         isHero ? "px-4 pb-3 pt-3.5" : "px-3 pb-2.5 pt-3",
       )}
     >

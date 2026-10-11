@@ -148,7 +148,7 @@ export function SponsorContent() {
                 href={w.href}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="rounded-[var(--radius-card)] border border-white/25 bg-[#082a63]/45 px-4 py-4 backdrop-blur-xl transition-[border-color,background-color] duration-[var(--motion-fast)] ease-[var(--motion-ease-out)] hover:border-white/45 hover:bg-[#082a63]/60"
+                className="rounded-[var(--radius-card)] border border-white/25 bg-[#082a63]/45 px-4 py-4 backdrop-blur-xl transition-[border-color,background-color] [transition-duration:var(--motion-fast)] [transition-timing-function:var(--motion-ease-out)] hover:border-white/45 hover:bg-[#082a63]/60"
               >
                 {body}
               </Link>
