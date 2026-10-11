@@ -124,15 +124,25 @@
 }
 
 /* --- 昭源環方 Chiron GoRound TC · 中文 ---
-   OFL 授权免费开源；子集含 GB2312 一级字 3755 个 + 界面实际用字 */
+   OFL 授权免费开源；子集含 GB2312 一级字 3755 个 + 界面实际用字
+
+   unicode-range 必须覆盖中文标点，否则引号、省略号、破折号会漏给下一个字体：
+   同一个词里汉字用昭源環方、紧挨着的「」却用系统字体，看起来就像"字体变了"。
+   补的是这几段（原先缺，导致中文标点走系统 fallback）：
+     U+2014-2015 破折号 ——  U+2018-201D 单双引号  U+2026 省略号
+     U+00B7 间隔号（人名分隔）U+203B 米字星  U+3001-3003 顿号句号（已被 3000-303F 覆盖）
+     U+2013 连接号  U+00AB/00BB  guillemet  U+02C7/02D9 隔音符号
+   拉丁区（U+0000-00FF 的一部分）刻意不给：英文不该被中文字体接管，
+   否则数字和字母的字重、基线都会跟设计对不上。 */
 @font-face {
   font-family: "Chiron GoRound TC";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
   src: url("/fonts/ChironGoRoundTC-400.woff2") format("woff2");
-  unicode-range: U+2E80-2EFF, U+3000-303F, U+3100-312F, U+3200-32FF,
-    U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE10-FE4F, U+FF00-FFEF;
+  unicode-range: U+00B7, U+2013-2015, U+2018-201D, U+2026, U+203B, U+2E80-2EFF,
+    U+3000-303F, U+3100-312F, U+3200-32FF, U+3400-4DBF, U+4E00-9FFF,
+    U+F900-FAFF, U+FE10-FE4F, U+FF00-FFEF;
 }
 
 /* --- SuperSFMonoV1 · 代码（SF Mono + 苹方）--- */
@@ -550,9 +560,19 @@ body::after {
 }
 
 :root {
-  --font-sans: "Montserrat", "Chiron GoRound TC", -apple-system, BlinkMacSystemFont,
-    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --font-serif: "Source Serif 4", "Chiron GoRound TC", Georgia, Cambria,
+  /* ---- 繁体中文：全站只有这一个来源 ----
+   * 之前每个主题各写一遍 "Chiron GoRound TC"，而且摆的位置不一样：
+   * 有的在系统字体之前（生效），有的在系统字体之后（被 -apple-system 截胡），
+   * 有一处压根没写（iOS 观感整块漏掉），M3 还混了个 "Noto Sans SC" 在末尾。
+   * 于是同一个站里中文一会儿昭源環方、一会儿系统字，看着像在跳字体。
+   * 现在统一成 --font-tc：昭源環方优先，系统繁体只做字体没加载出来时的兜底。
+   */
+  --font-tc: "Chiron GoRound TC", "PingFang TC", "Microsoft JhengHei",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --font-sans: "Montserrat", var(--font-tc), -apple-system, BlinkMacSystemFont,
+    system-ui, sans-serif;
+  --font-serif: "Source Serif 4", var(--font-tc), Georgia, Cambria,
     "Times New Roman", serif;
   --font-mono: "SuperSFMonoV1", ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -599,9 +619,11 @@ body {
    ========================================================================== */
 [data-theme="swiftui"] {
   /* ---- 字体：SF 系列是系统字体，无需额外加载 ---- */
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-    "Chiron GoRound TC", "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
-  --font-serif: "New York", "SF Pro Serif", "Chiron GoRound TC", Georgia, Cambria, serif;
+  /* 中文必须排在 -apple-system 之前：SF Pro 不含汉字，一旦让系统字体先匹配，
+     中文就会落到 PingFang / Noto，昭源環方永远轮不上 */
+  --font-sans: "SF Pro Text", "SF Pro Display", var(--font-tc), -apple-system,
+    BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+  --font-serif: "New York", "SF Pro Serif", var(--font-tc), Georgia, Cambria, serif;
   --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   /* ---- 颜色：Apple system colors（light） ----
      systemGroupedBackground #F2F2F7 / secondarySystemGroupedBackground #FFFFFF
@@ -728,9 +750,9 @@ body {
 
 [data-theme="material3"] {
   /* ---- 字体：Roboto 是 Material 3 的基准字体 ---- */
-  --font-sans: "Roboto", "Roboto Flex", "Chiron GoRound TC", -apple-system,
-    BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
-  --font-serif: "Roboto Serif", "Chiron GoRound TC", Georgia, Cambria, serif;
+  --font-sans: "Roboto", "Roboto Flex", var(--font-tc), -apple-system,
+    BlinkMacSystemFont, system-ui, sans-serif;
+  --font-serif: "Roboto Serif", var(--font-tc), Georgia, Cambria, serif;
   --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   /* ---- 颜色：Material Design 3 baseline purple（官方色值） ----
      primary #6750A4 / primary-container #EADDFF / secondary #625B71
@@ -859,9 +881,9 @@ body {
   /* ---- 字体：Styrene B → Inter；Tiempos/Copernicus → Source Serif 4 ----
      两者都是官方 fallback 栈的第一顺位，开源且观感最接近。 */
   /* 官方字体（若已放置）优先，否则落到开源近似字体 */
-  --font-sans: "Anthropic Sans", "Inter", "Chiron GoRound TC", -apple-system,
-    BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --font-serif: "Anthropic Serif", "Source Serif 4", "Chiron GoRound TC", Georgia,
+  --font-sans: "Anthropic Sans", "Inter", var(--font-tc), -apple-system,
+    BlinkMacSystemFont, system-ui, sans-serif;
+  --font-serif: "Anthropic Serif", "Source Serif 4", var(--font-tc), Georgia,
     Cambria, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", "SuperSFMonoV1", ui-monospace, SFMono-Regular,
     Menlo, monospace;
@@ -1064,9 +1086,9 @@ body {
 [data-theme="fuwari"] {
   --hue: 205;
 
-  --font-sans: "Montserrat", "Chiron GoRound TC", -apple-system,
-    BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --font-serif: "Source Serif 4", "Chiron GoRound TC", Georgia, Cambria,
+  --font-sans: "Montserrat", var(--font-tc), -apple-system, BlinkMacSystemFont,
+    system-ui, sans-serif;
+  --font-serif: "Source Serif 4", var(--font-tc), Georgia, Cambria,
     "Times New Roman", serif;
   --font-mono: "SuperSFMonoV1", ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -1207,9 +1229,9 @@ body {
    卡片是实心的（背景已经很花，再全站半透明会糊成一片）。
    ========================================================================== */
 [data-theme="violet-rose"] {
-  --font-sans: "Montserrat", "Chiron GoRound TC", -apple-system,
-    BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --font-serif: "Source Serif 4", "Chiron GoRound TC", Georgia, Cambria,
+  --font-sans: "Montserrat", var(--font-tc), -apple-system, BlinkMacSystemFont,
+    system-ui, sans-serif;
+  --font-serif: "Source Serif 4", var(--font-tc), Georgia, Cambria,
     "Times New Roman", serif;
   --font-mono: "SuperSFMonoV1", ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -1591,9 +1613,9 @@ body {
   [data-theme="sidefolio"] {
     --hue: 258; /* 蓝紫：改这一个数即可整体换强调色 */
 
-    --font-sans: "Inter", "Chiron GoRound TC", -apple-system, BlinkMacSystemFont,
-      "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-    --font-serif: "Source Serif 4", "Chiron GoRound TC", Georgia, Cambria,
+    --font-sans: "Inter", var(--font-tc), -apple-system, BlinkMacSystemFont,
+      system-ui, sans-serif;
+    --font-serif: "Source Serif 4", var(--font-tc), Georgia, Cambria,
       "Times New Roman", serif;
     --font-mono: "SuperSFMonoV1", ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -1737,9 +1759,9 @@ body {
   [data-theme="minimalist"] {
     --hue: 215; /* 石板蓝：低饱和，改这个数可换整体色调 */
 
-    --font-sans: "Inter", "Chiron GoRound TC", -apple-system, BlinkMacSystemFont,
-      "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-    --font-serif: "Source Serif 4", "Chiron GoRound TC", Georgia, Cambria,
+    --font-sans: "Inter", var(--font-tc), -apple-system, BlinkMacSystemFont,
+      system-ui, sans-serif;
+    --font-serif: "Source Serif 4", var(--font-tc), Georgia, Cambria,
       "Times New Roman", serif;
     --font-mono: "SuperSFMonoV1", ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -3605,10 +3627,11 @@ body {
 
 html[data-variant="ios"] {
   /* SF 优先：装在主屏幕时系统字体就在本机，零网络成本 */
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-    "Helvetica Neue", "PingFang SC", system-ui, sans-serif;
-  --font-serif: "New York", -apple-system, "SF Pro Text", Georgia, serif;
+  /* 这一块原先完全没有中文字体声明，中文整段落到系统默认
+     （iOS 是 PingFang、安卓是 Noto Sans CJK），跟其他主题不是一个字体 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    var(--font-tc), "Helvetica Neue", system-ui, sans-serif;
+  --font-serif: "New York", -apple-system, "SF Pro Text", var(--font-tc), Georgia, serif;
   --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* 材质加厚：大表面比小控件更"重" */

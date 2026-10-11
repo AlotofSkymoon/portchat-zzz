@@ -81,7 +81,10 @@ export function blockedPageHtml(opts: BlockedPageOptions): string {
     padding: 24px;
     background: var(--bg);
     color: var(--fg);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    /* 独立页面，不加载 globals.css，所以中文字体得自己声明；
+       跟全站一样以昭源環方优先，避免这一页跟站内字体不一致 */
+    font-family: "Chiron GoRound TC", "PingFang TC", "Microsoft JhengHei",
+      -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
       "Hiragino Sans GB", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
     line-height: 1.6;
   }

@@ -33,6 +33,16 @@ export const CHANGELOG: ChangelogDay[] = [
         zh: "圆角不再各走各的：顶栏、模型按钮、设置卡片用的是一套大圆角变量，而页面里绝大多数组件走的是 Tailwind 的 rounded-*，两者数值差了一倍多，所以同一个画面里顶栏很圆、下面的卡片却是方的。现在所有圆角都来自同一套量表，换主题时整站一起变",
         en: "Radius no longer comes from two competing scales: the top bar, model button and settings cards used one set of large radius variables while most of the page used Tailwind rounded-*, and the two differed by more than double — so the bar looked round while the cards below looked square. Every corner now comes from one scale that shifts together when you switch themes",
       },
+      {
+        tag: "fix",
+        zh: "繁体中文不再一会儿昭源環方、一会儿系统字体：九个主题各写了一遍中文字体，摆的位置还不一样——iOS 主题把它排在系统字体之后，于是中文永远被系统字截胡；iOS 观感那一块压根没写中文；Material 3 末尾还混了个 Noto Sans。现在统一成一个 --font-tc 变量，中文字体来源唯一",
+        en: "Traditional Chinese no longer flips between Chiron Rounded and a system font: nine themes each declared the Chinese font in a different position — the iOS theme placed it after the system font so Chinese was always intercepted, the iOS variant block omitted it entirely, and Material 3 had a stray Noto Sans at the end. One --font-tc variable is now the single source for Chinese type",
+      },
+      {
+        tag: "fix",
+        zh: "中文标点跟着汉字走了：字体的 unicode-range 原先只覆盖汉字和中文标点区，漏了引号、省略号、破折号和间隔号，这些字符会掉到系统字体去——同一句话里汉字是昭源環方、旁边的「」却是另一种字体，看着就像字体在跳。现在补上了",
+        en: "Chinese punctuation now matches the characters: the font's unicode-range covered hanzi and the CJK punctuation block but omitted quotes, ellipsis, dashes and the interpunct, so those glyphs fell through to the system font — a sentence could render hanzi in Chiron while the adjacent 「」 used another face, which read as the font jumping. The ranges are filled in",
+      },
     ],
   },
   {

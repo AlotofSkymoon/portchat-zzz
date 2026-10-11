@@ -119,7 +119,7 @@ function InlineBadge({ style, size = 18 }: { style: BadgeStyle; size?: number })
         fill="#fff"
         fontSize={style.mark.length > 1 ? 8 : 13}
         fontWeight="700"
-        fontFamily="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif"
+        fontFamily="'Chiron GoRound TC','PingFang TC','PingFang SC','Microsoft YaHei',system-ui,-apple-system,sans-serif"
       >
         {style.mark}
       </text>
