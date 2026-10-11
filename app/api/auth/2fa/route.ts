@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     const secret = generateTotpSecret();
     return NextResponse.json({
       secret,
-      uri: otpauthUri({ secret, account: user.email, issuer: "Portchat" }),
+      uri: otpauthUri({ secret, account: user.email, issuer: "Pot" }),
     });
   }
 

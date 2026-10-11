@@ -38,6 +38,16 @@ export const CHANGELOG: ChangelogDay[] = [
         zh: "Passkey 登录与扫码登录标注为「实验性」，并说明失败时改用邮箱或 GitHub 登录",
         en: "Passkey sign-in and QR sign-in are now labelled experimental, with a hint to fall back to email or GitHub if they fail",
       },
+      {
+        tag: "improve",
+        zh: "换上新版品牌标识：蓝气泡 + 橙色三道闪光，字标改成 Pot（首字母蓝、其余橙），站点名同步改为 Pot",
+        en: "New brand mark: blue speech bubble with three orange sparkles, wordmark now reads Pot (initial in blue), and the site name follows",
+      },
+      {
+        tag: "fix",
+        zh: "修复白底转透明时把气泡里的白色「脸」一起抠掉的问题 —— 改用从画布边缘洪水填充判定背景，只有跟外框连通的白才算背景",
+        en: "Fixed the white 'face' inside the bubble being punched out when removing the white background. Background is now detected by flood-filling from the canvas edge, so only white connected to the border is treated as background",
+      },
     ],
   },
   {

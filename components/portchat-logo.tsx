@@ -33,7 +33,8 @@ export function PortchatIcon({ className }: { className?: string }) {
  *
  * 字标保留文字而非整张锁框图，是因为这里是**横排**场景（侧边栏顶栏）：
  * 官方那张是图标在上、字标在下的竖排构图，塞进 28px 高的横排里会撑高。
- * "Port" 蓝、"chat" 橙的配色跟官方图一致，断点落在大小写交界处。
+ *
+ * 断点落在 "P" 和 "ot" 之间：官方字标就是首字母蓝、其余橙。
  */
 export function PortchatLogo({ className }: { className?: string }) {
   return (
@@ -44,8 +45,8 @@ export function PortchatLogo({ className }: { className?: string }) {
         <PortchatIcon />
       </span>
       <span className="text-[15px] font-semibold leading-none tracking-[-0.01em]">
-        <span className="text-[#2E7DF6] dark:text-[#4C9AFF]">Port</span>
-        <span className="text-[#FF8A00]">chat</span>
+        <span className="text-[#2E7DF6] dark:text-[#4C9AFF]">P</span>
+        <span className="text-[#FF8A00]">ot</span>
       </span>
     </span>
   );

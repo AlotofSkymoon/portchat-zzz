@@ -1,26 +1,26 @@
 /**
  * 站点品牌配置。
  *
- * 本站定位：**免费聊天站 Portchat**（独立的开源项目，不隶属于任何 API 服务商）。
+ * 本站定位：**免费聊天站 Pot**（独立的开源项目，不隶属于任何 API 服务商）。
  * 站长把自己的 Key 和 Base URL 配进环境变量，
  * 访客打开就能直接聊，不用自己申请 Key、也不用填 Base URL。
  *
- * 所以品牌名、上游地址、模型列表全部可配置，默认给 Portchat 一套。
+ * 所以品牌名、上游地址、模型列表全部可配置，默认给 Pot 一套。
  */
 
-/** 站点显示名，默认 Portchat。改环境变量 NEXT_PUBLIC_SITE_NAME 即可换。 */
+/** 站点显示名，默认 Pot。改环境变量 NEXT_PUBLIC_SITE_NAME 即可换。 */
 export const SITE_NAME: string =
-  process.env.NEXT_PUBLIC_SITE_NAME?.trim() || "Portchat";
+  process.env.NEXT_PUBLIC_SITE_NAME?.trim() || "Pot";
 
 /** 站点副标题 */
 export const SITE_TAGLINE: string =
   process.env.NEXT_PUBLIC_SITE_TAGLINE?.trim() || "免费聊天";
 
-/** 完整标题，如 "Portchat 免费聊天" */
+/** 完整标题，如 "Pot 免费聊天" */
 export const SITE_TITLE = `${SITE_NAME} ${SITE_TAGLINE}`;
 
 /**
- * 页面标题拼接：pageTitle("登录") → "登录 - Portchat"
+ * 页面标题拼接：pageTitle("登录") → "登录 - Pot"
  *
  * ⚠️ 为什么用短横线而不是中间点「·」：
  * 「xxx · xxx」这种居中点分隔是 AI 生成文案的高频特征，

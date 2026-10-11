@@ -1,6 +1,6 @@
 {
-  "name": "Portchat",
-  "short_name": "Portchat",
+  "name": "Pot",
+  "short_name": "Pot",
   "description": "免费的多模型 AI 聊天站：聊天、创作、竞技场。",
   "start_url": "/chat",
   "scope": "/",

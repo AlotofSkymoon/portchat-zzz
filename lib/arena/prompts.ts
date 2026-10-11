@@ -32,7 +32,7 @@ export function debateSystem(opts: {
   const { topic, stance, stage, lang, round = 1, totalRounds = 1 } = opts;
 
   const base = [
-    `你正在 Portchat 竞技场参加一场正式辩论。`,
+    `你正在 Pot 竞技场参加一场正式辩论。`,
     `辩题：${topic}`,
     `你的立场：${stance}`,
     langHint(lang),
@@ -54,7 +54,7 @@ export function debateSystem(opts: {
 
 export function judgeSystem(opts: { topic: string; lang: string }): string {
   return [
-    `你是 Portchat 竞技场这场辩论的裁判，不参与发言。`,
+    `你是 Pot 竞技场这场辩论的裁判，不参与发言。`,
     `辩题：${opts.topic}`,
     langHint(opts.lang),
     `请根据下方完整辩论记录裁决：`,

@@ -57,7 +57,7 @@ export async function GET(request: Request) {
 
   const pdf = buildPdf(
     [
-      { text: "Portchat Monthly Champion", size: 22, bold: true, gap: 40 },
+      { text: "Pot Monthly Champion", size: 22, bold: true, gap: 40 },
       { text: "", size: 8, gap: 6 },
       { text: `Congratulations! You ranked #1 for ${hit.period}.`, size: 13, gap: 10 },
       { text: `Messages sent: ${hit.count}`, size: 13 },
@@ -70,7 +70,7 @@ export async function GET(request: Request) {
       { text: "", size: 8, gap: 16 },
       { text: "Redeem it at your domain registrar. Enjoy!", size: 11 },
     ],
-    { title: `Portchat Monthly Champion ${hit.period}` },
+    { title: `Pot Monthly Champion ${hit.period}` },
   );
 
   return new NextResponse(new Uint8Array(pdf), {

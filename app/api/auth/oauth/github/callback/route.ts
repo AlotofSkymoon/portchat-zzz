@@ -96,7 +96,7 @@ export async function GET(request: Request) {
       headers: {
         authorization: `Bearer ${accessToken}`,
         accept: "application/vnd.github+json",
-        "user-agent": "Portchat",
+        "user-agent": "Pot",
       },
     });
     if (!ghRes.ok) return fail(request, "profile");
@@ -109,7 +109,7 @@ export async function GET(request: Request) {
           headers: {
             authorization: `Bearer ${accessToken}`,
             accept: "application/vnd.github+json",
-            "user-agent": "Portchat",
+            "user-agent": "Pot",
           },
         });
         if (mailRes.ok) {
