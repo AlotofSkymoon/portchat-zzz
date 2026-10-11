@@ -560,24 +560,25 @@ body::after {
     "Times New Roman", serif;
   --font-mono: "SuperSFMonoV1", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --radius-ctrl: 1.375rem;
-  --radius-card: 2rem;
-  --radius-panel: 2.5rem;
-  --radius-pill: 999px;
-
-  /* ---- Tailwind 圆角量表（rounded-lg / rounded-xl 等实际取值）----
-   * 梯度必须连续：6 → 10 → 12 → 14 → 16 → 20 → 24。
-   * 原档位（sm 10 / default 20 / lg 26 / xl 32 / 2xl 38）落差过大 ——
-   * 同一个界面里 10px 的按钮和 32px 的卡片并排，小的显得方硬、大的显得过圆。
+  /* ---- 圆角：全站只有这一套量表 ----
+   * Tailwind 的 rounded-* 映射到 --r-*，顶栏/卡片/控件用的
+   * --radius-panel / --radius-card / --radius-ctrl 也引用 --r-*。
+   * 之前这两套是分开的（面板 40px、卡片 32px，而 rounded-xl 只有 12px），
+   * 于是同一个界面里顶栏很圆、下面的卡片却是方的。现在合并成一套。
    */
-  --r-sm: 0.375rem;    /* 6px  标签、滑块轨道 */
-  --r-default: 0.625rem; /* 10px 默认 */
-  --r-md: 0.625rem;    /* 10px */
-  --r-lg: 0.75rem;     /* 12px 按钮、输入框 */
-  --r-xl: 0.875rem;    /* 14px */
-  --r-2xl: 1rem;       /* 16px 卡片、气泡 */
-  --r-3xl: 1.25rem;    /* 20px 大卡片 */
-  --r-4xl: 1.5rem;     /* 24px 弹层 */
+  --r-sm: 0.5rem;      /* 8px   标签、滑块轨道 */
+  --r-default: 0.75rem; /* 12px 默认 */
+  --r-md: 0.875rem;    /* 14px */
+  --r-lg: 1rem;        /* 16px 按钮、输入框 */
+  --r-xl: 1.25rem;     /* 20px */
+  --r-2xl: 1.5rem;     /* 24px 卡片、气泡 */
+  --r-3xl: 1.75rem;    /* 28px 大卡片 */
+  --r-4xl: 2rem;       /* 32px 弹层、顶栏 */
+
+  --radius-ctrl: var(--r-xl);
+  --radius-card: var(--r-2xl);
+  --radius-panel: var(--r-4xl);
+  --radius-pill: 999px;
 
   --shadow-card: 0 1px 2px 0 hsl(230 20% 20% / 0.05);
   --shadow-panel: 0 12px 32px -12px hsl(230 25% 20% / 0.15);
@@ -642,9 +643,9 @@ body {
   --text-tertiary: 240 2% 57%;
   --text-quaternary: 240 5% 79%;
   /* ---- 形状：SwiftUI 连续圆角，单元格偏方、卡片偏圆 ---- */
-  --radius-ctrl: 0.625rem;   /* 10px SwiftUI 按钮 */
-  --radius-card: 0.875rem;   /* 14px SwiftUI 卡片 */
-  --radius-panel: 1.25rem;   /* 20px SwiftUI 大面板 */
+  --radius-ctrl: var(--r-xl);   /* 10px SwiftUI 按钮 */
+  --radius-card: var(--r-2xl);   /* 14px SwiftUI 卡片 */
+  --radius-panel: var(--r-4xl);   /* 20px SwiftUI 大面板 */
   --radius-pill: 999px;
 
   --r-sm: 0.375rem;
@@ -771,9 +772,9 @@ body {
   --text-tertiary: 259 11% 40%;
   --text-quaternary: 270 4% 47%;
   /* ---- 形状：Material 3 形状标度，小控件更圆、大卡片收敛 ---- */
-  --radius-ctrl: 1.25rem;    /* 20px M3 full 按钮 */
-  --radius-card: 0.75rem;    /* 12px M3 medium 卡片 */
-  --radius-panel: 1.75rem;   /* 28px M3 large */
+  --radius-ctrl: var(--r-xl);    /* 20px M3 full 按钮 */
+  --radius-card: var(--r-2xl);    /* 12px M3 medium 卡片 */
+  --radius-panel: var(--r-4xl);   /* 28px M3 large */
   --radius-pill: 999px;
 
   --r-sm: 0.25rem;
@@ -903,9 +904,9 @@ body {
   --text-quaternary: 50 3% 62%;
 
   /* ---- 形状：中等圆角，克制 ---- */
-  --radius-ctrl: 1rem;       /* 16px 控件 */
-  --radius-card: 1.75rem;    /* 28px 卡片 */
-  --radius-panel: 2.125rem;  /* 34px 大面板 */
+  --radius-ctrl: var(--r-xl);       /* 16px 控件 */
+  --radius-card: var(--r-2xl);    /* 28px 卡片 */
+  --radius-panel: var(--r-4xl);  /* 34px 大面板 */
   --radius-pill: 999px;
 
   /* Anthropic 风格偏"纸感编辑排版"，圆角比 fuwari 收敛一档，
@@ -1104,9 +1105,9 @@ body {
   --text-quaternary: var(--hue) 6% 62%;
 
   /* ---- 形状：非常圆润（用户要求）—— 卡片近乎胶囊 ---- */
-  --radius-ctrl: 1.5rem;
-  --radius-card: 2.25rem;
-  --radius-panel: 2.75rem;
+  --radius-ctrl: var(--r-xl);
+  --radius-card: var(--r-2xl);
+  --radius-panel: var(--r-4xl);
   --radius-pill: 999px;
 
   /* fuwari：最圆润的一档，卡片近乎胶囊 */
@@ -1247,9 +1248,9 @@ body {
   --text-quaternary: 292 8% 62%;
 
   /* ---- 形状：**完全无圆角**（用户要求）—— 利落的直角切边 ---- */
-  --radius-ctrl: 0;
-  --radius-card: 0;
-  --radius-panel: 0;
+  --radius-ctrl: var(--r-xl);
+  --radius-card: var(--r-2xl);
+  --radius-panel: var(--r-4xl);
   --radius-pill: 0;
 
   /* violet-rose：完全直角，量表也一并归零 */
@@ -1633,9 +1634,9 @@ body {
     --text-quaternary: 0 0% 55%;
 
     /* ---- 形状：中等偏小，面板感 ---- */
-    --radius-ctrl: 0.5rem;
-    --radius-card: 0.75rem;
-    --radius-panel: 1rem;
+    --radius-ctrl: var(--r-xl);
+    --radius-card: var(--r-2xl);
+    --radius-panel: var(--r-4xl);
     --radius-pill: 999px;
 
     --r-sm: 0.25rem;
@@ -1779,9 +1780,9 @@ body {
     --text-quaternary: var(--hue) 6% 57%;
 
     /* ---- 形状：极小圆角，接近直角 ---- */
-    --radius-ctrl: 0.25rem;
-    --radius-card: 0.375rem;
-    --radius-panel: 0.5rem;
+    --radius-ctrl: var(--r-xl);
+    --radius-card: var(--r-2xl);
+    --radius-panel: var(--r-4xl);
     --radius-pill: 999px;
 
     --r-sm: 0.125rem;
@@ -2012,11 +2013,10 @@ body {
     /*
      * 顶栏圆角固定 22px，不跟主题变量走。
      *
-     * 原因：顶栏用 var(--radius-ios-lg) 时，violet-rose 主题会把
-     * 所有圆角变量压成 0，顶栏就变成一条硬邦邦的直角横杠。
-     * 固定值不受主题压制，任何主题下都保持圆润。
+     * 跟随主题的圆角量表（--radius-panel → --r-4xl），
+     * 不再写固定值 —— 固定值会让顶栏和页面里其他圆角各走一套。
      */
-    border-radius: 22px;
+    border-radius: var(--radius-panel);
   }
 
   /* 大容器（弹窗、面板） */
@@ -2030,7 +2030,7 @@ body {
    * 这里保持一致；hover 只给很淡的底色。
    */
   .liquid-item {
-    border-radius: 14px;
+    border-radius: var(--radius-ctrl);
     transition:
       background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
       color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -3631,9 +3631,9 @@ html[data-variant="ios"] {
   --r-2xl: 2.5rem;
   --r-3xl: 2.875rem;
   --r-4xl: 3.375rem;
-  --radius-ctrl: 1.5rem;
-  --radius-card: 2.125rem;
-  --radius-panel: 2.625rem;
+  --radius-ctrl: var(--r-xl);
+  --radius-card: var(--r-2xl);
+  --radius-panel: var(--r-4xl);
 
   /* 发丝分隔线 */
   --card-border-w: 0.5px;
