@@ -25,6 +25,17 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-10-12",
+    title: { zh: "全站圆角统一为一套量表", en: "One radius scale for the whole site" },
+    entries: [
+      {
+        tag: "fix",
+        zh: "圆角不再各走各的：顶栏、模型按钮、设置卡片用的是一套大圆角变量，而页面里绝大多数组件走的是 Tailwind 的 rounded-*，两者数值差了一倍多，所以同一个画面里顶栏很圆、下面的卡片却是方的。现在所有圆角都来自同一套量表，换主题时整站一起变",
+        en: "Radius no longer comes from two competing scales: the top bar, model button and settings cards used one set of large radius variables while most of the page used Tailwind rounded-*, and the two differed by more than double — so the bar looked round while the cards below looked square. Every corner now comes from one scale that shifts together when you switch themes",
+      },
+    ],
+  },
+  {
     date: "2026-10-11",
     title: { zh: "扫码回归 + 移除云电脑 + 注销账号可反悔 + 去 AI 味重构", en: "QR scan returns, cloud PC removed, reversible deletion, de-AI redesign" },
     entries: [
