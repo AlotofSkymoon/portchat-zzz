@@ -26,6 +26,7 @@ import { ImageLightbox } from "@/components/chat/image-lightbox";
 import { Markdown } from "@/components/chat/markdown";
 import { Button } from "@/components/ui/button";
 import { formatBytes, type ChatMessage } from "@/lib/types";
+import { detectSpeechLang, pickVoice, sanitizeForSpeech, splitSpeechChunks } from "@/lib/speech";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -205,22 +206,38 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
       setSpeaking(false);
       return;
     }
-    let text = message.content || "";
-    text = text
-      .replace(/```[\s\S]*?```/g, "（此处为代码，已跳过）")
-      .replace(/`([^`]+)`/g, "$1")
-      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
-      .replace(/^#{1,6}\s+/gm, "")
-      .replace(/[*_~>|#]/g, "")
-      .trim();
+    const text = sanitizeForSpeech(message.content || "");
     if (!text) return;
-    const u = new SpeechSynthesisUtterance(text.slice(0, 4000));
-    const lang = (typeof navigator !== "undefined" && navigator.language) || "zh-CN";
-    u.lang = /^zh/i.test(lang) ? lang : lang;
-    u.onend = () => setSpeaking(false);
-    u.onerror = () => setSpeaking(false);
-    synth.speak(u);
+    const chunks = splitSpeechChunks(text);
+    if (!chunks.length) return;
+
+    const navLang = (typeof navigator !== "undefined" && navigator.language) || "zh-CN";
+    const lang = detectSpeechLang(text, navLang);
+    const voice = pickVoice(lang);
+
+    synth.cancel();
+    let i = 0;
+    const speakNext = () => {
+      if (i >= chunks.length) {
+        setSpeaking(false);
+        return;
+      }
+      const u = new SpeechSynthesisUtterance(chunks[i]);
+      u.lang = lang;
+      if (voice) u.voice = voice;
+      u.onend = () => {
+        i += 1;
+        speakNext();
+      };
+      u.onerror = () => setSpeaking(false);
+      try {
+        synth.speak(u);
+      } catch {
+        setSpeaking(false);
+      }
+    };
     setSpeaking(true);
+    speakNext();
   }, [message.content, speaking, t]);
 
   // 组件卸载时取消朗读，否则切走会话后还在念

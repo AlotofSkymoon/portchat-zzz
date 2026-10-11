@@ -26,6 +26,27 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-10-11",
+    title: { zh: "朗读不再念符号", en: "Read-aloud no longer reads symbols" },
+    entries: [
+      {
+        tag: "fix",
+        zh: "朗读不再把 emoji 念出来：新增专门的文本清洗，去掉表情、合体 emoji（👨‍👩‍👧）、肤色与旗帜修饰符、装饰符号，keycap 会整串去掉而不是只剩数字",
+        en: "Read-aloud no longer speaks emoji out loud: a dedicated text cleaner strips emoji, joined sequences, skin-tone and flag modifiers and dingbats. Keycap sequences are removed whole instead of leaving a lone digit",
+      },
+      {
+        tag: "improve",
+        zh: "朗读改成分句排队：浏览器语音引擎念到约 15 秒会自行中断，长回答以前会念一半就没声。现在按句切成小段依次播放，并自动挑选匹配语言的语音",
+        en: "Read-aloud now queues sentence-length chunks: browser speech engines cut off after roughly 15 seconds, so long answers used to stop midway. It now plays chunk by chunk and picks a voice matching the text language",
+      },
+      {
+        tag: "improve",
+        zh: "朗读前还会清掉 markdown 标记、表格分隔行、引用标号、HTML 实体与链接地址 —— 链接只提示「链接已省略」，代码整段跳过",
+        en: "Markdown markers, table separators, citation numbers, HTML entities and URLs are stripped before speaking. Links are announced as omitted, and code blocks are skipped entirely",
+      },
+    ],
+  },
+  {
+    date: "2026-10-11",
     title: { zh: "品牌换成 Pot & 过渡动画修正", en: "Pot branding & transition fix" },
     entries: [
       {
