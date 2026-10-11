@@ -172,10 +172,10 @@ export function LandingContent() {
 
         {/* 手机预览：外壳是 CSS 画的，里面的气泡是静态装饰 */}
         <div className="flex justify-center lg:justify-end">
-          <div className="relative w-[268px] rounded-[2.25rem] border-[9px] border-[hsl(230_18%_14%)] bg-[hsl(230_18%_14%)] shadow-2xl">
+          <div className="relative w-[268px] rounded-[var(--r-4xl)] border-[9px] border-[hsl(230_18%_14%)] bg-[hsl(230_18%_14%)] shadow-2xl">
             {/* 刘海 */}
             <div className="absolute left-1/2 top-0 z-20 h-5 w-24 -translate-x-1/2 rounded-b-2xl bg-[hsl(230_18%_14%)]" />
-            <div className="h-[470px] overflow-hidden rounded-[1.7rem] bg-background p-3">
+            <div className="h-[470px] overflow-hidden rounded-[var(--r-3xl)] bg-background p-3">
               <div className="flex h-full flex-col">
                 <div className="flex items-center gap-1.5 pb-3 pt-1">
                   <PotIcon className="h-4 w-4" />
