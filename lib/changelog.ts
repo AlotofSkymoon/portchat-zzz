@@ -25,6 +25,22 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-10-11",
+    title: { zh: "助手自称简化 & 实验性标注", en: "Simpler self-intro & experimental labels" },
+    entries: [
+      {
+        tag: "improve",
+        zh: "助手打招呼时只说「嗨！我是 Pot」，不再附带「现在透过 Portchat 与你的对话」这句多余说明",
+        en: "The assistant now greets with just \"Hi! I'm Pot\" instead of tacking on an explanation about talking through Portchat",
+      },
+      {
+        tag: "new",
+        zh: "Passkey 登录与扫码登录标注为「实验性」，并说明失败时改用邮箱或 GitHub 登录",
+        en: "Passkey sign-in and QR sign-in are now labelled experimental, with a hint to fall back to email or GitHub if they fail",
+      },
+    ],
+  },
+  {
     date: "2026-10-10",
     title: { zh: "Passkey 存储重构", en: "Passkey storage rebuilt" },
     entries: [

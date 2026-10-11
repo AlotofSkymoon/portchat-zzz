@@ -772,7 +772,12 @@ export function PasskeyCard() {
     <div className="space-y-3 rounded-xl border border-border/70 bg-card/40 px-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="pr-3">
-          <p className="text-sm font-medium">{t("settings.passkey")}</p>
+          <p className="flex items-center gap-1.5 text-sm font-medium">
+            {t("settings.passkey")}
+            <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+              {t("settings.experimentalBadge")}
+            </span>
+          </p>
           <p className="text-xs text-muted-foreground">{t("settings.passkeyDesc")}</p>
           {/* 绑定状态直接显示有几把 —— 绑没绑成功一眼能看到，不用去猜 */}
           <p className="mt-1 text-xs">
@@ -824,6 +829,7 @@ export function PasskeyCard() {
         {t("settings.passkeyAdd")}
       </Button>
       <p className="text-[11px] text-muted-foreground">{t("settings.passkeyHint")}</p>
+      <p className="text-[11px] text-amber-600/90 dark:text-amber-400/90">{t("settings.passkeyExperimental")}</p>
     </div>
   );
 }
@@ -914,8 +920,14 @@ export function QrLoginCard() {
     <div className="space-y-3 rounded-xl border border-border/70 bg-card/40 px-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="pr-3">
-          <p className="text-sm font-medium">{t("settings.qrLogin")}</p>
+          <p className="flex items-center gap-1.5 text-sm font-medium">
+            {t("settings.qrLogin")}
+            <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+              {t("settings.experimentalBadge")}
+            </span>
+          </p>
           <p className="text-xs text-muted-foreground">{t("settings.qrLoginDesc")}</p>
+          <p className="mt-1 text-[11px] text-amber-600/90 dark:text-amber-400/90">{t("settings.qrExperimental")}</p>
         </div>
         <QrCode className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
       </div>

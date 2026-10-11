@@ -471,7 +471,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             >
               {passkeyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
               {t("auth.loginWithPasskey")}
+              <span className="ml-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                {t("auth.experimentalBadge")}
+              </span>
             </Button>
+          ) : null}
+          {isLogin && passkeyReady ? (
+            <p className="text-center text-[11px] text-muted-foreground">{t("auth.passkeyExperimental")}</p>
           ) : null}
 
           {githubEnabled ? (
