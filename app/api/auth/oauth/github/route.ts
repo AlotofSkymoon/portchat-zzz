@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 
 import { serverT as st } from "@/lib/i18n/server";
 import { getCurrentUser } from "@/lib/auth";
-import { resolveGithubOAuth, STATE_COOKIE, STATE_TTL_SECONDS } from "@/lib/oauth-config";
+import { resolveGithubOAuth, requestHost, STATE_COOKIE, STATE_TTL_SECONDS } from "@/lib/oauth-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,13 +35,20 @@ export async function GET(request: Request) {
    * 登录页要靠它决定要不要显示 GitHub 按钮：
    * 不查的话没配置也会显示，点下去 501，用户只看到一句报错。
    */
+  // 多域名部署：先按当前访问域名挑一套 OAuth App
+  const host = requestHost(request);
+
   if (new URL(request.url).searchParams.get("probe") === "1") {
-    const cfg = await resolveGithubOAuth();
-    return NextResponse.json({ enabled: cfg.source !== "none", source: cfg.source });
+    const cfg = await resolveGithubOAuth(host);
+    return NextResponse.json({
+      enabled: cfg.source !== "none",
+      source: cfg.source,
+      domain: cfg.domain ?? null,
+    });
   }
 
-  // 环境变量优先，其次是管理员面板里填的
-  const cfg = await resolveGithubOAuth();
+  // 域名映射优先，其次环境变量，最后是面板里的单一配置
+  const cfg = await resolveGithubOAuth(host);
   const clientId = cfg.clientId;
   if (!clientId) {
     return NextResponse.json({ error: st(request, "api.auth.oauthNotConfigured") }, { status: 501 });
@@ -70,7 +77,15 @@ export async function GET(request: Request) {
   const state = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
 
   const store = await cookies();
-  store.set(STATE_COOKIE, JSON.stringify({ state, redirect, mode }), {
+  /*
+   * host 一起存进 state。
+   *
+   * 回调时要拿同一套凭证去换 token —— 换 token 用的必须是**发起时那个
+   * App 的 Secret**，拿错就直接失败。回调的域名理论上和发起时一致，
+   * 但用户中途改了地址、或反代把域名换了，就可能对不上。
+   * 记下发起时的域名，回调优先用它，比临场再猜一次稳。
+   */
+  store.set(STATE_COOKIE, JSON.stringify({ state, redirect, mode, host }), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

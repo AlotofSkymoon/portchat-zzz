@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { createSession, createUserId, setSessionCookie, toSafeUser, getCurrentUser, readOAuth } from "@/lib/auth";
 import { getRedis, hgetAll, hasRedisConfig, storageErrorMessage, KEYS } from "@/lib/redis";
 import { issueTrustCookie } from "@/lib/two-factor";
-import { resolveGithubOAuth, STATE_COOKIE } from "@/lib/oauth-config";
+import { resolveGithubOAuth, requestHost, STATE_COOKIE } from "@/lib/oauth-config";
 import type { UserRecord } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
   const raw = store.get(STATE_COOKIE)?.value || "";
   store.set(STATE_COOKIE, "", { path: "/", maxAge: 0 }); // state 一次性
 
-  let saved: { state: string; redirect: string; mode?: "login" | "bind" } = {
+  let saved: { state: string; redirect: string; mode?: "login" | "bind"; host?: string } = {
     state: "",
     redirect: "/chat",
   };
@@ -64,8 +64,11 @@ export async function GET(request: Request) {
 
   const mode: "login" | "bind" = saved.mode === "bind" ? "bind" : "login";
 
-  // 环境变量优先，其次是管理员在 /admin 面板里填的
-  const cfg = await resolveGithubOAuth();
+  /*
+   * 取凭证的域名：优先用发起时记下的（保证换 token 用的是同一个 App 的
+   * Secret），没有再用当前请求的域名兜底。
+   */
+  const cfg = await resolveGithubOAuth(saved.host || requestHost(request));
   const clientId = cfg.clientId;
   const clientSecret = cfg.clientSecret;
   if (!clientId || !clientSecret) return fail(request, "not_configured");

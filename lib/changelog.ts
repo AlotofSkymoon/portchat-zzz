@@ -105,6 +105,11 @@ export const CHANGELOG: ChangelogDay[] = [
         zh: "修复白底转透明时把气泡里的白色「脸」一起抠掉的问题 —— 改用从画布边缘洪水填充判定背景，只有跟外框连通的白才算背景",
         en: "Fixed the white 'face' inside the bubble being punched out when removing the white background. Background is now detected by flood-filling from the canvas edge, so only white connected to the border is treated as background",
       },
+      {
+        tag: "new",
+        zh: "GitHub 登录支持多域名：管理员面板可以按域名各填一套 OAuth App，站点用 chat.xyz.ci、pot-ai.cc.cd 等多个域名时，各自走自己的 App，互不串号",
+        en: "GitHub sign-in now supports multiple domains: admins can register one OAuth App per domain, so a site reachable on chat.xyz.ci and pot-ai.cc.cd uses its own app on each",
+      },
     ],
   },
   {

@@ -15,6 +15,7 @@ import {
   KeyRound,
   Loader2,
   Mail,
+  Plus,
   RefreshCw,
   Save,
   Gift,
@@ -308,8 +309,26 @@ interface SiteSettings {
   contactValue: string;
   githubClientId: string;
   githubClientSecret: string;
+  /** 多域名部署：每个域名一套独立的 OAuth App */
+  githubOauthDomains: { domain: string; clientId: string; clientSecret: string }[];
   /** 站点预设 API Key：内置服务商 → Key。填了所有用户都能用，不用自己填 */
   presetKeys: Record<string, string>;
+}
+
+/**
+ * 把域名统一成一种写法再比较。
+ *
+ * 管理员可能填 https://chat.xyz.ci/、Chat.xyz.ci:443 这类形式，
+ * 不规范化就永远匹配不上"当前域名"。
+ */
+function normDomain(raw: string): string {
+  return (raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//, "")
+    .replace(/\/.*$/, "")
+    .replace(/:\d+$/, "")
+    .replace(/\.+$/, "");
 }
 
 function SiteSettingsCard() {
@@ -326,6 +345,7 @@ function SiteSettingsCard() {
     contactValue: "",
     githubClientId: "",
     githubClientSecret: "",
+    githubOauthDomains: [],
     presetKeys: {},
   });
   const [loading, setLoading] = React.useState(true);
@@ -342,6 +362,28 @@ function SiteSettingsCard() {
   const [githubFromEnv, setGithubFromEnv] = React.useState(false);
   /** 环境变量里已配了预设 Key 的服务商 → 面板里填的会被压过 */
   const [presetFromEnv, setPresetFromEnv] = React.useState<string[]>([]);
+  /**
+   * 当前访问面板所用的域名。
+   * 用来当场告诉管理员「这个域名会命中哪一套 OAuth」，不用靠猜。
+   */
+  const [currentHost, setCurrentHost] = React.useState("");
+  React.useEffect(() => {
+    setCurrentHost(normDomain(window.location.host));
+  }, []);
+  /** 当前域名命中了哪一套配置，用于当场反馈，不用管理员自己比对 */
+  const hostHit = React.useMemo(() => {
+    if (!currentHost) return null;
+    const list = form.githubOauthDomains;
+    return (
+      list.find((e) => normDomain(e.domain) === currentHost) ??
+      list.find(
+        (e) =>
+          normDomain(e.domain).replace(/^www\./, "") === currentHost.replace(/^www\./, "") &&
+          normDomain(e.domain) !== "",
+      ) ??
+      null
+    );
+  }, [currentHost, form.githubOauthDomains]);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -715,6 +757,131 @@ function SiteSettingsCard() {
                     {t("admin.githubFromEnv")}
                   </p>
                 ) : null}
+              </div>
+
+              {/* 多域名部署：每个域名一套 OAuth App */}
+              <div className="space-y-2 rounded-lg border border-dashed p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label className="flex items-center gap-2">
+                    <Github className="h-4 w-4" />
+                    {t("admin.githubOauthDomains")}
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        githubOauthDomains: [
+                          ...f.githubOauthDomains,
+                          { domain: "", clientId: "", clientSecret: "" },
+                        ],
+                      }))
+                    }
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" />
+                    {t("admin.githubOauthDomainAdd")}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {t("admin.githubOauthDomainsHint")}
+                </p>
+
+                {currentHost ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    {t("admin.githubOauthCurrentHost")}{" "}
+                    <code className="rounded bg-muted/50 px-1 py-0.5">{currentHost}</code>
+                    {" · "}
+                    {hostHit ? (
+                      <span className="text-emerald-600 dark:text-emerald-400">
+                        {t("admin.githubOauthHostMatched")}
+                      </span>
+                    ) : (
+                      <span className="text-amber-600 dark:text-amber-400">
+                        {t("admin.githubOauthHostFallback")}
+                      </span>
+                    )}
+                  </p>
+                ) : null}
+
+                {form.githubOauthDomains.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    {t("admin.githubOauthDomainsEmpty")}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {form.githubOauthDomains.map((entry, i) => (
+                      <div key={i} className="space-y-1.5 rounded-md bg-muted/30 p-2">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            className="flex-1"
+                            placeholder={t("admin.githubOauthDomainPlaceholder")}
+                            value={entry.domain}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                githubOauthDomains: f.githubOauthDomains.map((x, j) =>
+                                  j === i ? { ...x, domain: e.target.value } : x,
+                                ),
+                              }))
+                            }
+                            autoComplete="off"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={t("admin.githubOauthDomainRemove")}
+                            onClick={() =>
+                              setForm((f) => ({
+                                ...f,
+                                githubOauthDomains: f.githubOauthDomains.filter((_, j) => j !== i),
+                              }))
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <Input
+                          placeholder={t("admin.githubClientIdPlaceholder")}
+                          value={entry.clientId}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              githubOauthDomains: f.githubOauthDomains.map((x, j) =>
+                                j === i ? { ...x, clientId: e.target.value } : x,
+                              ),
+                            }))
+                          }
+                          autoComplete="off"
+                        />
+                        <Input
+                          type="password"
+                          placeholder={t("admin.githubClientSecretPlaceholder")}
+                          value={entry.clientSecret}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              githubOauthDomains: f.githubOauthDomains.map((x, j) =>
+                                j === i ? { ...x, clientSecret: e.target.value } : x,
+                              ),
+                            }))
+                          }
+                          autoComplete="off"
+                        />
+                        {normDomain(entry.domain) ? (
+                          <p className="text-[11px] text-muted-foreground">
+                            {t("admin.githubOauthCallback")}{" "}
+                            <code className="rounded bg-muted/50 px-1 py-0.5">
+                              https://{normDomain(entry.domain)}/api/auth/oauth/github/callback
+                            </code>
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* 站点预设 API Key：填了以后所有用户都能直接用这些服务商的模型 */}

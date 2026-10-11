@@ -190,6 +190,18 @@ export async function readFileToAttachment(file: File): Promise<Attachment> {
   }
 }
 
+/**
+ * 单个域名对应的 GitHub OAuth App 配置。
+ *
+ * domain 只写主机名：chat.xyz.ci、pot-ai.cc.cd。
+ * 不要带 https://、端口或路径 —— 匹配时会统一规范化，但存进去就该是干净的。
+ */
+export interface GithubOauthDomainEntry {
+  domain: string;
+  clientId: string;
+  clientSecret: string;
+}
+
 /** 站点级配置（仅管理员可改，全站生效） */
 export interface SiteSettings {
   /** 全站默认 Base URL，留空则用内置地址 */
@@ -226,6 +238,20 @@ export interface SiteSettings {
   githubClientId: string;
   /** GitHub OAuth App 的 Client Secret。仅管理员可读写 */
   githubClientSecret: string;
+
+  /* ---- 按域名区分的 GitHub OAuth（多域名部署）---- */
+
+  /**
+   * 每个域名一套独立 OAuth App 的配置。
+   *
+   * 为什么需要：GitHub OAuth App 的回调地址是**写死在 App 里**的，
+   * 一个 App 只能登记一个回调域名。站点同时用 chat.xyz.ci 和
+   * pot-ai.cc.cd 两个域名时，就必须建两个 App，各自一套 ID/Secret。
+   *
+   * 匹配规则见 lib/oauth-config.ts 的 resolveGithubOAuth()：
+   * 按当前访问域名精确匹配，命中就用这一套。
+   */
+  githubOauthDomains: GithubOauthDomainEntry[];
 
   /* ---- 站点预设 API Key（管理员面板里填，免去改环境变量）---- */
 
@@ -274,6 +300,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   contactValue: "",
   githubClientId: "",
   githubClientSecret: "",
+  githubOauthDomains: [],
   presetKeys: {},
   providerModels: {},
   hiddenModels: [],

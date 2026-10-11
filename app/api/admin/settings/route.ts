@@ -3,14 +3,47 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { hasRedisConfig, storageErrorMessage } from "@/lib/redis";
 import { readSiteSettings, writeSiteSettings } from "@/lib/site-settings-store";
-import { githubOAuthFromEnv } from "@/lib/oauth-config";
-import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/types";
+import { githubOAuthFromEnv, normalizeHost } from "@/lib/oauth-config";
+import {
+  DEFAULT_SITE_SETTINGS,
+  type GithubOauthDomainEntry,
+  type SiteSettings,
+} from "@/lib/types";
 import { presetProvidersFromEnv, sanitizePresetKeys } from "@/lib/preset-keys";
 import { sanitizeProviderModels } from "@/lib/config";
 import { serverT, serverT as st } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * 清洗「按域名配置的 GitHub OAuth」列表。
+ *
+ * 只保留域名和 Client ID 都非空的条目 —— 只填了一半的配置留着就是坑，
+ * 解析时会命中它却发现 Secret 是空的。
+ * 域名规范化后去重：同一域名出现两条时只有第一条会被命中。
+ */
+function sanitizeOauthDomains(
+  input: unknown,
+  fallback: GithubOauthDomainEntry[],
+): GithubOauthDomainEntry[] {
+  if (!Array.isArray(input)) return Array.isArray(fallback) ? fallback : [];
+  const seen = new Set<string>();
+  const out: GithubOauthDomainEntry[] = [];
+  for (const raw of input.slice(0, 50)) {
+    if (!raw || typeof raw !== "object") continue;
+    const r = raw as Record<string, unknown>;
+    // 域名统一规范化：大小写、端口、www 等写法差异在保存时就抹平
+    const domain = normalizeHost(String(r.domain ?? "")).slice(0, 200);
+    const clientId = String(r.clientId ?? "").trim().slice(0, 200);
+    const clientSecret = String(r.clientSecret ?? "").trim().slice(0, 300);
+    if (!domain || !clientId) continue;
+    if (seen.has(domain)) continue;
+    seen.add(domain);
+    out.push({ domain, clientId, clientSecret });
+  }
+  return out;
+}
 
 /** GET：管理员读取当前站点配置 */
 export async function GET(request: Request) {
@@ -80,6 +113,11 @@ export async function POST(request: Request) {
     githubClientSecret: String(body.githubClientSecret ?? current.githubClientSecret ?? "")
       .trim()
       .slice(0, 300),
+    /** 多域名部署：每个域名一套 OAuth App */
+    githubOauthDomains: sanitizeOauthDomains(
+      body.githubOauthDomains ?? current.githubOauthDomains ?? [],
+      current.githubOauthDomains ?? [],
+    ),
     /* 站点预设 Key：按服务商存，值不对外下发 */
     presetKeys: sanitizePresetKeys(body.presetKeys ?? current.presetKeys ?? {}),
     /**

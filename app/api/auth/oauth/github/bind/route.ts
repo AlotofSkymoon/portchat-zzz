@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, readOAuth } from "@/lib/auth";
 import { getRedis, KEYS, hasRedisConfig } from "@/lib/redis";
 import { serverT as st } from "@/lib/i18n/server";
-import { resolveGithubOAuth } from "@/lib/oauth-config";
+import { resolveGithubOAuth, requestHost } from "@/lib/oauth-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +17,8 @@ export const dynamic = "force-dynamic";
  */
 
 export async function GET(request: Request) {
-  const cfg = await resolveGithubOAuth();
+  // 按当前访问域名判断这个域名下有没有配 OAuth App
+  const cfg = await resolveGithubOAuth(requestHost(request));
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: st(request, "api.notLoggedIn") }, { status: 401 });
