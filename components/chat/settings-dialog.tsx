@@ -41,6 +41,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  DEFAULT_SPEECH_PREFS,
+  loadSpeechPrefs,
+  onVoicesReady,
+  pickVoice,
+  saveSpeechPrefs,
+  type SpeechPrefs,
+} from "@/lib/speech";
+import { Volume2, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   supportsThinking,
@@ -1631,6 +1640,9 @@ export function SettingsDialog({
             </div>
           ) : null}
 
+          {/* 朗读语音 —— 设备默认挑的往往最机械，这里让用户自己试听选 */}
+          <SpeechCard />
+
           {/* 昵称与邮箱账号 —— 放在最前，账号相关的最常用 */}
           {user ? <NicknameCard onChanged={onUserChanged ?? (() => {})} /> : null}
 
@@ -1698,5 +1710,161 @@ export function SettingsDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * 朗读设置：挑语音、调语速与音调，并能当场试听。
+ *
+ * 同一台设备里通常同时装着好几代合成器（iOS 的旧版 Ting-Ting 与新版 Sinji、
+ * Windows 的老 Desktop 语音与 Neural 语音），而浏览器默认挑中的几乎总是最老
+ * 最机械的那个 —— 所以这里把选择权交给用户，试听一句就知道哪个顺耳。
+ */
+function SpeechCard() {
+  const { t } = useI18n();
+  const supported =
+    typeof window !== "undefined" && typeof window.speechSynthesis !== "undefined";
+
+  const [voices, setVoices] = React.useState<SpeechSynthesisVoice[]>([]);
+  const [prefs, setPrefs] = React.useState<SpeechPrefs>({ ...DEFAULT_SPEECH_PREFS });
+  const [testing, setTesting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!supported) return;
+    setPrefs(loadSpeechPrefs());
+    // 语音表是异步加载的，首次 getVoices() 多为返回空数组
+    const unsub = onVoicesReady((v) => setVoices(v));
+    return unsub;
+  }, [supported]);
+
+  // 离开时停掉试听，否则关了弹窗还在念
+  React.useEffect(
+    () => () => {
+      try {
+        if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+      } catch {
+        /* 忽略 */
+      }
+    },
+    [],
+  );
+
+  const update = React.useCallback((patch: Partial<SpeechPrefs>) => {
+    setPrefs((prev) => {
+      const next = { ...prev, ...patch };
+      saveSpeechPrefs(next);
+      return next;
+    });
+  }, []);
+
+  const testSpeak = () => {
+    if (!supported) return;
+    const synth = window.speechSynthesis;
+    try {
+      synth.cancel();
+    } catch {
+      /* 忽略 */
+    }
+    const navLang = (typeof navigator !== "undefined" && navigator.language) || "zh-CN";
+    const chosen = voices.find((v) => v.voiceURI === prefs.voiceURI) || pickVoice(navLang, prefs);
+    const u = new SpeechSynthesisUtterance(t("settings.speechTestText"));
+    if (chosen) {
+      u.voice = chosen;
+      u.lang = chosen.lang;
+    } else {
+      u.lang = navLang;
+    }
+    u.rate = prefs.rate;
+    u.pitch = prefs.pitch;
+    u.onend = () => setTesting(false);
+    u.onerror = () => setTesting(false);
+    setTesting(true);
+    try {
+      synth.speak(u);
+    } catch {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-border/70 bg-card/40 px-3 py-3">
+      <div className="flex items-start gap-2">
+        <Volume2 className="mt-0.5 h-4 w-4 shrink-0 text-fg-secondary" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">{t("settings.speechTitle")}</p>
+          <p className="text-xs text-muted-foreground">{t("settings.speechDesc")}</p>
+        </div>
+      </div>
+
+      {!supported ? (
+        <p className="mt-3 text-xs text-muted-foreground">{t("settings.speechUnsupported")}</p>
+      ) : voices.length === 0 ? (
+        <p className="mt-3 text-xs text-muted-foreground">{t("settings.speechNoVoice")}</p>
+      ) : (
+        <div className="mt-3 space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">{t("settings.speechVoice")}</Label>
+            <select
+              value={prefs.voiceURI}
+              onChange={(e) => update({ voiceURI: e.target.value })}
+              className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary"
+            >
+              <option value="">{t("settings.speechVoiceAuto")}</option>
+              {voices.map((v) => (
+                <option key={v.voiceURI} value={v.voiceURI}>
+                  {v.name} · {v.lang}
+                  {v.localService ? "" : " · " + t("settings.speechNetwork")}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground">{t("settings.speechRate")}</Label>
+              <span className="text-xs tabular-nums text-fg-secondary">
+                {prefs.rate.toFixed(2)}×
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0.5}
+              max={2}
+              step={0.05}
+              value={prefs.rate}
+              onChange={(e) => update({ rate: Number(e.target.value) })}
+              className="w-full accent-primary"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground">{t("settings.speechPitch")}</Label>
+              <span className="text-xs tabular-nums text-fg-secondary">
+                {prefs.pitch.toFixed(2)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={2}
+              step={0.05}
+              value={prefs.pitch}
+              onChange={(e) => update({ pitch: Number(e.target.value) })}
+              className="w-full accent-primary"
+            />
+          </div>
+
+          <Button type="button" variant="secondary" size="sm" onClick={testSpeak}>
+            {testing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            {testing ? t("settings.speechTesting") : t("settings.speechTest")}
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

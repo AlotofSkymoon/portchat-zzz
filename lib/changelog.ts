@@ -69,6 +69,16 @@ export const CHANGELOG: ChangelogDay[] = [
         zh: "纸飞机改成只飞一趟并停在航线末端后轻微起伏，不再无限循环 —— 之前遮罩停留时间短于一趟飞行，每次收起时飞机停在哪全看运气",
         en: "The paper plane now flies once and rests at the end of the trail with a gentle bob, instead of looping forever — the overlay used to close mid-flight, so where the plane stopped was pure luck",
       },
+      {
+        tag: "new",
+        zh: "朗读可以自己挑语音了：设置里新增卡片，列出设备上所有可用语音，可当场试听，并能调节语速与音调（记在本机，换设备需重设）",
+        en: "You can now pick the read-aloud voice: a new settings card lists every voice on the device with instant preview, plus speed and pitch sliders (stored locally, so it resets on a new device)",
+      },
+      {
+        tag: "fix",
+        zh: "朗读不再默认用设备里最老的语音：之前只按语言取第一个匹配到的，那几乎总是年代最久、最机械的合成器。现在按质量打分排序，优先自然语音（Siri / Neural / Enhanced / Premium），并避开 eSpeak 这类机械引擎",
+        en: "Read-aloud no longer defaults to the oldest voice on the device. It used to take the first voice matching the language, which was almost always the oldest and most robotic synth. Voices are now scored: natural ones (Siri / Neural / Enhanced / Premium) rank first and robotic engines like eSpeak are pushed to the bottom",
+      },
     ],
   },
   {

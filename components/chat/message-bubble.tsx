@@ -26,7 +26,13 @@ import { ImageLightbox } from "@/components/chat/image-lightbox";
 import { Markdown } from "@/components/chat/markdown";
 import { Button } from "@/components/ui/button";
 import { formatBytes, type ChatMessage } from "@/lib/types";
-import { detectSpeechLang, pickVoice, sanitizeForSpeech, splitSpeechChunks } from "@/lib/speech";
+import {
+  detectSpeechLang,
+  loadSpeechPrefs,
+  pickVoice,
+  sanitizeForSpeech,
+  splitSpeechChunks,
+} from "@/lib/speech";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -213,7 +219,7 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
 
     const navLang = (typeof navigator !== "undefined" && navigator.language) || "zh-CN";
     const lang = detectSpeechLang(text, navLang);
-    const voice = pickVoice(lang);
+    const prefs = loadSpeechPrefs();
 
     synth.cancel();
     let i = 0;
@@ -224,7 +230,11 @@ export function MessageBubble({ message, onRetry, isStreaming }: MessageBubblePr
       }
       const u = new SpeechSynthesisUtterance(chunks[i]);
       u.lang = lang;
+      // 语音表是异步加载的，这里再取一次，确保拿到用户在设置里选的那个
+      const voice = pickVoice(lang, prefs);
       if (voice) u.voice = voice;
+      u.rate = prefs.rate;
+      u.pitch = prefs.pitch;
       u.onend = () => {
         i += 1;
         speakNext();
