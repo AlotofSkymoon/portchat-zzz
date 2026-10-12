@@ -1,10 +1,15 @@
 /**
  * UnoCSS 配置 —— 用来替换 Tailwind
  *
- * 为什么是 presetWind3 而不是 presetUno：
- * presetUno 是 UnoCSS 自己的一套类名（跟 Tailwind 有差异），
- * presetWind3 是 Tailwind v3 的兼容层 —— 现有 55 个文件里的
- * lg:flex、gap-3、text-sm 这些类名能原样继续工作，
+ * ⚠️⚠️ 版本锁定：package.json 里 unocss 与 @unocss/postcss 都锁 "0.65.4"。
+ * 这个版本导出的预设叫 presetUno，**不是** presetWind3。
+ * presetWind3 / presetWind4 是 66.x 才改的名字 —— 在 0.65.4 里写
+ * presetWind3 会得到 "(0, _unocss.presetWind3) is not a function"，
+ * 且报错发生在 postcss 插件内部，构建日志里根本指不到这一行，极难定位。
+ * 要升级到 66.x，必须同时改 import 名并重新验证全部类名覆盖率。
+ *
+ * presetUno 本身就是 UnoCSS 的 Tailwind/Windi 兼容预设（presetMini + presetWind），
+ * 现有 55 个文件里的 lg:flex、gap-3、text-sm 这些类名能原样继续工作，
  * 不用把 4 万行代码一次性重写。这样"分阶段渐进"才成立：
  * 先整体切换过来，再逐个组件把类名换成更语义化的写法。
  *
@@ -14,12 +19,12 @@
  *     由下面 rules 里的 tw-animate 段手工实现。
  *  2. @apply 需要 transformerDirectives，否则 globals.css 里 16 处
  *     @apply 会原样输出、不生效。
- *  3. data-[state=open]: 这类任意属性变体，presetWind3 未必覆盖，
+ *  3. data-[state=open]: 这类任意属性变体，presetUno 未必覆盖，
  *     下面 variants 里补了一条规则兜底。
  */
 import {
   defineConfig,
-  presetWind3,
+  presetUno,
   transformerDirectives,
   transformerVariantGroup,
   type Preset,
@@ -37,6 +42,30 @@ const animateRules: Rule[] = [
   [/^zoom-out-(\d+)$/, ([, d]) => ({ "--un-exit-scale": `${+d / 100}` })],
 ];
 
+/**
+ * 项目自定义动画。
+ *
+ * ⚠️⚠️ 这些**必须写成 rules，不能写进 theme.animation**。
+ * 实测（unocss 0.65.4）：theme.animation 里写 "message-in": "message-in 240ms ..."，
+ * generate("animate-message-in") 返回空字符串 —— 不报错，动画直接消失。
+ * 更坑的是 animate-fade-in：theme.animation 没生效时它会退回到预设自带的
+ * keyframes，生成 `animation: fade-in 1s linear 1`（时长、缓动全被吞掉），
+ * 看着"有动画"，其实是错的动画。
+ *
+ * 对应的 @keyframes 写在 app/globals.css 里 —— Tailwind 时代由 config 的
+ * keyframes 自动 emit，UnoCSS 不会，必须手写。
+ */
+const projectAnimations: Rule[] = [
+  ["animate-fade-in", { animation: "fade-in 0.55s cubic-bezier(0.16, 1, 0.3, 1)" }],
+  ["animate-message-in", { animation: "message-in 240ms cubic-bezier(0.16, 1, 0.3, 1)" }],
+  ["animate-caret", { animation: "caret 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite" }],
+  ["animate-dot", { animation: "dot 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite" }],
+  ["animate-logo-bob", { animation: "logo-bob 4.6s ease-in-out infinite" }],
+  ["animate-gradient-pan", { animation: "gradient-pan 14s ease-in-out infinite" }],
+  ["animate-accordion-down", { animation: "accordion-down 0.32s cubic-bezier(0.16, 1, 0.3, 1)" }],
+  ["animate-accordion-up", { animation: "accordion-up 0.32s cubic-bezier(0.16, 1, 0.3, 1)" }],
+];
+
 /** data-[state=open]: / aria-[expanded=true]: 这类任意属性变体 */
 const arbitraryVariants: Variant[] = [
   {
@@ -46,7 +75,13 @@ const arbitraryVariants: Variant[] = [
       if (!m) return;
       return {
         matcher: matcher.slice(m[0].length),
-        selector: (s) => `[${m[1]}-${m[2]}="${m[3]}"] ${s}`,
+        /**
+         * ⚠️ 属性必须**追加在自身选择器后面**，不能放在前面当祖先。
+         * 写成 `[data-state="open"] ${s}` 是后代选择器 —— 要求类名落在
+         * 子元素上，Radix 的 data-state 就在元素自身，结果整批展开/收起
+         * 过渡静默失效（类名生成了、CSS 也在，但永远匹配不到元素）。
+         */
+        selector: (s) => `${s}[${m[1]}-${m[2]}="${m[3]}"]`,
       };
     },
   },
@@ -69,7 +104,7 @@ export default defineConfig({
   },
   presets: [
     // dark 走 class 模式：项目用 [data-theme] + .dark 切换，不是跟随系统
-    presetWind3({ dark: "class" }) as Preset,
+    presetUno({ dark: "class" }) as Preset,
   ],
   transformers: [
     // globals.css 里有 16 处 @apply
@@ -77,7 +112,7 @@ export default defineConfig({
     // hover:(bg-x text-y) 这种分组写法（现在没用，先开着免得以后踩坑）
     transformerVariantGroup(),
   ],
-  rules: animateRules,
+  rules: [...animateRules, ...projectAnimations],
   variants: arbitraryVariants,
   theme: {
     colors: {
@@ -153,64 +188,13 @@ export default defineConfig({
       "4xl": "var(--r-4xl)",
       full: "9999px",
     },
-    animation: {
-      "accordion-down": "accordion-down 0.32s cubic-bezier(0.16, 1, 0.3, 1)",
-      "accordion-up": "accordion-up 0.32s cubic-bezier(0.16, 1, 0.3, 1)",
-      "fade-in": "fade-in 0.55s cubic-bezier(0.16, 1, 0.3, 1)",
-      // 消息是高频事件，240ms 是"新内容需要被看见"的下限，再慢就显得迟钝
-      "message-in": "message-in 240ms cubic-bezier(0.16, 1, 0.3, 1)",
-      "gradient-pan": "gradient-pan 14s ease-in-out infinite",
-      caret: "caret 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-      dot: "dot 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite",
-      "logo-bob": "logo-bob 4.6s ease-in-out infinite",
-    },
-    keyframes: {
-      "accordion-down": {
-        from: { height: "0" },
-        to: { height: "var(--radix-accordion-content-height)" },
-      },
-      "accordion-up": {
-        from: { height: "var(--radix-accordion-content-height)" },
-        to: { height: "0" },
-      },
-      "fade-in": {
-        from: { opacity: "0", transform: "translateY(10px)" },
-        to: { opacity: "1", transform: "translateY(0)" },
-      },
-      "message-in": {
-        from: { opacity: "0", transform: "translateY(6px)" },
-        to: { opacity: "1", transform: "translateY(0)" },
-      },
-      "gradient-pan": {
-        "0%,100%": { backgroundPosition: "0% 50%" },
-        "50%": { backgroundPosition: "100% 50%" },
-      },
-      caret: { "0%, 45%": { opacity: "1" }, "55%, 100%": { opacity: "0.15" } },
-      dot: {
-        "0%, 60%, 100%": { transform: "translateY(0)", opacity: "0.45" },
-        "30%": { transform: "translateY(-4px)", opacity: "1" },
-      },
-      "logo-bob": {
-        "0%, 100%": { transform: "translateY(0) rotate(-1.2deg)" },
-        "50%": { transform: "translateY(-7px) rotate(1.2deg)" },
-      },
-      /** tailwindcss-animate 的进出场：变量由 fade-in-0 / zoom-in-95 这类类设置 */
-      enter: {
-        from: {
-          opacity: "var(--un-enter-opacity, 1)",
-          transform:
-            "translate3d(var(--un-enter-translate-x, 0), var(--un-enter-translate-y, 0), 0) scale3d(var(--un-enter-scale, 1), var(--un-enter-scale, 1), 1)",
-        },
-      },
-      exit: {
-        to: {
-          opacity: "var(--un-exit-opacity, 1)",
-          transform:
-            "translate3d(var(--un-exit-translate-x, 0), var(--un-exit-translate-y, 0), 0) scale3d(var(--un-exit-scale, 1), var(--un-exit-scale, 1), 1)",
-        },
-      },
-    },
-    transitionTimingFunction: {
+    /**
+     * ⚠️ 键名是 easing，不是 Tailwind 的 transitionTimingFunction。
+     * 实测：写在 transitionTimingFunction 下，ease-elegant 生成结果是空字符串 ——
+     * 不报错，只是样式静默消失。
+     */
+    easing: {
+      /** 优雅缓出：起步轻快、尾部柔和停靠 */
       elegant: "cubic-bezier(0.16, 1, 0.3, 1)",
     },
   },

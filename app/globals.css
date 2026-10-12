@@ -3286,3 +3286,121 @@ html[data-variant="ios"] [data-ios-group-title] {
     transition: none;
   }
 }
+
+/* ============================================================================
+ * UnoCSS 迁移补遗：@keyframes 必须手写
+ * ----------------------------------------------------------------------------
+ * 用 Tailwind 时，config 里的 theme.keyframes 会被自动 emit 成 @keyframes；
+ * UnoCSS 不会 —— uno.config.ts 里只写了 animation 简写（animate-* → animation:
+ * xxx ...），关键帧本体得落在这里。少了下面任何一段，对应的 animate-* 类
+ * 会静默失效：类名生效了、animation 属性也写了，但没有关键帧可播。
+ *
+ * 另外 tailwindcss-animate 插件没有了，它的 enter / exit 两组关键帧也在这里补。
+ * ========================================================================== */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 消息入场：240ms / 位移 6px —— 高频事件，慢了显得迟钝，位移大了像"飞进来" */
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gradient-pan {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/** 打字光标：比 pulse 从容，像真实光标呼吸 */
+@keyframes caret {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0.15;
+  }
+}
+
+/** 加载三点：幅度收小、节奏放慢 */
+@keyframes dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/** 空状态 logo：只做呼吸感，不做旋转翻滚 */
+@keyframes logo-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.2deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(1.2deg);
+  }
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+/** tailwindcss-animate 的进出场：变量由 fade-in-0 / zoom-in-95 这类类设置 */
+@keyframes enter {
+  from {
+    opacity: var(--un-enter-opacity, 1);
+    transform: translate3d(var(--un-enter-translate-x, 0), var(--un-enter-translate-y, 0), 0)
+      scale3d(var(--un-enter-scale, 1), var(--un-enter-scale, 1), 1)
+      rotate(var(--un-enter-rotate, 0));
+  }
+}
+
+@keyframes exit {
+  to {
+    opacity: var(--un-exit-opacity, 1);
+    transform: translate3d(var(--un-exit-translate-x, 0), var(--un-exit-translate-y, 0), 0)
+      scale3d(var(--un-exit-scale, 1), var(--un-exit-scale, 1), 1)
+      rotate(var(--un-exit-rotate, 0));
+  }
+}
