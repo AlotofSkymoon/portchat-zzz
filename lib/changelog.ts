@@ -29,6 +29,11 @@ export const CHANGELOG: ChangelogDay[] = [
     title: { zh: "全站圆角统一为一套量表", en: "One radius scale for the whole site" },
     entries: [
       {
+        tag: "fix",
+        zh: "样式引擎换回 Tailwind CSS：UnoCSS 不认识的类名会静默不产出 CSS，换回后可预期性更好",
+        en: "Switched the style engine back to Tailwind CSS — UnoCSS drops unknown classes silently",
+      },
+      {
         tag: "improve",
         zh: "配色主题只保留 Anthropic、Sidefolio、Material 3 三套，其余移除",
         en: "Only Anthropic, Sidefolio and Material 3 presets remain",
