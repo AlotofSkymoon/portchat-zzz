@@ -58,6 +58,11 @@ export const CHANGELOG: ChangelogDay[] = [
         zh: "中文标点跟着汉字走了：字体的 unicode-range 原先只覆盖汉字和中文标点区，漏了引号、省略号、破折号和间隔号，这些字符会掉到系统字体去——同一句话里汉字是昭源環方、旁边的「」却是另一种字体，看着就像字体在跳。现在补上了",
         en: "Chinese punctuation now matches the characters: the font's unicode-range covered hanzi and the CJK punctuation block but omitted quotes, ellipsis, dashes and the interpunct, so those glyphs fell through to the system font — a sentence could render hanzi in Chiron while the adjacent 「」 used another face, which read as the font jumping. The ranges are filled in",
       },
+      {
+        tag: "fix",
+        zh: "深色模式下发送按钮的箭头回来了：Material 3 深色主题把「四级文字」误写成了 outline-variant，而它的值和禁用按钮的底色 --muted 完全相同，于是灰底上的灰箭头对比度是 1:1，等于隐形。现在四级文字改回真正的文字色，并让禁用按钮的图标走 muted-foreground（它与底色是成对设计的），所有主题的对比度都回到 3.6:1 以上",
+        en: "The send arrow is back in dark mode: the Material 3 dark theme set the quaternary text token to the outline-variant value, which is byte-identical to --muted, the disabled button's background — a grey arrow on a grey circle at 1:1 contrast, effectively invisible. Quaternary is now a real text colour again, and the disabled button's icon uses muted-foreground (the token designed to pair with that background), bringing every theme above 3.6:1",
+      },
     ],
   },
   {

@@ -224,8 +224,10 @@ html.theme-transitioning *::after {
     --text-secondary: 218 9% 38%;
     /* 三级：弱化标签   ≈ #767C86，对白底 4.8:1 */
     --text-tertiary: 218 8% 49%;
-    /* 四级：占位/提示   ≈ #9AA0A9，对白底 3.0:1（仅装饰性文本） */
-    --text-quaternary: 218 7% 63%;
+    /* 四级：占位/提示（仅装饰性文本）
+       ⚠️ 必须比 --text-tertiary 更浅，同时要在 --muted 底上看得见：
+       禁用态按钮是 bg-muted + text-fg-quaternary，两者太接近图标就会消失。 */
+    --text-quaternary: 218 7% 58%;
 
     --primary: 230 99% 65%;
     --primary-foreground: 0 0% 100%;
@@ -677,7 +679,7 @@ body {
 
   --text-secondary: 264 7% 29%;
   --text-tertiary: 270 4% 47%;
-  --text-quaternary: 270 11% 79%;
+  --text-quaternary: 270 11% 54%;
 
   /* ---- 形状：M3 形状标度（extra-small 4 / small 8 / medium 12 / large 16 / extra-large 28）
      按钮走 full（20px，40px 高即全圆），卡片走 large 16px，弹层走 extra-large 28px ---- */
@@ -789,7 +791,9 @@ body {
 
   --text-secondary: 270 11% 79%;
   --text-tertiary: 264 5% 58%;
-  --text-quaternary: 264 7% 29%;
+  /* ⚠️ 不能沿用 outline-variant（264 7% 29%）：它和 --muted 同值，
+     禁用态按钮 bg-muted + text-fg-quaternary 的箭头会完全看不见。 */
+  --text-quaternary: 264 7% 56%;
 
   /* 深色下阴影更重，否则抬升看不出来 */
   --md-elev-1: 0 1px 3px 0 rgba(0, 0, 0, 0.60);
@@ -1006,7 +1010,7 @@ body {
 
   --text-secondary: 60 4% 30%;
   --text-tertiary: 50 3% 48%;
-  --text-quaternary: 50 3% 62%;
+  --text-quaternary: 50 3% 56%;
 
   /* ---- 形状：中等圆角，克制 ---- */
   --radius-ctrl: var(--r-xl);       /* 16px 控件 */

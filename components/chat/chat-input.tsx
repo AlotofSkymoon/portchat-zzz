@@ -205,7 +205,7 @@ export function ChatInput({
         </div>
 
         {/* 右侧组：模型选择器 + 发送 / 停止 */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {model && onModelChange ? (
             <ModelPicker
               value={model}
@@ -236,7 +236,7 @@ export function ChatInput({
             <button
               onClick={onSubmit}
               disabled={!value.trim() && attachments.length === 0}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#4D6BFE] text-white transition-all hover:bg-[#3757E4] disabled:cursor-not-allowed disabled:bg-muted disabled:text-fg-quaternary"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#4D6BFE] text-white transition-all hover:bg-[#3757E4] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
               title={t("input.send")}
             >
               <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
