@@ -55,6 +55,59 @@ const animateRules: Rule[] = [
  * 对应的 @keyframes 写在 app/globals.css 里 —— Tailwind 时代由 config 的
  * keyframes 自动 emit，UnoCSS 不会，必须手写。
  */
+/**
+ * Tailwind 里由插件/核心提供、但 presetUno 未必覆盖的类，显式补齐。
+ *
+ * ⚠️ 这类缺失是**静默**的：类名不认识就不产出 CSS，构建照样成功，
+ * 页面只是悄悄塌掉。其中 container 全站用了 28 处 —— 它一丢，
+ * 首页/落地页的居中限宽整排失效，且日志里不会有任何提示。
+ * 所以这里宁可重复定义（config.rules 优先于 preset，语义一致即可）。
+ */
+const tailwindCompatRules: Rule[] = [
+  [
+    "container",
+    {
+      width: "100%",
+      "margin-left": "auto",
+      "margin-right": "auto",
+      "padding-left": "1rem",
+      "padding-right": "1rem",
+      "@media (min-width: 640px)": { "max-width": "640px" },
+      "@media (min-width: 768px)": { "max-width": "768px" },
+      "@media (min-width: 1024px)": { "max-width": "1024px" },
+      "@media (min-width: 1280px)": { "max-width": "1280px" },
+      "@media (min-width: 1536px)": { "max-width": "1536px" },
+    },
+  ],
+  [
+    "sr-only",
+    {
+      position: "absolute",
+      width: "1px",
+      height: "1px",
+      padding: "0",
+      margin: "-1px",
+      overflow: "hidden",
+      clip: "rect(0, 0, 0, 0)",
+      "white-space": "nowrap",
+      "border-width": "0",
+    },
+  ],
+  [
+    "not-sr-only",
+    {
+      position: "static",
+      width: "auto",
+      height: "auto",
+      padding: "0",
+      margin: "0",
+      overflow: "visible",
+      clip: "auto",
+      "white-space": "normal",
+    },
+  ],
+];
+
 const projectAnimations: Rule[] = [
   ["animate-fade-in", { animation: "fade-in 0.55s cubic-bezier(0.16, 1, 0.3, 1)" }],
   ["animate-message-in", { animation: "message-in 240ms cubic-bezier(0.16, 1, 0.3, 1)" }],
@@ -112,7 +165,7 @@ export default defineConfig({
     // hover:(bg-x text-y) 这种分组写法（现在没用，先开着免得以后踩坑）
     transformerVariantGroup(),
   ],
-  rules: [...animateRules, ...projectAnimations],
+  rules: [...tailwindCompatRules, ...animateRules, ...projectAnimations],
   variants: arbitraryVariants,
   theme: {
     colors: {
