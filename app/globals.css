@@ -9,6 +9,29 @@
   }
 
 
+/*
+ * container 的响应式断点。
+ *
+ * 基础样式（width / margin auto / padding）由 uno.config.ts 的 compat rule 产出，
+ * 断点写在这里 —— UnoCSS 的 Rule 类型不接受嵌套的 @media 对象值（TS2322），
+ * 而 container 全站用了 28 处，缺了它首页与落地页的居中限宽会整排塌掉。
+ */
+@media (min-width: 640px) {
+  .container { max-width: 640px; }
+}
+@media (min-width: 768px) {
+  .container { max-width: 768px; }
+}
+@media (min-width: 1024px) {
+  .container { max-width: 1024px; }
+}
+@media (min-width: 1280px) {
+  .container { max-width: 1280px; }
+}
+@media (min-width: 1536px) {
+  .container { max-width: 1200px; }
+}
+
 /* ==========================================================================
    字体：Montserrat（英文/数字）+ 昭源環方 Chiron GoRound TC（中文）
    + SuperSFMonoV1（代码等宽）
