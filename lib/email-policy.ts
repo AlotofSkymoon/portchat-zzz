@@ -3,6 +3,8 @@
  *
  * 站点接受：
  *   - Hypermail（@hypermail.kdns.fr，站长自家）
+ *   - DNSHE（@v.cd、@cn.mt）
+ *   - Henna（@r0.us.ci）
  *   - Gmail（含 googlemail.com）
  *   - QQ（含 foxmail.com）
  *   - 教育邮箱：任意带 edu 段的域名，如 xxx.edu、xxx.edu.hk、xxx.edu.kg、xxx.edu.cn
@@ -15,6 +17,9 @@
 /** 允许的邮箱域名（小写） */
 export const ALLOWED_EMAIL_DOMAINS = [
   "hypermail.kdns.fr",
+  "v.cd",
+  "cn.mt",
+  "r0.us.ci",
   "gmail.com",
   "googlemail.com",
   "qq.com",

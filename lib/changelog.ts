@@ -25,6 +25,17 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-10-18",
+    title: { zh: "邮箱白名单加入 DNSHE 与 Henna", en: "DNSHE and Henna addresses are now accepted" },
+    entries: [
+      {
+        tag: "new",
+        zh: "注册与换绑现在接受 DNSHE 邮箱（@v.cd、@cn.mt）和 Henna 邮箱（@r0.us.ci）",
+        en: "DNSHE (@v.cd, @cn.mt) and Henna (@r0.us.ci) addresses are now accepted at sign-up and when changing email",
+      },
+    ],
+  },
+  {
     date: "2026-10-12",
     title: { zh: "全站圆角统一为一套量表", en: "One radius scale for the whole site" },
     entries: [

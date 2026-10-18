@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     /*
-     * 邮箱白名单：本站只接受 Hypermail / Gmail / QQ。
+     * 邮箱白名单：本站只接受 Hypermail、DNSHE、Henna、Gmail、QQ 与教育邮箱。
      * 微软邮箱与临时邮箱一律拒绝 —— 临时邮箱让封号形同虚设，
      * 微软邮箱则是因为发信常被判垃圾邮件、验证码收不到。
      */
