@@ -150,60 +150,147 @@ export function detectStandalone(): boolean {
 }
 
 /**
- * 用 View Transitions 做圆形扩散切换。
+ * 明暗切换的圆形揭示动画。
  *
- * 现代浏览器（Chrome 111+ / Safari 18+）支持时，从点击位置扩散出
- * 一个新主题的圆，比整屏硬切自然得多。不支持时静默退回普通切换，
- * 不会报错也不会卡顿 —— 所以可以无条件调用。
+ * 早期版本用 View Transitions（startViewTransition + clip-path 圆形展开）。
+ * 实测它对整页做两次快照，且 clip-path 动画每帧都要重绘整屏快照 ——
+ * 在带毛玻璃的页面上掉帧非常明显（详见下方注释里的压测数据）。
+ *
+ * 现在的做法是三层但只跑合成器：
+ *   1) 在点击处放一个圆形覆盖层，用 transform: scale 放大到盖住整屏
+ *      （scale 与 opacity 都是合成器属性，不触发重绘）
+ *   2) 圆盖满之后才真正切换主题 —— React 全树重渲染发生在"被遮住"的时候
+ *   3) 覆盖层用 opacity 淡出，露出新主题
+ *
+ * 同样的圆形扩散观感，但没有整页快照，也不要求浏览器支持 View Transitions
+ * （Safari 17 及更早版本都能用）。
  */
-function applyWithTransition(
+const REVEAL_GROW_MS = 240;
+const REVEAL_FADE_MS = 180;
+/** 动画异常时的兜底：超过这个时间就强制完成切换并移除覆盖层 */
+const REVEAL_SAFETY_MS = 900;
+
+/** 是否正在揭示中 —— 连续快点时不叠加第二层圆 */
+let revealing = false;
+/** 揭示期间又点了一次：记住新的意图，等圆盖满时以最后一次为准 */
+let latestApply: (() => void) | null = null;
+
+/** 系统是否要求减少动态效果 */
+function prefersReducedMotion(): boolean {
+  try {
+    return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 取"切换之后"的页面底色。
+ *
+ * 覆盖层要在切换**之前**就画上目标主题的颜色，否则圆扩到一半会露出
+ * 还没变的旧页面。做法是临时挂上 .dark 读出 --background 再还原 ——
+ * 整个读写都在同一个任务里完成，浏览器还没到绘制阶段，不会闪。
+ */
+function peekBackground(dark: boolean): string {
+  const root = document.documentElement;
+  const had = root.classList.contains("dark");
+  if (had !== dark) root.classList.toggle("dark", dark);
+  let raw = "";
+  try {
+    raw = getComputedStyle(root).getPropertyValue("--background").trim();
+  } catch {
+    raw = "";
+  }
+  if (had !== dark) root.classList.toggle("dark", had);
+  return raw ? `hsl(${raw})` : dark ? "#0c0c0e" : "#ffffff";
+}
+
+function applyWithReveal(
   origin: { x: number; y: number } | undefined,
+  target: ResolvedTheme,
   apply: () => void,
 ): void {
-  const doc = document as Document & {
-    startViewTransition?: (cb: () => void) => { ready: Promise<void> };
-  };
+  const canAnimate =
+    typeof Element !== "undefined" && typeof Element.prototype.animate === "function";
 
-  // 不支持 View Transitions，或没给点击位置 → 直接切换
-  if (!origin || typeof doc.startViewTransition !== "function") {
+  // 没有点击位置（程序化切换）/ 用户要求减少动效 / 浏览器不支持 → 直接切
+  if (!origin || prefersReducedMotion() || !canAnimate) {
     apply();
     return;
   }
+  /**
+   * 已经有圆在扩散了：不再叠第二层，也不立刻切换 ——
+   * 否则"第二次点击先生效、第一次的回调又把它改回去"，最终停在错的那一侧。
+   * 这里只记下最新意图，等圆盖满时执行一次。
+   */
+  if (revealing) {
+    latestApply = apply;
+    return;
+  }
+
+  const radius = Math.hypot(
+    Math.max(origin.x, window.innerWidth - origin.x),
+    Math.max(origin.y, window.innerHeight - origin.y),
+  );
+  // 元素只有 240px，靠 scale 放大 —— 图层小、内存占用低，
+  // 而 Chrome 会按最终尺寸重新光栅化，边缘依然是平滑的圆（实测无锯齿）
+  const base = 120;
+
+  const el = document.createElement("div");
+  el.className = "theme-reveal";
+  el.setAttribute("aria-hidden", "true");
+  el.style.left = `${origin.x - base}px`;
+  el.style.top = `${origin.y - base}px`;
+  el.style.width = `${base * 2}px`;
+  el.style.height = `${base * 2}px`;
+  el.style.background = peekBackground(target === "dark");
+  document.body.appendChild(el);
+
+  revealing = true;
+  let applied = false;
+  let cleaned = false;
+
+  const runApply = () => {
+    if (applied) return;
+    applied = true;
+    (latestApply ?? apply)();
+    latestApply = null;
+  };
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    revealing = false;
+    latestApply = null;
+    el.remove();
+  };
 
   try {
-    const transition = doc.startViewTransition(() => {
-      apply();
-    });
-
-    transition.ready
+    const grow = el.animate(
+      [{ transform: "scale(0)" }, { transform: `scale(${radius / base})` }],
+      { duration: REVEAL_GROW_MS, easing: "cubic-bezier(0.2, 0, 0, 1)", fill: "forwards" },
+    );
+    grow.finished
       .then(() => {
-        // 从点击点到最远角的距离，保证圆能覆盖整屏
-        const endRadius = Math.hypot(
-          Math.max(origin.x, window.innerWidth - origin.x),
-          Math.max(origin.y, window.innerHeight - origin.y),
-        );
-
-        document.documentElement.animate(
-          {
-            clipPath: [
-              `circle(0px at ${origin.x}px ${origin.y}px)`,
-              `circle(${endRadius}px at ${origin.x}px ${origin.y}px)`,
-            ],
-          },
-          {
-            duration: 420,
-            easing: "cubic-bezier(0.4, 0, 0.2, 1)",
-            // 作用在"新画面"上，让它从点击处展开盖住旧画面
-            pseudoElement: "::view-transition-new(root)",
-          },
-        );
+        // 圆已经盖满整屏，此刻切主题：React 重渲染在遮罩下进行，看不见
+        runApply();
+        const fade = el.animate([{ opacity: 1 }, { opacity: 0 }], {
+          duration: REVEAL_FADE_MS,
+          easing: "ease-out",
+          fill: "forwards",
+        });
+        return fade.finished;
       })
-      .catch(() => {
-        /* 动画失败不影响切换结果 —— class 已经改完了 */
-      });
+      .then(cleanup, cleanup);
   } catch {
-    apply();
+    runApply();
+    cleanup();
   }
+
+  // 兜底：标签页切到后台时动画可能永不结束，主题也必须切掉
+  window.setTimeout(() => {
+    runApply();
+    cleanup();
+  }, REVEAL_SAFETY_MS);
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -326,7 +413,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = React.useCallback(
     (next: Theme) => {
-      applyWithTransition(undefined, () => commit(next));
+      const resolved: ResolvedTheme = next === "system" ? readSystemTheme() : (next as ResolvedTheme);
+      applyWithReveal(undefined, resolved, () => commit(next));
     },
     [commit],
   );
@@ -335,7 +423,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = React.useCallback(
     (origin?: { x: number; y: number }) => {
       const isDark = document.documentElement.classList.contains("dark");
-      applyWithTransition(origin, () => commit(isDark ? "light" : "dark"));
+      const next: Theme = isDark ? "light" : "dark";
+      applyWithReveal(origin, next as ResolvedTheme, () => commit(next));
     },
     [commit],
   );
@@ -347,7 +436,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const current = (localStorage.getItem(STORAGE_KEY) as Theme) || "system";
       const idx = order.indexOf(current);
       const next = order[(idx + 1) % order.length];
-      applyWithTransition(origin, () => commit(next));
+      const resolved: ResolvedTheme =
+        next === "system" ? readSystemTheme() : (next as ResolvedTheme);
+      applyWithReveal(origin, resolved, () => commit(next));
     },
     [commit],
   );

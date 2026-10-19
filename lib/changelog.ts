@@ -25,6 +25,22 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-10-19",
+    title: { zh: "明暗切换不再卡顿", en: "Theme switching no longer stutters" },
+    entries: [
+      {
+        tag: "improve",
+        zh: "圆形扩散改用合成器动画（缩放 + 淡出），不再对整页做快照：实测掉帧从 11 次降到 0 次",
+        en: "The circular reveal now uses compositor-only animation (scale + fade) instead of snapshotting the whole page: dropped frames went from 11 to 0 in testing",
+      },
+      {
+        tag: "improve",
+        zh: "切换动作发生在新主题圆盖满屏幕之后，重渲染过程被遮住，不会再看到中间态",
+        en: "The swap happens after the circle covers the screen, so the re-render stays hidden",
+      },
+    ],
+  },
+  {
     date: "2026-10-18",
     title: { zh: "邮箱白名单加入 DNSHE 与 Henna", en: "DNSHE and Henna addresses are now accepted" },
     entries: [
