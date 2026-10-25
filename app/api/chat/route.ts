@@ -308,7 +308,7 @@ export async function POST(request: Request) {
    * - 自定义供应商：只能用用户自己的 Key（站点不会替自定义地址垫 Key）
    *
    * ⚠️ 以前只有 agnes 有预设 Key，其余三家一律要求用户自备，
-   * 于是站长配了端砚/浦语的 Key，访客还是用不了。现在四家一视同仁。
+   * 于是站长配了端砚的 Key，访客还是用不了。现在三家一视同仁。
    */
   const storedPresetKeys = await loadStoredPresetKeys();
   let finalKey = "";

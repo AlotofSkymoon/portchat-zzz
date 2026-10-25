@@ -256,7 +256,7 @@ export interface SiteSettings {
   /* ---- 站点预设 API Key（管理员面板里填，免去改环境变量）---- */
 
   /**
-   * 全站共用的 API Key，键是服务商 id（agnes / deepseek / inkstone / atriasi）。
+   * 全站共用的 API Key，键是服务商 id（agnes / deepseek / inkstone）。
    *
    * 配了之后，所有访客都能看到并使用该服务商的模型 ——
    * 不需要每个人自己去填 Key。仅管理员可读写，公开接口不下发值。

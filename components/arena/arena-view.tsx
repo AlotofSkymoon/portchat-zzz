@@ -18,7 +18,7 @@ import {
 import { runDebate, runWerewolf } from "@/lib/arena/engine";
 import type { ArenaLine, ArenaMode, PlayerState } from "@/lib/arena/types";
 
-const PROVIDER_ORDER: ProviderId[] = ["agnes", "atriasi", "inkstone"];
+const PROVIDER_ORDER: ProviderId[] = ["agnes", "inkstone"];
 
 /* ------------------------------ 本地存储读取 ------------------------------ */
 

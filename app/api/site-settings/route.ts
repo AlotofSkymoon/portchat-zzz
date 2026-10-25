@@ -48,7 +48,7 @@ function publicSettings(settings: SiteSettings): SiteSettings {
  *
  * 这个值决定了访客能不能看到某个服务商的模型：
  * 之前客户端只看写死的 hasPreset（只有 agnes 是 true），
- * 于是站长配了端砚/浦语的 Key，访客依然一个模型都看不到。
+ * 于是站长配了端砚的 Key，访客依然一个模型都看不到。
  */
 function presetProviders(stored: SiteSettings): ProviderId[] {
   const fromStore = Object.keys(sanitizePresetKeys(stored.presetKeys)) as ProviderId[];

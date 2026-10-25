@@ -29,7 +29,7 @@ import { useSiteProviderModels } from "@/lib/use-site-models";
  */
 
 // DeepSeek 入口已移除：站点不提供 DeepSeek Key，界面不再列出
-export const PROVIDER_ORDER: ProviderId[] = ["agnes", "atriasi", "inkstone", "gateway"];
+export const PROVIDER_ORDER: ProviderId[] = ["agnes", "inkstone", "gateway"];
 
 export interface VisibleModel {
   id: string;

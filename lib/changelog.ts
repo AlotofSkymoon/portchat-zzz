@@ -180,6 +180,22 @@ export const CHANGELOG: ChangelogDay[] = [
     ],
   },
   {
+    date: "2026-10-25",
+    title: { zh: "端砚模型更新，移除浦语", en: "InkStone models refreshed, InternLM removed" },
+    entries: [
+      {
+        tag: "new",
+        zh: "书生·端砚模型清单更新：新增 Atria Dawn、Sage A1.5、书生 Decision 4B、DeepSeek V4.1 Flash（1017）",
+        en: "InkStone model list refreshed: added Atria Dawn, Sage A1.5, Intern Decision 4B and DeepSeek V4.1 Flash (1017)",
+      },
+      {
+        tag: "improve",
+        zh: "移除「书生·浦语」供应商，其模型已并入端砚，设置里不再出现该分组",
+        en: "Removed the InternLM (Atria) provider — its model is now part of InkStone and the group no longer appears in settings",
+      },
+    ],
+  },
+  {
     date: "2026-10-11",
     title: { zh: "朗读不再念符号", en: "Read-aloud no longer reads symbols" },
     entries: [

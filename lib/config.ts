@@ -1,5 +1,5 @@
 /** 支持的模型服务商 */
-export type ProviderId = "agnes" | "deepseek" | "inkstone" | "atriasi" | "gateway";
+export type ProviderId = "agnes" | "deepseek" | "inkstone" | "gateway";
 
 export interface ProviderConfig {
   id: ProviderId;
@@ -43,21 +43,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     baseUrl: "https://discovery-api.intern-ai.org.cn/v1",
     hasPreset: false,
     keyUrl: "https://discovery.intern-ai.org.cn/",
-  },
-  atriasi: {
-    id: "atriasi",
-    /**
-     * 上海 AI 实验室「书生·浦语」通用模型 API。
-     *
-     * ⚠️ 与「书生·端砚」（inkstone）是两个不同的平台，别合并：
-     * - 端砚：科研模型平台 discovery-api.intern-ai.org.cn
-     * - 浦语：通用模型平台 api.atria-asi.ai
-     * 两者的 Key 不通用，模型列表也不一样。
-     */
-    label: "书生·浦语",
-    baseUrl: "https://api.atria-asi.ai/v1",
-    hasPreset: false,
-    keyUrl: "https://atria-asi.ai/",
   },
   gateway: {
     id: "gateway",
@@ -184,22 +169,21 @@ export const CHAT_MODELS: ModelOption[] = [
   },
 
   /* ------------------------- 书生·端砚（Intern InkStone） ------------------------- */
-  /* 上海 AI 实验室科研模型平台，墨点计费；标注「限时免费」的三款不扣墨点。 */
+  /*
+   * 上海 AI 实验室科研模型平台，墨点计费；标注「限时免费」的几款不扣墨点。
+   *
+   * ⚠️ 清单以端砚平台「模型列表」页为准（discovery.intern-ai.org.cn）。
+   *    已下架/被取代的三款不再列出：
+   *      atria-dawn-preview        → 被 Atria-Dawn 正式版取代
+   *      deepseek-v4-flash-0731    → 被 DeepSeek-V4.1-Flash-1017 取代
+   *      deepseek-v4-flash-vision  → 已并入 V4.1 Flash（官方称提升视觉表现）
+   *
+   * ⚠️ id 一律小写连字符 —— 平台展示名是 Agents-A1 / GLM-5.3 这类驼峰写法，
+   *    但平台对 id 大小写敏感，这里沿用已验证可调用的小写形式。
+   *    若某个 id 报 model not found，用设置里的「管理模型 → 探测」
+   *    拉取该 Key 实际可用的 id，勾选后自动加入下拉框，不必改代码。
+   */
 
-  {
-    id: "intern-s2",
-    label: "Intern S2",
-    desc: "书生 S2 · 397B 科学多模态，限时免费",
-    provider: "inkstone",
-    vision: true,
-  },
-  {
-    id: "atria-dawn-preview",
-    label: "Atria Dawn",
-    desc: "Atria Dawn · 256K 科学推理，限时免费",
-    provider: "inkstone",
-    vision: false,
-  },
   {
     id: "agents-a1",
     label: "Agents A1",
@@ -208,18 +192,18 @@ export const CHAT_MODELS: ModelOption[] = [
     vision: true,
   },
   {
-    id: "deepseek-v4-flash-0731",
-    label: "DeepSeek V4 Flash",
-    desc: "DeepSeek V4 Flash · 1M 上下文，性价比高",
+    id: "atria-dawn",
+    label: "Atria Dawn",
+    desc: "Atria Dawn · 256K 科学推理",
     provider: "inkstone",
     vision: false,
   },
   {
-    id: "deepseek-v4-flash-vision",
-    label: "DeepSeek V4 Flash Vision",
-    desc: "DeepSeek V4 Flash · 1M 上下文，支持识图",
+    id: "sage-a1.5",
+    label: "Sage A1.5",
+    desc: "Sage A1.5 · 通专融合科学智能体",
     provider: "inkstone",
-    vision: true,
+    vision: false,
   },
   {
     id: "deepseek-v4-pro-0813",
@@ -227,6 +211,13 @@ export const CHAT_MODELS: ModelOption[] = [
     desc: "DeepSeek V4 Pro · 1M 上下文，能力更强",
     provider: "inkstone",
     vision: false,
+  },
+  {
+    id: "deepseek-v4.1-flash-1017",
+    label: "DeepSeek V4.1 Flash",
+    desc: "DeepSeek V4.1 Flash · 1M 上下文，支持识图",
+    provider: "inkstone",
+    vision: true,
   },
   {
     /**
@@ -240,6 +231,20 @@ export const CHAT_MODELS: ModelOption[] = [
     desc: "GLM 5.3 · 1M 上下文，始终深度推理",
     provider: "inkstone",
     vision: false,
+  },
+  {
+    id: "intern-decision-4b",
+    label: "书生 Decision 4B",
+    desc: "书生 Decision 4B · 决策模型",
+    provider: "inkstone",
+    vision: false,
+  },
+  {
+    id: "intern-s2",
+    label: "书生 S2",
+    desc: "书生 S2 · 397B 科学多模态，限时免费",
+    provider: "inkstone",
+    vision: true,
   },
   {
     id: "kimi-k2.6",
@@ -260,26 +265,6 @@ export const CHAT_MODELS: ModelOption[] = [
     label: "Qwen3.8 27B",
     desc: "Qwen3.8 27B · 轻量通用",
     provider: "inkstone",
-    vision: false,
-  },
-
-  /* ------------------------- 书生·浦语（InternLM / Atria） ------------------------- */
-
-  /*
-   * ⚠️ 模型 id 以官方文档「模型概览与接口选择」为准：
-   * 浦语平台当前只提供 Atria-Dawn-Preview 一款模型，上下文 256K tokens。
-   * 注意 id 的大小写是官方写法（Atria-Dawn-Preview），与端砚那条
-   * atria-dawn-preview 是不同 provider 下的同名模型，别合并。
-   *
-   * 平台随时会上下架模型。如果调用报 model not found，
-   * 用设置里的「管理模型 → 探测」拉取该 Key 实际可用的模型列表，
-   * 勾选后即自动加入下拉框，不需要改代码。
-   */
-  {
-    id: "Atria-Dawn-Preview",
-    label: "Atria Dawn Preview",
-    desc: "书生·浦语 · 256K 科研分析 / 代码 / 多轮 Agent",
-    provider: "atriasi",
     vision: false,
   },
 ];
@@ -495,24 +480,22 @@ export interface CustomProviderConfig {
 }
 
 /** 内置服务商 id 不能占用 */
-export const BUILTIN_PROVIDER_IDS = ["agnes", "deepseek", "inkstone", "atriasi"] as const;
+export const BUILTIN_PROVIDER_IDS = ["agnes", "deepseek", "inkstone"] as const;
 
 /**
  * 各内置服务商「站点预设 Key」对应的环境变量名。
  *
- * 之前只有 Agnes 有预设 Key（PRESET_AGNES_API_KEY），其余三家在服务端
- * 一律只认用户自己填的 Key。后果是：站长配了端砚/浦语的 Key，
+ * 之前只有 Agnes 有预设 Key（PRESET_AGNES_API_KEY），其余在服务端
+ * 一律只认用户自己填的 Key。后果是：站长配了端砚的 Key，
  * 只有站长自己的浏览器（localStorage 里有 Key）能看到那些模型，
  * 其他访客一个都看不到。
  *
- * 现在四家都支持：配了对应环境变量即全站可用。
- * 端砚/浦语的 Key **不通用**，必须分别配。
+ * 现在三家都支持：配了对应环境变量即全站可用。
  */
 export const PRESET_KEY_ENV: Record<ProviderId, string> = {
   agnes: "PRESET_AGNES_API_KEY",
   deepseek: "PRESET_DEEPSEEK_API_KEY",
   inkstone: "PRESET_INKSTONE_API_KEY",
-  atriasi: "PRESET_ATRIASI_API_KEY",
   gateway: "AI_GATEWAY_API_KEY",
 };
 
@@ -586,7 +569,7 @@ export function sanitizeCustomProviders(input: unknown): CustomProviderConfig[] 
 /**
  * 清洗「管理员追加的站点级模型」。
  *
- * 键只认内置服务商 id（agnes / deepseek / inkstone / atriasi），
+ * 键只认内置服务商 id（agnes / deepseek / inkstone），
  * 值只保留非空字符串、去重、每家最多 50 个，超过的直接丢弃 ——
  * 这是管理员自己填的数据，仍要防脏数据把全站模型菜单撑爆。
  */
@@ -753,7 +736,7 @@ export function isBlockedBaseUrl(rawUrl: string): boolean {
 
 export const LS_KEYS = {
   // 各服务商的 Key 分开存
-  keys: "agnes:keys", // JSON: { agnes?: string; deepseek?: string; inkstone?: string; atriasi?: string }
+  keys: "agnes:keys", // JSON: { agnes?: string; deepseek?: string; inkstone?: string }
   apiKey: "agnes:apiKey",
   baseUrl: "agnes:baseUrl", // 旧字段，仅用于迁移
   baseUrls: "agnes:baseUrls", // JSON: { agnes?: string; deepseek?: string; "custom:x"?: string }

@@ -83,7 +83,7 @@ export interface ChatSettings {
   /** 思考模式：让模型先输出推理过程 */
   thinking?: boolean;
   /**
-   * 内置供应商额外追加的模型 id：{ inkstone: ["xxx"], atriasi: ["yyy"] }。
+   * 内置供应商额外追加的模型 id：{ inkstone: ["xxx"] }。
    * 上游上架新模型时用「管理模型 → 探测」追加，不必等站点发版。
    */
   extraModels?: Record<string, string[]>;
@@ -101,7 +101,7 @@ interface SettingsDialogProps {
 }
 
 // DeepSeek 入口已移除：站点不提供 DeepSeek Key，界面不再列出
-const PROVIDER_ORDER: ProviderId[] = ["agnes", "atriasi", "inkstone"];
+const PROVIDER_ORDER: ProviderId[] = ["agnes", "inkstone"];
 
 /**
  * 自定义供应商编辑器。
@@ -310,7 +310,7 @@ function ProviderModelManager({
 /**
  * 内置供应商的「模型管理」区。
  *
- * 为什么需要：内置供应商（书生·浦语 / 书生·端砚）的模型 id 是写死在
+ * 为什么需要：内置供应商（书生·端砚）的模型 id 是写死在
  * CHAT_MODELS 里的，上游一上架新模型，用户就只能等站点发版。
  *
  * 这里做增量：用你填的 Key 去探测 /models，把上游有、本地还没有的
