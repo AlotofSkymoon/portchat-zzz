@@ -8,9 +8,17 @@ import { createOrder } from "@/lib/sponsor-pay";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** 单笔充值的上下限（元） —— 下限防垃圾单，上限防填错金额 */
-export const RECHARGE_MIN = 1;
-export const RECHARGE_MAX = 500;
+/**
+ * 单笔充值的上下限（元） —— 下限防垃圾单，上限防填错金额。
+ *
+ * ⚠️ 为什么不加 export：Next 16 会校验路由模块的导出，
+ * 除 runtime / dynamic / HTTP 方法等保留名之外不允许额外导出，
+ * 多一个就会在 .next/types 里报 TS2344「Property 'X' is incompatible
+ * with index signature」，构建直接失败。常量只在本文件内使用，
+ * 不需要对外暴露；要用请移到 lib/ 下。
+ */
+const RECHARGE_MIN = 1;
+const RECHARGE_MAX = 500;
 
 /** 同一用户每小时最多发起多少笔充值 */
 const LIMIT_PER_HOUR = 10;

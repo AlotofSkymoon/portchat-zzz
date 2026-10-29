@@ -58,6 +58,11 @@ export const CHANGELOG: ChangelogDay[] = [
         zh: "新增 Pot Pay 钱包：在账号页充值后可用余额付费，流水可查；余额不足时会提示先充值",
         en: "New Pot Pay wallet: top up from your account page and pay with the balance, with a running ledger. You'll be prompted to top up when the balance runs short",
       },
+      {
+        tag: "fix",
+        zh: "修掉两处会让部署直接失败的问题：赞助分档的模块漏传，以及充值接口多导出一个常量被 Next 判为非法导出",
+        en: "Fixed two issues that broke deployment: a missing module for the sponsor tiers, and an extra export in the top-up endpoint that Next rejects",
+      },
     ],
   },
   {
