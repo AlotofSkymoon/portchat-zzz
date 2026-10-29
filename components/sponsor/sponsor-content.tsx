@@ -11,7 +11,7 @@ import {
   REPO_URL,
   SHOW_SOURCE_LINKS,
   SITE_NAME,
-  SPONSOR_CHANNELS,
+  usableSponsorChannels,
 } from "@/lib/site";
 import {
   DEFAULT_TIER_ID,
@@ -58,7 +58,7 @@ export function SponsorContent() {
    */
   const router = useRouter();
   const methods = React.useMemo(
-    () => payMethods({ hasManualChannel: SPONSOR_CHANNELS.length > 0 }),
+    () => payMethods({ hasManualChannel: usableSponsorChannels().length > 0 }),
     [],
   );
   const [methodId, setMethodId] = React.useState<string>(DEFAULT_PAY_METHOD);
