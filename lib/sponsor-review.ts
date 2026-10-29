@@ -28,6 +28,14 @@ import {
 import { loadStoredPresetKeys, resolvePresetKey } from "@/lib/preset-keys";
 import { loadSiteProviderModels } from "@/lib/site-models";
 import type { AiVerdict, SponsorOrder } from "@/lib/sponsor-pay";
+import { getTier, type SponsorTierKind } from "@/lib/sponsor-tiers";
+
+/** 给审核提示词用的档位用途说明 —— 模型要理解这笔钱是干嘛的 */
+const TIER_PURPOSE: Record<SponsorTierKind, string> = {
+  support: "纯赞助，钱直接给站长",
+  sponsor: "赞助站长买域名，付款人不指定具体域名",
+  buy: "代购域名，付款人指定了要买哪个域名",
+};
 
 export interface ReviewResult {
   verdict: AiVerdict;
@@ -71,11 +79,21 @@ async function pickReviewTarget(): Promise<{
 
 /** 审核提示词：给足上下文，明确只要 JSON */
 function buildPrompt(order: SponsorOrder): string {
+  const tier = getTier(order.tier);
+  const tierLine = tier
+    ? `- 档位：${tier.id}（${TIER_PURPOSE[tier.kind]}）· 应付金额 ${order.amount} ${order.currency}`
+    : `- 应付金额 ${order.amount} ${order.currency}`;
+  const domainLine =
+    tier?.requiresDomain && order.domain
+      ? `- 用户指定要代购的域名：${order.domain}（后缀应与档位一致：.${tier.tld}）`
+      : null;
+
   return [
     "你是一个支付订单审核助手，负责判断一笔用户自助提交的赞助付款是否可信。",
     "",
     "已知信息：",
-    `- 站点固定收款金额：${order.amount} ${order.currency}`,
+    tierLine,
+    ...(domainLine ? [domainLine] : []),
     `- 该订单的令牌：${order.token}`,
     `- 用户提交的平台交易号：${order.tradeNo ?? "（空）"}`,
     `- 用户留下的联系方式：${order.contact ?? "（未填）"}`,
@@ -86,6 +104,7 @@ function buildPrompt(order: SponsorOrder): string {
     "1. 交易号是否像一个真实支付平台的订单流水号（而非随手乱敲的键盘序列、重复字符、纯递增数字、明显占位文本）",
     "2. 交易号是否与本订单令牌有混淆痕迹（例如把令牌当交易号填了）",
     "3. 扫码时间与提交时间是否合理（先扫后付；间隔不至于离谱）",
+    "4. 代购档：用户填的域名是不是一个像样的域名（不是乱敲的字符、后缀与档位一致）",
     "",
     "输出要求：只输出一行 JSON，不要解释、不要 markdown 代码块。",
     '格式：{"verdict":"pass|suspicious","reason":"不超过 40 字的中文理由"}',

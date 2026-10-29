@@ -40,6 +40,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { parseIcpInput } from "@/lib/use-site-icp";
 import { timeoutSignal } from "@/lib/fetch-timeout";
 import { SiteFooterBadge } from "@/components/site-footer-badge";
+import { getTier } from "@/lib/sponsor-tiers";
 
 interface AdminUser {
   id: string;
@@ -1289,6 +1290,7 @@ function MailCard() {
 type SponsorOrderRow = {
   id: string;
   token: string;
+  tier: string;
   amount: number;
   currency: string;
   status: "pending" | "claimed" | "approved" | "rejected";
@@ -1296,6 +1298,7 @@ type SponsorOrderRow = {
   scannedAt: number | null;
   claimedAt: number | null;
   tradeNo: string | null;
+  domain: string | null;
   contact: string | null;
   aiVerdict: "pass" | "suspicious" | null;
   aiReason: string | null;
@@ -1403,6 +1406,9 @@ function SponsorOrdersCard() {
                 <span className="text-muted-foreground">
                   {o.amount} {o.currency}
                 </span>
+                <span className="rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium">
+                  {tierLabel(o.tier, t)}
+                </span>
                 <StatusChip status={o.status} t={t} />
                 {o.aiVerdict === "suspicious" ? (
                   <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
@@ -1418,6 +1424,11 @@ function SponsorOrdersCard() {
                 <span>
                   {t("admin.sponsorScanned")}: {o.scannedAt ? fmt(o.scannedAt) : "—"}
                 </span>
+                {o.domain ? (
+                  <span className="break-all text-fg-secondary">
+                    {t("admin.sponsorDomain")}: {o.domain}
+                  </span>
+                ) : null}
                 {o.tradeNo ? (
                   <span className="break-all">
                     {t("admin.sponsorTradeNo")}: {o.tradeNo}
@@ -1470,6 +1481,18 @@ function SponsorOrdersCard() {
       </CardContent>
     </Card>
   );
+}
+
+/**
+ * 后台把档位显示成人话 —— 光看金额分不清这笔是赞助还是代购。
+ * 老订单没有 tier 字段，一律按纯赞助档显示。
+ */
+function tierLabel(
+  tier: string | null | undefined,
+  t: (k: string, v?: Record<string, string | number>) => string,
+): string {
+  const found = getTier(tier);
+  return found ? t(found.labelKey) : t("tier.support");
 }
 
 function StatusChip({
