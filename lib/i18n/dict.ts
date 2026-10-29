@@ -463,6 +463,7 @@ const DICT: Record<string, Entry> = {
 
   /* ---- 落地页 ---- */
   "route.sponsor": { "zh-CN": "赞助支持", "zh-TW": "贊助支持", en: "Sponsor", fr: "Soutenir" },
+  "route.pay": { "zh-CN": "付款", "zh-TW": "付款", en: "Payment", fr: "Paiement" },
   "route.changelog": { "zh-CN": "更新日志", "zh-TW": "更新日誌", en: "Changelog", fr: "Journal des versions" },
   "changelog.expandAll": { "zh-CN": "全部展开", "zh-TW": "全部展開", en: "Expand all", fr: "Tout déplier" },
   "changelog.collapseAll": { "zh-CN": "全部收起", "zh-TW": "全部收起", en: "Collapse all", fr: "Tout replier" },
@@ -656,6 +657,30 @@ const DICT: Record<string, Entry> = {
   "sponsor.hintMulti": { "zh-CN": "挑一个你方便的方式 · 长按或扫描二维码 · 金额随意", "zh-TW": "挑一個你方便的方式 · 長按或掃描 QR 碼 · 金額隨意", en: "Pick whichever is easiest · long-press or scan · any amount helps", fr: "Choisissez la méthode la plus simple · appuyez ou scannez · montant libre" },
   "sponsor.qrAlt": { "zh-CN": "{name} 收款二维码", "zh-TW": "{name} 收款 QR 碼", en: "{name} QR code", fr: "QR code {name}" },
   "sponsor.putFileHere": { "zh-CN": "把图片放到", "zh-TW": "把圖片放到", en: "Save the image as", fr: "Enregistrez l'image sous" },
+
+  // ---- 付款页 ----
+  "pay.title": { "zh-CN": "完成付款", "zh-TW": "完成付款", en: "Complete your payment", fr: "Finalisez votre paiement" },
+  "pay.subtitle": { "zh-CN": "扫下方收款码付款，然后把交易号填回这里。", "zh-TW": "掃下方收款碼付款，然後把交易號填回這裡。", en: "Pay with the QR code below, then enter the transaction number.", fr: "Payez avec le QR code ci-dessous, puis saisissez le numéro de transaction." },
+  "pay.tokenTitle": { "zh-CN": "本笔订单的令牌", "zh-TW": "本筆訂單的令牌", en: "Token for this order", fr: "Jeton de cette commande" },
+  "pay.tokenHint": { "zh-CN": "付款时把它填进备注，站长才能对上这笔款。", "zh-TW": "付款時把它填進備註，站長才能對上這筆款。", en: "Put it in the payment note so the owner can match this payment.", fr: "Mettez-le dans la note de paiement pour que le propriétaire puisse la retrouver." },
+  "pay.copyToken": { "zh-CN": "复制令牌", "zh-TW": "複製令牌", en: "Copy token", fr: "Copier le jeton" },
+  "pay.amountTitle": { "zh-CN": "付款金额", "zh-TW": "付款金額", en: "Amount", fr: "Montant" },
+  "pay.scanHint": { "zh-CN": "长按保存或截图，再用支付 App 扫码", "zh-TW": "長按儲存或截圖，再用支付 App 掃碼", en: "Long-press to save or screenshot, then scan it in your payment app", fr: "Appuyez longuement pour enregistrer, puis scannez dans votre appli de paiement" },
+  "pay.confirmTitle": { "zh-CN": "付款完成后", "zh-TW": "付款完成後", en: "After paying", fr: "Après le paiement" },
+  "pay.tradeNoPlaceholder": { "zh-CN": "平台订单里的交易号", "zh-TW": "平台訂單裡的交易號", en: "Transaction number from the order", fr: "Numéro de transaction de la commande" },
+  "pay.contactPlaceholder": { "zh-CN": "联系方式（选填）", "zh-TW": "聯絡方式（選填）", en: "Contact (optional)", fr: "Contact (facultatif)" },
+  "pay.tradeNoHint": { "zh-CN": "交易号在支付 App 的订单详情里能看到。填完等站长确认即可。", "zh-TW": "交易號在支付 App 的訂單詳情裡能看到。填完等站長確認即可。", en: "Find the transaction number in your payment app's order details. Then just wait.", fr: "Le numéro figure dans les détails de commande de votre appli. Il suffit ensuite d'attendre." },
+  "pay.submit": { "zh-CN": "我已付款", "zh-TW": "我已付款", en: "I've paid", fr: "J'ai payé" },
+  "pay.submitted": { "zh-CN": "已收到，等待站长确认", "zh-TW": "已收到，等待站長確認", en: "Received — waiting for the owner to confirm", fr: "Reçu — en attente de confirmation" },
+  "pay.tradeNoTooShort": { "zh-CN": "交易号太短了，请确认是否填对", "zh-TW": "交易號太短了，請確認是否填對", en: "That transaction number looks too short", fr: "Ce numéro semble trop court" },
+  "pay.submitFailed": { "zh-CN": "提交失败，请稍后再试", "zh-TW": "提交失敗，請稍後再試", en: "Submit failed, please retry", fr: "Échec de l'envoi, réessayez" },
+  "pay.loadFailed": { "zh-CN": "读取订单失败", "zh-TW": "讀取訂單失敗", en: "Could not load the order", fr: "Impossible de charger la commande" },
+  "pay.noOrder": { "zh-CN": "缺少订单号，请回到赞助页重新扫码", "zh-TW": "缺少訂單號，請回到贊助頁重新掃碼", en: "No order number — go back and scan again", fr: "Aucun numéro de commande — rescannnez depuis la page de soutien" },
+  "pay.backToSponsor": { "zh-CN": "返回赞助页", "zh-TW": "返回贊助頁", en: "Back to sponsor page", fr: "Retour à la page de soutien" },
+  "pay.openOnThisDevice": { "zh-CN": "就用这台设备付款", "zh-TW": "就用這台設備付款", en: "Open on this device instead", fr: "Ouvrir sur cet appareil" },
+  "pay.regen": { "zh-CN": "换一个码", "zh-TW": "換一個碼", en: "New code", fr: "Nouveau code" },
+  "pay.retry": { "zh-CN": "重试", "zh-TW": "重試", en: "Retry", fr: "Réessayer" },
+  "pay.qrFailed": { "zh-CN": "收款码生成失败", "zh-TW": "收款碼生成失敗", en: "Could not generate the QR code", fr: "Impossible de générer le QR code" },
 
   // ---- 导航站补充 ----
 
@@ -1089,6 +1114,24 @@ const DICT: Record<string, Entry> = {
   "admin.rewardSent": { "zh-CN": "已发放，获奖者可下载贺信", "zh-TW": "已發放，獲獎者可下載賀信", en: "Sent — the winner can now download the PDF", fr: "Envoyé — le gagnant peut télécharger le PDF" },
   "admin.rewardFailed": { "zh-CN": "发放失败，请重试", "zh-TW": "發放失敗，請重試", en: "Failed to send", fr: "Échec de l'envoi" },
   "admin.rewardNeedCode": { "zh-CN": "请先填写域名转移码", "zh-TW": "請先填寫網域轉移碼", en: "Enter the transfer code first", fr: "Saisissez d'abord le code de transfert" },
+
+  // ---- 赞助订单核销 ----
+  "admin.sponsorTitle": { "zh-CN": "赞助订单", "zh-TW": "贊助訂單", en: "Sponsor orders", fr: "Commandes de soutien" },
+  "admin.sponsorDesc": { "zh-CN": "扫码生成订单，付款人回填交易号，AI 初审后由你确认。", "zh-TW": "掃碼生成訂單，付款人回填交易號，AI 初審後由你確認。", en: "Orders are created by scan; payers submit a transaction number for AI pre-review, then you confirm.", fr: "Les commandes sont créées par scan ; les payeurs soumettent un numéro, pré-vérifié par l'IA, puis vous confirmez." },
+  "admin.sponsorEmpty": { "zh-CN": "还没有订单", "zh-TW": "還沒有訂單", en: "No orders yet", fr: "Aucune commande" },
+  "admin.sponsorApprove": { "zh-CN": "确认收款", "zh-TW": "確認收款", en: "Confirm", fr: "Confirmer" },
+  "admin.sponsorReject": { "zh-CN": "驳回", "zh-TW": "駁回", en: "Reject", fr: "Rejeter" },
+  "admin.sponsorRecheck": { "zh-CN": "重新审核", "zh-TW": "重新審核", en: "Re-review", fr: "Revérifier" },
+  "admin.sponsorSuspicious": { "zh-CN": "AI 判可疑", "zh-TW": "AI 判可疑", en: "Flagged by AI", fr: "Signalé par l'IA" },
+  "admin.sponsorStatusPending": { "zh-CN": "待付款", "zh-TW": "待付款", en: "Awaiting payment", fr: "En attente de paiement" },
+  "admin.sponsorStatusClaimed": { "zh-CN": "待确认", "zh-TW": "待確認", en: "Needs review", fr: "À vérifier" },
+  "admin.sponsorStatusApproved": { "zh-CN": "已确认", "zh-TW": "已確認", en: "Confirmed", fr: "Confirmé" },
+  "admin.sponsorStatusRejected": { "zh-CN": "已驳回", "zh-TW": "已駁回", en: "Rejected", fr: "Rejeté" },
+  "admin.sponsorCreated": { "zh-CN": "创建", "zh-TW": "建立", en: "Created", fr: "Créé" },
+  "admin.sponsorScanned": { "zh-CN": "扫码", "zh-TW": "掃碼", en: "Scanned", fr: "Scanné" },
+  "admin.sponsorTradeNo": { "zh-CN": "交易号", "zh-TW": "交易號", en: "Transaction", fr: "Transaction" },
+  "admin.sponsorContact": { "zh-CN": "联系方式", "zh-TW": "聯絡方式", en: "Contact", fr: "Contact" },
+  "admin.sponsorAi": { "zh-CN": "AI 意见", "zh-TW": "AI 意見", en: "AI note", fr: "Avis de l'IA" },
   "admin.rewardDomainHint": { "zh-CN": "例如 xxx.dnshe.com", "zh-TW": "例如 xxx.dnshe.com", en: "e.g. xxx.dnshe.com", fr: "ex. xxx.dnshe.com" },
   "admin.rewardRule": { "zh-CN": "每月 1 日 00:00（Asia/Shanghai）重置。管理员不计入排名，若第一名是管理员则由第二名递补。", "zh-TW": "每月 1 日 00:00（Asia/Shanghai）重置。管理員不計入排名，若第一名是管理員則由第二名遞補。", en: "Resets on the 1st at 00:00 (Asia/Shanghai). Admins are excluded; if an admin tops the board, the runner-up wins.", fr: "Réinitialisation le 1er à 00:00 (Asie/Shanghai). Les admins sont exclus ; si un admin est premier, le second gagne." },
 

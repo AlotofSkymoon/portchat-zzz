@@ -252,21 +252,21 @@ export function ModelPicker({
         title={t("model.switch")}
         style={{ fontFamily: MONTSERRAT }}
         className={cn(
-          "flex max-w-full items-center gap-1 rounded-full border border-border/70 bg-background px-2.5 py-1 font-sans text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground",
-          open && "border-primary/50 text-foreground",
+          "flex max-w-full items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 font-sans text-sm text-foreground transition-colors hover:border-primary/40 hover:bg-muted",
+          open && "border-primary/50",
         )}
       >
         <span className="truncate">{current.label}</span>
         {/* 收起态也带档位，跟菜单里那一行对得上；Off 不显示，免得按钮太长 */}
         {effort !== "off" ? (
           <span
-            className="shrink-0 text-[11px] opacity-80"
-            style={effortColor ? { color: effortColor } : undefined}
+            className="shrink-0 text-xs"
+            style={{ color: effortColor || "var(--primary, currentColor)" }}
           >
             {effortLabel}
           </span>
         ) : null}
-        <ChevronDown className={cn("h-3 w-3 shrink-0 transition-transform", open && "rotate-180")} />
+        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-fg-tertiary transition-transform", open && "rotate-180")} />
       </button>
 
       {open && placement

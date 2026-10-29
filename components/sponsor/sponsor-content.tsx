@@ -5,6 +5,7 @@ import { ArrowLeft, Coffee, Github, HeartHandshake, Share2 } from "lucide-react"
 
 import { useI18n } from "@/components/i18n-provider";
 import { SponsorChannels } from "@/components/sponsor/sponsor-qr";
+import { SponsorPayQr } from "@/components/sponsor/sponsor-pay-qr";
 import {
   REPO_URL,
   SHOW_SOURCE_LINKS,
@@ -93,8 +94,13 @@ export function SponsorContent() {
         </p>
       </header>
 
-      {/* 收款码 —— 客户端组件，图片加载失败时优雅降级 */}
-      <SponsorChannels channels={SPONSOR_CHANNELS} />
+      {/* 收款码 —— 服务端生成的订单码，扫下去带订单号；生成失败才退回静态图 */}
+      <div className="mx-auto max-w-[320px] rounded-[var(--radius-card)] border border-white/25 bg-[#082a63]/45 px-4 py-4 backdrop-blur-xl">
+        <SponsorPayQr fallback={<SponsorChannels channels={SPONSOR_CHANNELS} />} />
+        <p className="mt-3 text-center text-[11px] leading-relaxed text-white/70">
+          {t("sponsor.pick")}
+        </p>
+      </div>
 
       {/* 资金去向 */}
       <section className="mt-10">

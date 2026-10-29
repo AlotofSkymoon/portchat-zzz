@@ -163,22 +163,33 @@
 /* ==========================================================================
    明暗切换：圆形揭示覆盖层
 
-   早期这里放的是 View Transitions 的 ::view-transition-* 规则。
-   压测（无头 Chromium，1280x800 页面：毛玻璃顶栏 + 侧栏 + 300 条消息，
-   rAF 采样 6 轮取中位数，切换前后各留 220ms 观察窗）：
-     旧：View Transitions + clip-path 圆形展开 420ms → 掉帧 11 次，最长帧 66.6ms
-     新：覆盖层 scale + opacity，240ms + 180ms      → 掉帧  0 次，最长帧 16.8ms
-     基线：什么都不切                                → 掉帧  0 次，最长帧 16.8ms
-   即新方案已经和「不切换」没有区别。差别来自 VT 要对整页做两次快照，
-   而 clip-path 动画每帧都要重绘整屏快照；页面上有 backdrop-filter 时开销被放大。
+   历经三版，每一版都是被实测数据推翻的：
+
+   ① View Transitions + clip-path 圆形展开（420ms）
+      → 掉帧 11 次，最长帧 66.6ms
+      原因：VT 要对整页做两次快照，且 clip-path 每帧重绘整屏快照，
+            页面上有 backdrop-filter 时开销被放大
+
+   ② 小圆 + transform: scale() 放大到盖满（240+180ms）
+      → 桌面 0 掉帧，但 iPad 上整屏变黑
+      原因：scale 会按**放大后的最终尺寸**光栅化。
+            1024x1366 @DPR2 的 iPad 上，圆要盖满屏幕需半径 1651，
+            元素渲染尺寸 3301x3301 CSS px = **6603x6603 物理像素**，
+            远超 GPU 纹理上限（通常 4096）。iOS Safari 对超限图层
+            直接渲染失败 —— 表现就是「圆扫过去之后整屏变黑」。
+
+   ③ 视口大小的实心层 + clip-path: circle() 半径动画（当前）
+      图层尺寸恒定 = 视口（iPad 竖屏 2048x2732 物理像素，安全），
+      clip-path 只决定「显示哪一块」，不会让图层变大。
+      重绘的是一个纯色实心 div（无子元素、无毛玻璃），成本极低 ——
+      与 ① 的重绘整页快照完全不是一回事。
    ========================================================================== */
 .theme-reveal {
   position: fixed;
+  inset: 0;
   z-index: 999999;
-  border-radius: 50%;
   pointer-events: none;
-  transform: scale(0);
-  will-change: transform, opacity;
+  will-change: clip-path, opacity;
 }
 
 /**

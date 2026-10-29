@@ -25,6 +25,37 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-10-20",
+    title: { zh: "赞助改成订单号核销", en: "Sponsorship now runs on order numbers" },
+    entries: [
+      {
+        tag: "new",
+        zh: "赞助页的收款码改成服务端生成的订单码：扫下去先落到本站付款页，页面上有本笔订单的令牌，付款时填进备注就能对上账",
+        en: "The sponsor QR is now generated per order: scanning it opens a payment page showing that order's token, which goes in the payment note so payments can be matched",
+      },
+      {
+        tag: "new",
+        zh: "付款完成后可提交平台交易号，AI 先审一遍合理性，判可疑的转站长人工确认 —— 不会自动驳回，避免误杀真付款",
+        en: "After paying you can submit the transaction number. An AI pre-checks it; anything suspicious goes to manual review — it never auto-rejects, so real payments are never lost",
+      },
+      {
+        tag: "new",
+        zh: "管理员面板新增赞助订单卡片，待确认的排最前并标红，可一键确认、驳回或重新审核",
+        en: "The admin panel gained a sponsor orders card: orders awaiting review sort first and show a red badge, with one-click confirm, reject or re-review",
+      },
+      {
+        tag: "improve",
+        zh: "二维码链接里只有订单号、不含令牌，令牌只显示在付款页上由付款人手动抄写",
+        en: "The QR link carries only the order id, never the token — the token is shown on the payment page and copied by hand",
+      },
+      {
+        tag: "fix",
+        zh: "手机上扫不了自己这块屏幕，所以付款页地址也直接给成了可点的链接",
+        en: "You can't scan your own screen on a phone, so the payment link is also tappable directly",
+      },
+    ],
+  },
+  {
     date: "2026-10-19",
     title: { zh: "明暗切换不再卡顿", en: "Theme switching no longer stutters" },
     entries: [

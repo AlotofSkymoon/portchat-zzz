@@ -209,6 +209,8 @@ export function AdminClient({ me }: { me: AdminUser }) {
 
         <SiteSettingsCard />
 
+        <SponsorOrdersCard />
+
         <RewardCard />
 
         <MailCard />
@@ -1280,4 +1282,217 @@ function MailCard() {
       </CardContent>
     </Card>
   );
+}
+
+/* ------------------------- 赞助订单 ------------------------- */
+
+type SponsorOrderRow = {
+  id: string;
+  token: string;
+  amount: number;
+  currency: string;
+  status: "pending" | "claimed" | "approved" | "rejected";
+  createdAt: number;
+  scannedAt: number | null;
+  claimedAt: number | null;
+  tradeNo: string | null;
+  contact: string | null;
+  aiVerdict: "pass" | "suspicious" | null;
+  aiReason: string | null;
+  aiModel: string | null;
+  reviewedAt: number | null;
+  adminNote: string | null;
+};
+
+/**
+ * 赞助订单核销。
+ *
+ * ⚠️ 为什么「已提交待确认」要排最前：
+ * 付款人付了钱却没人核销，等于白付。这个卡片是唯一的提醒入口，
+ * 所以待人工的一律顶到最上面（API 里已按这个顺序返回）。
+ */
+function SponsorOrdersCard() {
+  const { t } = useI18n();
+  const [list, setList] = React.useState<SponsorOrderRow[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/sponsor", { signal: timeoutSignal(10_000) });
+      const data = (await res.json().catch(() => ({}))) as { list?: SponsorOrderRow[] };
+      setList(Array.isArray(data.list) ? data.list : []);
+    } catch {
+      setList([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function act(id: string, action: string) {
+    setBusyId(id);
+    try {
+      const res = await fetch("/api/admin/sponsor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action }),
+        signal: timeoutSignal(30_000),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        toast.error(data.error ?? t("common.retryLater"));
+        return;
+      }
+      toast.success(t("admin.saved"));
+      await load();
+    } catch {
+      toast.error(t("common.retryLater"));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const pendingCount = list.filter((o) => o.status === "claimed").length;
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle className="flex items-center gap-2">
+            {t("admin.sponsorTitle")}
+            {pendingCount > 0 ? (
+              <span className="rounded-full bg-destructive px-2 py-0.5 text-[11px] font-medium text-white">
+                {pendingCount}
+              </span>
+            ) : null}
+          </CardTitle>
+          <CardDescription>{t("admin.sponsorDesc")}</CardDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          {t("admin.refresh")}
+        </Button>
+      </CardHeader>
+
+      <CardContent className="space-y-2">
+        {loading ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            {t("common.loading")}
+          </p>
+        ) : list.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            {t("admin.sponsorEmpty")}
+          </p>
+        ) : (
+          list.slice(0, 50).map((o) => (
+            <div
+              key={o.id}
+              className="space-y-2 rounded-xl border border-border/60 px-3 py-2.5"
+            >
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                <code className="font-mono text-[13px] font-semibold">{o.token}</code>
+                <span className="text-muted-foreground">
+                  {o.amount} {o.currency}
+                </span>
+                <StatusChip status={o.status} t={t} />
+                {o.aiVerdict === "suspicious" ? (
+                  <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                    {t("admin.sponsorSuspicious")}
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="grid gap-0.5 text-[11px] text-muted-foreground">
+                <span>
+                  {t("admin.sponsorCreated")}: {fmt(o.createdAt)}
+                </span>
+                <span>
+                  {t("admin.sponsorScanned")}: {o.scannedAt ? fmt(o.scannedAt) : "—"}
+                </span>
+                {o.tradeNo ? (
+                  <span className="break-all">
+                    {t("admin.sponsorTradeNo")}: {o.tradeNo}
+                  </span>
+                ) : null}
+                {o.contact ? (
+                  <span className="break-all">
+                    {t("admin.sponsorContact")}: {o.contact}
+                  </span>
+                ) : null}
+                {o.aiReason ? (
+                  <span className="text-fg-secondary">
+                    {t("admin.sponsorAi")}: {o.aiReason}
+                    {o.aiModel ? `（${o.aiModel}）` : ""}
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={busyId === o.id || o.status === "approved"}
+                  onClick={() => void act(o.id, "approve")}
+                >
+                  {t("admin.sponsorApprove")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busyId === o.id || o.status === "rejected"}
+                  onClick={() => void act(o.id, "reject")}
+                >
+                  {t("admin.sponsorReject")}
+                </Button>
+                {o.tradeNo ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={busyId === o.id}
+                    onClick={() => void act(o.id, "recheck")}
+                  >
+                    {t("admin.sponsorRecheck")}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function StatusChip({
+  status,
+  t,
+}: {
+  status: SponsorOrderRow["status"];
+  t: (k: string, v?: Record<string, string | number>) => string;
+}) {
+  const map: Record<SponsorOrderRow["status"], { key: string; cls: string }> = {
+    pending: { key: "admin.sponsorStatusPending", cls: "border-border text-muted-foreground" },
+    claimed: { key: "admin.sponsorStatusClaimed", cls: "border-amber-500/40 text-amber-600 dark:text-amber-400" },
+    approved: { key: "admin.sponsorStatusApproved", cls: "border-emerald-500/40 text-emerald-600 dark:text-emerald-400" },
+    rejected: { key: "admin.sponsorStatusRejected", cls: "border-destructive/40 text-destructive" },
+  };
+  const m = map[status] ?? map.pending;
+  return (
+    <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${m.cls}`}>
+      {t(m.key)}
+    </span>
+  );
+}
+
+function fmt(ms: number): string {
+  return new Date(ms).toLocaleString();
 }

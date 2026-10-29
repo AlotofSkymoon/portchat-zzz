@@ -152,23 +152,47 @@ export function detectStandalone(): boolean {
 /**
  * 明暗切换的圆形揭示动画。
  *
- * 早期版本用 View Transitions（startViewTransition + clip-path 圆形展开）。
- * 实测它对整页做两次快照，且 clip-path 动画每帧都要重绘整屏快照 ——
- * 在带毛玻璃的页面上掉帧非常明显（详见下方注释里的压测数据）。
+ * 这一版经历过两次推翻，两次都是被设备上的实测数据打脸：
  *
- * 现在的做法是三层但只跑合成器：
- *   1) 在点击处放一个圆形覆盖层，用 transform: scale 放大到盖住整屏
- *      （scale 与 opacity 都是合成器属性，不触发重绘）
+ * ① View Transitions + clip-path 展开：掉帧 11 次、最长帧 66.6ms。
+ *    VT 要对整页做两次快照，每帧重绘整屏快照 —— 页面上有 backdrop-filter
+ *    时开销被放大。
+ *
+ * ② 小圆 + transform: scale() 放大：桌面 0 掉帧，但 **iPad 上整屏变黑**。
+ *    scale 会按放大后的最终尺寸光栅化。1024x1366 @DPR2 上要盖满屏幕
+ *    需要半径 1651 → 渲染尺寸 3301x3301 CSS px = 6603x6603 物理像素，
+ *    远超 GPU 纹理上限（通常 4096），iOS Safari 对超限图层直接渲染失败。
+ *
+ * ③ 当前：视口大小的实心层 + clip-path: circle() 半径动画。
+ *    图层尺寸恒等于视口（iPad 竖屏 2048x2732 物理像素，安全），
+ *    clip-path 只决定显示哪一块，不会让图层变大。
+ *
+ * 注意 ③ 与 ① 虽然都用 clip-path，但代价完全不同：① 重绘的是**整页快照**
+ * （含内容与毛玻璃），③ 重绘的是一个**纯色实心 div**（无子元素、无毛玻璃）。
+ *
+ * 步骤：
+ *   1) 铺一层视口大小的实心层，用 clip-path 把圆从点击处扩到盖满整屏
  *   2) 圆盖满之后才真正切换主题 —— React 全树重渲染发生在"被遮住"的时候
- *   3) 覆盖层用 opacity 淡出，露出新主题
- *
- * 同样的圆形扩散观感，但没有整页快照，也不要求浏览器支持 View Transitions
- * （Safari 17 及更早版本都能用）。
+ *   3) 覆盖层 opacity 淡出，露出新主题
  */
 const REVEAL_GROW_MS = 240;
 const REVEAL_FADE_MS = 180;
 /** 动画异常时的兜底：超过这个时间就强制完成切换并移除覆盖层 */
 const REVEAL_SAFETY_MS = 900;
+
+/**
+ * clip-path: circle() 是否可用。
+ * 不支持时**不能**退化成「铺满全屏的实心层」—— 那会整屏糊住一块纯色。
+ * 直接不画覆盖层，老老实实瞬间切换。
+ */
+function supportsClipCircle(): boolean {
+  try {
+    if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return false;
+    return CSS.supports("clip-path", "circle(0px at 0px 0px)");
+  } catch {
+    return false;
+  }
+}
 
 /** 是否正在揭示中 —— 连续快点时不叠加第二层圆 */
 let revealing = false;
