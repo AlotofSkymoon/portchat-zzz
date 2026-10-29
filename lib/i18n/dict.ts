@@ -684,6 +684,8 @@ const DICT: Record<string, Entry> = {
   "pay.amountHint": { "zh-CN": "扫码后请在 App 里把金额改为 {amount} 再付款", "zh-TW": "掃碼後請在 App 裡把金額改為 {amount} 再付款", en: "After scanning, change the amount to {amount} in your app before paying", fr: "Après le scan, modifiez le montant à {amount} dans votre application avant de payer" },
   "pay.domainLabel": { "zh-CN": "要代购的域名", "zh-TW": "要代購的網域", en: "Domain to buy", fr: "Domaine à acheter" },
   "pay.backToAccount": { "zh-CN": "返回账户页", "zh-TW": "返回帳戶頁", en: "Back to your account", fr: "Retour à votre compte" },
+  "pay.openPayPage": { "zh-CN": "打开 {name} 付款页", "zh-TW": "打開 {name} 付款頁", en: "Open {name} payment page", fr: "Ouvrir la page de paiement {name}" },
+  "pay.payUrlHint": { "zh-CN": "不用扫码：点上面的按钮会直接跳到支付页，付款后回来填交易号。", "zh-TW": "不用掃碼：點上面的按鈕會直接跳到支付頁，付款後回來填交易號。", en: "No scanning needed: the button opens the payment page directly — come back here to enter the transaction number.", fr: "Pas besoin de scanner : le bouton ouvre directement la page de paiement — revenez ensuite saisir le numéro." },
   "pay.rechargeHint": { "zh-CN": "这笔是为 Pot Pay 充值 {amount}，确认后会自动加进你的余额。", "zh-TW": "這筆是為 Pot Pay 充值 {amount}，確認後會自動加進你的餘額。", en: "This tops up Pot Pay by {amount}. It lands in your balance once confirmed.", fr: "Ceci recharge Pot Pay de {amount}. Le montant arrive sur votre solde après confirmation." },
 
   // ---- 支付方式 ----

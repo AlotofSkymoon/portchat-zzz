@@ -3,10 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, Check, Copy, Loader2, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Check, Copy, ExternalLink, Loader2, TriangleAlert } from "lucide-react";
 
 import { useI18n } from "@/components/i18n-provider";
-import { SPONSOR_CHANNELS } from "@/lib/site";
+import { usableSponsorChannels, type SponsorChannel } from "@/lib/site";
 import { formatAmount, getTier, tierQr } from "@/lib/sponsor-tiers";
 
 /**
@@ -51,6 +51,36 @@ export function PayClient() {
   const [submitting, setSubmitting] = React.useState(false);
   const [done, setDone] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
+
+  /* 渠道选择：只列真正有东西可展示的（有码图或支付链接） */
+  const channels = React.useMemo(() => usableSponsorChannels(), []);
+  const [channelId, setChannelId] = React.useState<string>(channels[0]?.id ?? "");
+  const channel: SponsorChannel | null =
+    channels.find((c) => c.id === channelId) ?? channels[0] ?? null;
+
+  /* 用真实支付链接现生成二维码 —— 不依赖 public/ 里有没有那张图 */
+  const [qrSvg, setQrSvg] = React.useState<{ path: string; size: number } | null>(null);
+  React.useEffect(() => {
+    const url = channel?.payUrl?.trim();
+    if (!url) {
+      setQrSvg(null);
+      return;
+    }
+    let alive = true;
+    void (async () => {
+      try {
+        const { qrMatrix, qrSvgPath, qrViewBox } = await import("@/lib/qr");
+        const matrix = qrMatrix(url);
+        if (!alive) return;
+        setQrSvg({ path: qrSvgPath(matrix), size: qrViewBox(matrix) });
+      } catch {
+        if (alive) setQrSvg(null);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [channel?.payUrl]);
 
   /* 读订单 */
   React.useEffect(() => {
@@ -130,18 +160,25 @@ export function PayClient() {
     }
   }
 
-  const channel = SPONSOR_CHANNELS[0];
   const isRecharge = order?.purpose === "recharge";
   const backHref = isRecharge ? "/account" : "/sponsor";
   const backLabel = isRecharge ? t("pay.backToAccount") : t("pay.backToSponsor");
   const tier = order ? getTier(order.tier) : null;
   /*
    * 档位有专属码就用专属码（金额写死在码里，最省事）；
-   * 没有就共用渠道第一张 —— 那时金额对不上，必须提示付款人自己改。
+   * 没有就共用渠道那张 —— 那时金额对不上，必须提示付款人自己改。
    */
   const tierQrSrc = order ? tierQr(order.tier) : null;
-  const qrSrc = tierQrSrc ?? channel?.qr ?? null;
+  /*
+   * 展示用的码图：档位专属码 → 渠道码图。
+   *
+   * ⚠️ 但它只是**兜底**。只要渠道有 payUrl，就优先用 payUrl 现生成的码
+   * （见下方 qrSvg）—— 那才是能保证扫得出来的：
+   * 图片文件可能没放进 public/，而 payUrl 是实时编码的。
+   */
+  const qrSrc = tierQrSrc ?? channel?.qr?.trim() ?? null;
   const needManualAmount = !tierQrSrc;
+  const payUrl = channel?.payUrl?.trim() ?? "";
 
   if (loading) {
     return (
@@ -227,7 +264,41 @@ export function PayClient() {
             <span className="font-mono font-semibold">{order.domain}</span>
           </p>
         ) : null}
-        {qrSrc ? (
+        {/* 多个渠道时让付款人自己挑；只有一个就不显示选择器 */}
+        {channels.length > 1 ? (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {channels.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setChannelId(c.id)}
+                className={`rounded-[--radius-ctrl] border px-2.5 py-1 text-xs transition-[transition-duration:var(--motion-fast)] ${
+                  c.id === channel?.id
+                    ? "border-primary bg-primary/10 text-fg-primary"
+                    : "border-border text-fg-tertiary hover:bg-bg-subtle"
+                }`}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {/*
+          ① 优先用 payUrl 现生成的码。
+          内容是**真实支付链接**，AlipayHK / 支付宝扫了直接进支付页；
+          以前生成的是本站付款页地址，扫码器不认，才报「无法对应」。
+        */}
+        {qrSvg ? (
+          <svg
+            viewBox={`0 0 ${qrSvg.size} ${qrSvg.size}`}
+            role="img"
+            aria-label={t("sponsor.qrAlt", { name: channel?.name ?? "收款码" })}
+            className="mx-auto mt-4 aspect-square w-full max-w-[260px] rounded-[--radius-ctrl] bg-white p-2"
+          >
+            <path d={qrSvg.path} fill="#000" />
+          </svg>
+        ) : qrSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={qrSrc}
@@ -237,11 +308,30 @@ export function PayClient() {
             className="mx-auto mt-4 aspect-square w-full max-w-[260px] rounded-[--radius-ctrl] bg-white object-contain"
           />
         ) : null}
+
+        {/* ② 不用扫码的那条路：直接打开支付页 */}
+        {payUrl ? (
+          <a
+            href={payUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-[--radius-ctrl] bg-primary px-4 py-2.5 text-sm font-medium text-primary-fg"
+          >
+            <ExternalLink className="h-4 w-4" />
+            {t("pay.openPayPage", { name: channel?.name ?? "" })}
+          </a>
+        ) : null}
+
         <p className="mt-3 text-center text-xs leading-relaxed text-fg-tertiary">
           {needManualAmount
             ? t("pay.amountHint", { amount: formatAmount(order.amount) })
             : (channel?.note ?? t("pay.scanHint"))}
         </p>
+        {payUrl ? (
+          <p className="mt-1.5 text-center text-[11px] leading-relaxed text-fg-quaternary">
+            {t("pay.payUrlHint")}
+          </p>
+        ) : null}
       </section>
 
       {/* ③ 已付款确认 */}

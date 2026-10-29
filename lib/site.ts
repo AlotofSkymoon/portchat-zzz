@@ -187,23 +187,46 @@ export const SPONSOR_NOTE: string =
 export interface SponsorChannel {
   id: string;
   name: string;
-  /** 图片地址：本地路径或外链 */
+  /** 图片地址：本地路径或外链。留空表示这个渠道没有码图 */
   qr: string;
+  /**
+   * 真实支付页链接 —— **不用扫码也能付**的那条路。
+   *
+   * ⚠️ 为什么必须有它：
+   * AlipayHK / 支付宝的扫码器只认自己体系的链接（qr.alipay.hk 之类），
+   * 扫一个普通网址会直接报「该二维码对应服务无法支持」。
+   * 所以付款页要能**点一下就跳到真正的支付页**，
+   * 二维码也必须以这个链接为内容（而不是本站的付款页地址）。
+   *
+   * 留空则只显示码图，没有「打开付款页」按钮。
+   */
+  payUrl: string;
   note: string;
 }
 
+/**
+ * AlipayHK 收款链接（站长的码，10 HKD 那张）。
+ *
+ * 可被 NEXT_PUBLIC_ALIPAYHK_PAY_URL 覆盖 —— 换码时改环境变量即可，不用动代码。
+ */
+const DEFAULT_ALIPAYHK_PAY_URL =
+  "https://render.alipay.com/p/yuyan/180020010001270667/landing/income.html?qrcode=https://qr.alipay.hk/281004010498YvOJ6IxMp1j0Eu2sOlH7QF5g";
+
 const DEFAULT_SPONSOR_CHANNELS: SponsorChannel[] = [
-  {
-    id: "alipay",
-    name: "支付宝",
-    qr: "/sponsor-alipay.png",
-    note: "内地用户：打开支付宝「扫一扫」",
-  },
   {
     id: "alipayhk",
     name: "AlipayHK",
     qr: "/sponsor-qr.png",
-    note: "香港用户：用 AlipayHK App 扫码",
+    payUrl: process.env.NEXT_PUBLIC_ALIPAYHK_PAY_URL?.trim() || DEFAULT_ALIPAYHK_PAY_URL,
+    note: "香港用户：可直接打开付款页，或用 AlipayHK App 扫码",
+  },
+  {
+    id: "alipay",
+    name: "支付宝",
+    // 站点里没有这张图，留空让组件跳过 —— 摆个不存在的地址只会显示破图
+    qr: "",
+    payUrl: "",
+    note: "内地支付宝：需要商户号，暂未接通",
   },
 ];
 
@@ -222,7 +245,8 @@ function resolveSponsorChannels(): SponsorChannel[] {
           .map((c, i) => ({
             id: String(c.id ?? `channel-${i}`),
             name: String(c.name ?? "收款码"),
-            qr: String(c.qr),
+            qr: typeof c.qr === "string" ? c.qr : "",
+            payUrl: typeof c.payUrl === "string" ? c.payUrl : "",
             note: String(c.note ?? ""),
           }));
         // JSON 写错或数组为空时退回默认，不至于让赞助页整个消失
@@ -236,10 +260,22 @@ function resolveSponsorChannels(): SponsorChannel[] {
   // 兼容旧的单码配置：只填了 NEXT_PUBLIC_SPONSOR_QR 时当成唯一渠道
   const legacy = process.env.NEXT_PUBLIC_SPONSOR_QR?.trim();
   if (legacy) {
-    return [{ id: "custom", name: SPONSOR_METHOD, qr: legacy, note: SPONSOR_NOTE }];
+    return [{ id: "custom", name: SPONSOR_METHOD, qr: legacy, payUrl: "", note: SPONSOR_NOTE }];
   }
 
   return DEFAULT_SPONSOR_CHANNELS;
+}
+
+/**
+ * 真正能用的渠道：至少要有码图或支付链接之一。
+ *
+ * ⚠️ 为什么付款页必须走这个而不是 SPONSOR_CHANNELS[0]：
+ * 以前直接取第一项，而第一项（支付宝）的图根本没放进 public/，
+ * 结果付款页渲染出一个破图，扫码的人看到的正是「该二维码无法对应」。
+ * 现在没东西可展示的渠道一律不进列表。
+ */
+export function usableSponsorChannels(): SponsorChannel[] {
+  return SPONSOR_CHANNELS.filter((c) => Boolean(c?.qr?.trim()) || Boolean(c?.payUrl?.trim()));
 }
 
 export const SPONSOR_CHANNELS: SponsorChannel[] = resolveSponsorChannels();

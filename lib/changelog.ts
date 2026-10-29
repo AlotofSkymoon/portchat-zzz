@@ -26,6 +26,27 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-10-29",
+    title: { zh: "收款码改成真实支付链接", en: "Payment QR now points at the real payment page" },
+    entries: [
+      {
+        tag: "fix",
+        zh: "付款页以前取的是渠道列表第一项（支付宝），而那张图根本没放进站点，扫码的人看到的正是「该二维码对应服务无法支持」—— 现在只展示真正有码或有支付链接的渠道",
+        en: "The payment page used the first channel (Alipay), whose image was never uploaded — that is what caused "this QR code is not supported". Only channels with an actual code or link are shown now",
+      },
+      {
+        tag: "new",
+        zh: "不用扫码了：付款页加了「打开 AlipayHK 付款页」按钮，点了直接跳到真正的支付页，付完回来填交易号",
+        en: "No scanning needed: a button opens the real AlipayHK payment page directly — come back afterwards to enter the transaction number",
+      },
+      {
+        tag: "improve",
+        zh: "付款页的二维码改为用真实支付链接现场生成（不再依赖 public/ 里那张图），扫了直接进支付页；站内收款码也换成了最新那张",
+        en: "The payment QR is now generated live from the real payment URL instead of relying on an image file, and the stored code was replaced with the latest one",
+      },
+    ],
+  },
+  {
+    date: "2026-10-29",
     title: { zh: "赞助分成赞助与代购档位", en: "Sponsorship split into sponsor and purchase tiers" },
     entries: [
       {

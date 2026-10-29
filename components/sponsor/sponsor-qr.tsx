@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { QrCode, TriangleAlert } from "lucide-react";
+import { ExternalLink, QrCode, TriangleAlert } from "lucide-react";
 
 import { useI18n } from "@/components/i18n-provider";
 import { GlareCard } from "@/components/ui/glare-card";
@@ -66,16 +66,31 @@ function ChannelCard({ channel }: { channel: SponsorChannel }) {
               用 next/image 反而会多一层无谓的处理与配置约束。
             */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={channel.qr}
-              alt={t("sponsor.qrAlt", { name: channel.name })}
-              width={640}
-              height={640}
-              loading="lazy"
-              decoding="async"
-              onError={() => setFailed(true)}
-              className="mx-auto aspect-square w-full rounded-2xl bg-white object-contain"
-            />
+            {channel.qr ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={channel.qr}
+                alt={t("sponsor.qrAlt", { name: channel.name })}
+                width={640}
+                height={640}
+                loading="lazy"
+                decoding="async"
+                onError={() => setFailed(true)}
+                className="mx-auto aspect-square w-full rounded-2xl bg-white object-contain"
+              />
+            ) : null}
+            {/* 不用扫码的那条路：直接跳转真实支付页 */}
+            {channel.payUrl ? (
+              <a
+                href={channel.payUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-[#082a63] hover:bg-white/90"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                {t("pay.openPayPage", { name: channel.name })}
+              </a>
+            ) : null}
             {channel.note ? (
               <p className="mt-3 text-center text-xs leading-relaxed text-white/60">
                 {channel.note}
@@ -98,7 +113,8 @@ function ChannelCard({ channel }: { channel: SponsorChannel }) {
  */
 export function SponsorChannels({ channels }: { channels: SponsorChannel[] }) {
   const { t } = useI18n();
-  const list = (channels ?? []).filter((c) => c && c.qr);
+  // 没码图也没支付链接的渠道不摆出来 —— 摆了就是个空壳
+  const list = (channels ?? []).filter((c) => c && (c.qr || c.payUrl));
   if (list.length === 0) return null;
 
   const single = list.length === 1;
