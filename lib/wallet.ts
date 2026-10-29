@@ -148,7 +148,7 @@ export function debit(
 
 /** 判断某笔订单是否已经入过账 */
 export async function hasCredited(userId: string, orderId: string): Promise<boolean> {
-  const members = await getRedis().smembers(creditedKey(userId)).catch(() => []);
+  const members = await getRedis().smembers(creditedKey(userId)).catch(() => [] as string[]);
   return Array.isArray(members) ? members.includes(orderId) : false;
 }
 
