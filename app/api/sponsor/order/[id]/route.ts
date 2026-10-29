@@ -34,8 +34,13 @@ export async function GET(
   return NextResponse.json({
     id: order.id,
     token: order.token,
+    tier: order.tier,
     amount: order.amount,
     currency: order.currency,
+    domain: order.domain,
+    // 充值单要显示「这是给 Pot Pay 充值」，付款页才知道该返回账户页
+    purpose: order.purpose,
+    payMethod: order.payMethod,
     status: order.status,
     scannedAt: order.scannedAt,
     claimedAt: order.claimedAt,

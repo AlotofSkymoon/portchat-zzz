@@ -25,6 +25,42 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-10-29",
+    title: { zh: "赞助分成赞助与代购档位", en: "Sponsorship split into sponsor and purchase tiers" },
+    entries: [
+      {
+        tag: "new",
+        zh: "赞助页新增五个档位：赞助站长 10 HKD、赞助 .xyz 域名 7 HKD、赞助 .top 域名 33 HKD、代购 .xyz 6.82 HKD、代购 .top 31.78 HKD —— 选完档位收款码会按该档金额重新生成",
+        en: "Five tiers on the sponsor page: sponsor the owner HKD 10, fund a .xyz domain HKD 7, fund a .top domain HKD 33, buy a .xyz HKD 6.82, buy a .top HKD 31.78 — the QR code regenerates for the selected amount",
+      },
+      {
+        tag: "new",
+        zh: "代购档要先填上想要的域名（如 123456.xyz）才会出码，后缀必须与档位一致；域名会显示在付款页和后台订单里，站长照着买",
+        en: "Purchase tiers require the domain you want (e.g. 123456.xyz) before the QR appears; the suffix must match the tier. The domain shows on the payment page and in the admin order",
+      },
+      {
+        tag: "improve",
+        zh: "AI 审核会连档位、金额和域名一起看：代购订单的域名不像样也会被标为可疑转人工",
+        en: "AI review now weighs the tier, amount and domain together — a purchase order with a bogus domain is flagged for manual review",
+      },
+      {
+        tag: "improve",
+        zh: "后台订单卡片标出每一笔的档位，代购单直接显示域名，不再只看金额猜这是赞助还是代购",
+        en: "Admin orders now show each tier, and purchase orders display the domain — no more guessing from the amount alone",
+      },
+      {
+        tag: "new",
+        zh: "付款页可以选择支付方式：AlipayHK、支付宝、Apple Pay、银行卡，或站内 Pot Pay 余额",
+        en: "The payment page now offers a choice: AlipayHK, Alipay, Apple Pay, bank card, or your in-site Pot Pay balance",
+      },
+      {
+        tag: "new",
+        zh: "新增 Pot Pay 钱包：在账号页充值后可用余额付费，流水可查；余额不足时会提示先充值",
+        en: "New Pot Pay wallet: top up from your account page and pay with the balance, with a running ledger. You'll be prompted to top up when the balance runs short",
+      },
+    ],
+  },
+  {
     date: "2026-10-20",
     title: { zh: "赞助改成订单号核销", en: "Sponsorship now runs on order numbers" },
     entries: [

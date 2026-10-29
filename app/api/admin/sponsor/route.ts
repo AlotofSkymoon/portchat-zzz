@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/auth";
 import { hasRedisConfig, storageErrorMessage } from "@/lib/redis";
-import { getOrder, listOrders, saveOrder } from "@/lib/sponsor-pay";
+import { getOrder, listOrders, saveOrder, settleRecharge } from "@/lib/sponsor-pay";
 import { reviewOrder } from "@/lib/sponsor-review";
 
 export const runtime = "nodejs";
@@ -104,5 +104,14 @@ export async function POST(request: Request) {
   }
 
   await saveOrder(order);
+
+  /*
+   * 充值单：站长确认后入账。
+   * 幂等 —— AI 已经入过账的订单不会再加一次。
+   */
+  if (body.action === "approve") {
+    await settleRecharge(order).catch(() => undefined);
+  }
+
   return NextResponse.json({ ok: true });
 }

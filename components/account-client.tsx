@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SiteFooter } from "@/components/site-footer";
+import { WalletCard } from "@/components/wallet-card";
 
 interface AccountUser {
   id: string;
@@ -131,6 +132,8 @@ export function AccountClient({ user }: { user: AccountUser }) {
             {/* 账号类设置：昵称 / 邮箱换绑 / GitHub 绑定 / 两步验证
                 与聊天里的设置弹窗共用同一批组件，改一处两边都生效 */}
             <div className="space-y-3">
+              {/* Pot Pay 余额：站内的钱，充值和消费都在这儿起步 */}
+              <WalletCard />
               <NicknameCard onChanged={() => router.refresh()} />
               <EmailCard onChanged={() => router.refresh()} />
               <GithubBindCard redirect="/account" />

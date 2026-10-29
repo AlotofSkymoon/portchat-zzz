@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getRedis, hasRedisConfig, storageErrorMessage } from "@/lib/redis";
-import { getOrder, looksLikeTradeNo, saveOrder } from "@/lib/sponsor-pay";
+import { getOrder, looksLikeTradeNo, saveOrder, settleRecharge } from "@/lib/sponsor-pay";
 import { reviewOrder } from "@/lib/sponsor-review";
 
 export const runtime = "nodejs";
@@ -90,6 +90,14 @@ export async function POST(request: Request) {
 
   await saveOrder(order);
 
+  /*
+   * 充值单在审核通过这一步就入账，不用等站长再点一次。
+   * 入账是幂等的：AI 通过之后站长又手动确认一遍也不会加两次钱。
+   */
+  const credited = order.status === "approved"
+    ? await settleRecharge(order).catch(() => false)
+    : false;
+
   /**
    * 回传给付款人的信息刻意含糊：
    * 通过就说"已确认"，可疑也说"已收到待确认"——
@@ -98,6 +106,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     status: order.status,
+    credited,
     message:
       order.status === "approved" ? "已确认，感谢赞助！" : "已收到，等待站长确认",
   });

@@ -7,6 +7,7 @@ import { ArrowLeft, Check, Copy, Loader2, TriangleAlert } from "lucide-react";
 
 import { useI18n } from "@/components/i18n-provider";
 import { SPONSOR_CHANNELS } from "@/lib/site";
+import { formatAmount, getTier, tierQr } from "@/lib/sponsor-tiers";
 
 /**
  * 付款页主体。
@@ -24,8 +25,12 @@ import { SPONSOR_CHANNELS } from "@/lib/site";
 type OrderView = {
   id: string;
   token: string;
+  tier: string;
   amount: number;
   currency: string;
+  domain: string | null;
+  /** sponsor = 赞助/代购；recharge = 给 Pot Pay 充值 */
+  purpose?: string;
   status: string;
   scannedAt: number | null;
   claimedAt: number | null;
@@ -126,6 +131,17 @@ export function PayClient() {
   }
 
   const channel = SPONSOR_CHANNELS[0];
+  const isRecharge = order?.purpose === "recharge";
+  const backHref = isRecharge ? "/account" : "/sponsor";
+  const backLabel = isRecharge ? t("pay.backToAccount") : t("pay.backToSponsor");
+  const tier = order ? getTier(order.tier) : null;
+  /*
+   * 档位有专属码就用专属码（金额写死在码里，最省事）；
+   * 没有就共用渠道第一张 —— 那时金额对不上，必须提示付款人自己改。
+   */
+  const tierQrSrc = order ? tierQr(order.tier) : null;
+  const qrSrc = tierQrSrc ?? channel?.qr ?? null;
+  const needManualAmount = !tierQrSrc;
 
   if (loading) {
     return (
@@ -143,11 +159,11 @@ export function PayClient() {
           <TriangleAlert className="h-7 w-7 text-fg-tertiary" />
           <p className="text-sm text-fg-secondary">{err}</p>
           <Link
-            href="/sponsor"
+            href={backHref}
             className="mt-2 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            {t("pay.backToSponsor")}
+            {backLabel}
           </Link>
         </div>
       </Shell>
@@ -158,6 +174,13 @@ export function PayClient() {
 
   return (
     <Shell>
+      {/* 充值单：说清楚钱会去哪，别让付款人以为是赞助 */}
+      {isRecharge ? (
+        <p className="rounded-[--radius-card] border border-primary/30 bg-primary/5 px-4 py-3 text-xs leading-relaxed text-fg-secondary">
+          {t("pay.rechargeHint", { amount: formatAmount(order.amount) })}
+        </p>
+      ) : null}
+
       {/* ① 令牌 */}
       <section className="rounded-[--radius-card] border border-border bg-bg-surface p-5">
         <h2 className="text-sm font-medium text-fg-secondary">{t("pay.tokenTitle")}</h2>
@@ -183,24 +206,41 @@ export function PayClient() {
       <section className="rounded-[--radius-card] border border-border bg-bg-surface p-5">
         <div className="flex items-baseline justify-between">
           <h2 className="text-sm font-medium text-fg-secondary">
-            {t("pay.amountTitle")}
+            {isRecharge
+              ? t("wallet.rechargeFor")
+              : tier
+                ? t(tier.labelKey)
+                : t("pay.amountTitle")}
           </h2>
           <span className="text-lg font-semibold text-fg-primary">
-            {order.amount} {order.currency}
+            {formatAmount(order.amount)} {order.currency}
           </span>
         </div>
-        {channel ? (
+        {tier?.descKey ? (
+          <p className="mt-1 text-xs leading-relaxed text-fg-tertiary">
+            {t(tier.descKey)}
+          </p>
+        ) : null}
+        {order.domain ? (
+          <p className="mt-2 rounded-[--radius-ctrl] bg-bg-subtle px-3 py-2 text-sm text-fg-primary">
+            <span className="text-fg-tertiary">{t("pay.domainLabel")}：</span>
+            <span className="font-mono font-semibold">{order.domain}</span>
+          </p>
+        ) : null}
+        {qrSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={channel.qr}
-            alt={t("sponsor.qrAlt", { name: channel.name })}
+            src={qrSrc}
+            alt={t("sponsor.qrAlt", { name: channel?.name ?? "收款码" })}
             width={640}
             height={640}
             className="mx-auto mt-4 aspect-square w-full max-w-[260px] rounded-[--radius-ctrl] bg-white object-contain"
           />
         ) : null}
         <p className="mt-3 text-center text-xs leading-relaxed text-fg-tertiary">
-          {channel?.note ?? t("pay.scanHint")}
+          {needManualAmount
+            ? t("pay.amountHint", { amount: formatAmount(order.amount) })
+            : (channel?.note ?? t("pay.scanHint"))}
         </p>
       </section>
 
@@ -245,11 +285,11 @@ export function PayClient() {
       </section>
 
       <Link
-        href="/sponsor"
+        href={backHref}
         className="mt-1 inline-flex items-center gap-1.5 self-center text-sm text-fg-tertiary hover:text-fg-secondary"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        {t("pay.backToSponsor")}
+        {backLabel}
       </Link>
     </Shell>
   );
@@ -261,7 +301,9 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="mx-auto flex w-full max-w-md flex-col gap-4">
       <header className="mb-1">
         <h1 className="text-xl font-semibold text-fg-primary">{t("pay.title")}</h1>
-        <p className="mt-1 text-sm leading-relaxed text-fg-tertiary">{t("pay.subtitle")}</p>
+        <p className="mt-1 text-sm leading-relaxed text-fg-tertiary">
+          {t("pay.subtitle")}
+        </p>
       </header>
       {children}
     </div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getRedis, hasRedisConfig, storageErrorMessage } from "@/lib/redis";
 import { createOrder } from "@/lib/sponsor-pay";
+import { getTier, validateDomain } from "@/lib/sponsor-tiers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,13 +42,54 @@ export async function POST(request: Request) {
     // 限流本身失败不该拦住正常赞助
   }
 
+  /*
+   * 档位与域名。
+   *
+   * 不传就按纯赞助档处理（老客户端 / 直接 curl 上来也不会 500）。
+   * 代购档必须带上域名，且后缀要与档位一致 ——
+   * .xyz 的价买不到 .top，档位和后辍对不上就是一笔说不清的账。
+   */
+  let body: { tier?: string; domain?: string; payMethod?: string } = {};
   try {
-    const order = await createOrder();
+    const text = await request.text();
+    if (text.trim()) body = JSON.parse(text) as typeof body;
+  } catch {
+    // 空 body 是合法的，按默认档处理
+  }
+
+  const tier = getTier(body.tier);
+  if (body.tier && !tier) {
+    return NextResponse.json({ error: "档位不存在" }, { status: 400 });
+  }
+
+  let domain: string | null = null;
+  if (tier?.requiresDomain) {
+    domain = validateDomain(body.domain ?? "", tier.tld);
+    if (!domain) {
+      return NextResponse.json({ error: "请填写要代购的域名" }, { status: 400 });
+    }
+  }
+
+  /*
+   * Pot Pay 余额支付不能走这个接口：
+   * 余额付款是即时扣款、不需要核销，走的是 /api/sponsor/pay-wallet。
+   * 这里只负责线下渠道（建单 → 扫码付款 → 回填交易号）。
+   */
+  if ((body.payMethod ?? "").trim() === "potpay") {
+    return NextResponse.json({ error: "余额支付请改用 /api/sponsor/pay-wallet" }, { status: 400 });
+  }
+
+  try {
+    const order = await createOrder(tier?.id ?? null, domain, {
+      payMethod: (body.payMethod ?? "").trim() || null,
+    });
     return NextResponse.json({
       id: order.id,
       token: order.token,
+      tier: order.tier,
       amount: order.amount,
       currency: order.currency,
+      domain: order.domain,
       // 只给路径，由页面拼自己的 origin —— 避免反代下拿到错误的域名
       path: `/sponsor/pay?o=${order.id}`,
     });
