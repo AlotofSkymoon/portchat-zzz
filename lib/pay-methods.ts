@@ -33,26 +33,37 @@ export interface PayMethod {
 /**
  * 渠道是否可用由站点配置决定，所以做成函数而不是常量数组。
  *
- * alipayhk 能不能用 = 站长有没有配收款码；
- * 一张码都没配的话摆出来点了也只是个空页面。
+ * ⚠️ AlipayHK 和支付宝是**两个独立体系**，得分别判断：
+ * 以前只有一个 hasManualChannel 开关，结果站长配了 AlipayHK 之后
+ * 内地支付宝也被点亮，点了却跳到一个没有码的付款页。
+ * 现在各自看自己有没有配。
  */
-export function payMethods(opts: { hasManualChannel?: boolean } = {}): PayMethod[] {
-  const manual = opts.hasManualChannel ?? false;
+export function payMethods(
+  opts: { alipayhkReady?: boolean; alipayReady?: boolean; hasManualChannel?: boolean } = {},
+): PayMethod[] {
+  // 兼容旧调用：只给了 hasManualChannel 就当它指的是 AlipayHK
+  const fallback = opts.hasManualChannel ?? false;
+  const hk = opts.alipayhkReady ?? fallback;
+  const cn = opts.alipayReady ?? false;
   return [
     {
       id: "alipayhk",
       kind: "manual",
-      enabled: manual,
+      enabled: hk,
       labelKey: "payMethod.alipayhk",
-      descKey: "payMethod.alipayhkDesc",
+      descKey: hk ? "payMethod.alipayhkDesc" : "payMethod.alipayhkDescOff",
     },
     {
       id: "alipay",
       kind: "manual",
-      // 内地支付宝需要内地实名商户号，与 AlipayHK 不是一个体系
-      enabled: false,
+      /*
+       * 内地支付宝与 AlipayHK 不是一个体系，需要站长另配一张内地码。
+       * 配了就可用（同样是扫站长的码 + 回填交易号）；
+       * 没配就摆出来但禁用，付款人至少知道有这条路。
+       */
+      enabled: cn,
       labelKey: "payMethod.alipay",
-      descKey: "payMethod.alipayDesc",
+      descKey: cn ? "payMethod.alipayDesc" : "payMethod.alipayDescOff",
     },
     {
       id: "applepay",
@@ -80,7 +91,12 @@ export function payMethods(opts: { hasManualChannel?: boolean } = {}): PayMethod
 
 export const DEFAULT_PAY_METHOD: PayMethodId = "potpay";
 
-export function getPayMethod(id: string | null | undefined): PayMethod | null {
+export function getPayMethod(
+  id: string | null | undefined,
+  opts: { alipayhkReady?: boolean; alipayReady?: boolean; hasManualChannel?: boolean } = {},
+): PayMethod | null {
   if (!id) return null;
-  return payMethods().find((x) => x.id === id) ?? null;
+  // ⚠️ 必须把站点配置传进去 —— 否则查出来的 enabled 恒为 false，
+  // 明明能用的渠道会被判成不可用。
+  return payMethods(opts).find((x) => x.id === id) ?? null;
 }

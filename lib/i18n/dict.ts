@@ -687,6 +687,9 @@ const DICT: Record<string, Entry> = {
   "pay.openPayPage": { "zh-CN": "打开 {name} 付款页", "zh-TW": "打開 {name} 付款頁", en: "Open {name} payment page", fr: "Ouvrir la page de paiement {name}" },
   "pay.payUrlHint": { "zh-CN": "不用扫码：点上面的按钮会直接跳到支付页，付款后回来填交易号。", "zh-TW": "不用掃碼：點上面的按鈕會直接跳到支付頁，付款後回來填交易號。", en: "No scanning needed: the button opens the payment page directly — come back here to enter the transaction number.", fr: "Pas besoin de scanner : le bouton ouvre directement la page de paiement — revenez ensuite saisir le numéro." },
   "pay.rechargeHint": { "zh-CN": "这笔是为 Pot Pay 充值 {amount}，确认后会自动加进你的余额。", "zh-TW": "這筆是為 Pot Pay 充值 {amount}，確認後會自動加進你的餘額。", en: "This tops up Pot Pay by {amount}. It lands in your balance once confirmed.", fr: "Ceci recharge Pot Pay de {amount}. Le montant arrive sur votre solde après confirmation." },
+  "pay.pickMethod": { "zh-CN": "用哪个钱包付", "zh-TW": "用哪個錢包付", en: "Pay with which wallet", fr: "Payer avec quel portefeuille" },
+  "pay.notConfigured": { "zh-CN": "未配置", "zh-TW": "未設定", en: "Not set up", fr: "Non configuré" },
+  "pay.channelNotReady": { "zh-CN": "站长还没配置 {name} 的收款码，请先换上面的另一种方式。", "zh-TW": "站長還沒設定 {name} 的收款碼，請先換上面的另一種方式。", en: "The owner hasn't set up a {name} code yet — please pick another method above.", fr: "Le propriétaire n'a pas encore configuré de code {name} — choisissez une autre méthode ci-dessus." },
 
   // ---- 支付方式 ----
   "sponsor.payMethod": { "zh-CN": "选择付款方式", "zh-TW": "選擇付款方式", en: "Choose a payment method", fr: "Choisissez un moyen de paiement" },
@@ -696,9 +699,11 @@ const DICT: Record<string, Entry> = {
   "sponsor.paidByWallet": { "zh-CN": "已用余额支付，谢谢你！", "zh-TW": "已用餘額支付，謝謝你！", en: "Paid from your balance — thank you!", fr: "Payé depuis votre solde — merci !" },
   "sponsor.walletHint": { "zh-CN": "余额即时到账，不用等核销", "zh-TW": "餘額即時到帳，不用等核銷", en: "Instant — no manual review needed", fr: "Instantané — aucune vérification manuelle" },
   "payMethod.alipayhk": { "zh-CN": "AlipayHK", "zh-TW": "AlipayHK", en: "AlipayHK", fr: "AlipayHK" },
-  "payMethod.alipayhkDesc": { "zh-CN": "扫站长的收款码付款，回填交易号", "zh-TW": "掃站長的收款碼付款，回填交易號", en: "Scan the owner's code, then enter the transaction number", fr: "Scannez le code du propriétaire, puis saisissez le numéro de transaction" },
+  "payMethod.alipayhkDesc": { "zh-CN": "香港钱包：扫站长的收款码付款，回填交易号", "zh-TW": "香港錢包：掃站長的收款碼付款，回填交易號", en: "Hong Kong wallet: scan the owner's code, then enter the transaction number", fr: "Portefeuille HK : scannez le code du propriétaire, puis saisissez le numéro de transaction" },
+  "payMethod.alipayhkDescOff": { "zh-CN": "站长还没配置 AlipayHK 收款码，请换一种方式", "zh-TW": "站長還沒設定 AlipayHK 收款碼，請換一種方式", en: "The owner hasn't set up an AlipayHK code yet — pick another method", fr: "Le propriétaire n'a pas encore configuré de code AlipayHK — choisissez une autre méthode" },
   "payMethod.alipay": { "zh-CN": "支付宝", "zh-TW": "支付寶", en: "Alipay", fr: "Alipay" },
-  "payMethod.alipayDesc": { "zh-CN": "需要内地实名商户号，暂未接通", "zh-TW": "需要內地實名商戶號，暫未接通", en: "Needs a mainland merchant account — not connected yet", fr: "Nécessite un compte commerçant en Chine continentale — pas encore connecté" },
+  "payMethod.alipayDesc": { "zh-CN": "内地钱包：扫站长的收款码付款，回填交易号", "zh-TW": "內地錢包：掃站長的收款碼付款，回填交易號", en: "Mainland wallet: scan the owner's code, then enter the transaction number", fr: "Portefeuille Chine : scannez le code du propriétaire, puis saisissez le numéro de transaction" },
+  "payMethod.alipayDescOff": { "zh-CN": "站长还没配置内地支付宝收款码，请换一种方式", "zh-TW": "站長還沒設定內地支付寶收款碼，請換一種方式", en: "The owner hasn't set up a mainland Alipay code yet — pick another method", fr: "Le propriétaire n'a pas encore configuré de code Alipay Chine — choisissez une autre méthode" },
   "payMethod.applepay": { "zh-CN": "Apple Pay", "zh-TW": "Apple Pay", en: "Apple Pay", fr: "Apple Pay" },
   "payMethod.applepayDesc": { "zh-CN": "需要在线支付通道，暂未接通", "zh-TW": "需要線上支付通道，暫未接通", en: "Needs an online payment gateway — not connected yet", fr: "Nécessite une passerelle de paiement en ligne — pas encore connecté" },
   "payMethod.bankcard": { "zh-CN": "银行卡", "zh-TW": "銀行卡", en: "Bank card", fr: "Carte bancaire" },

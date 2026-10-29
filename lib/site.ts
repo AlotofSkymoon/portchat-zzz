@@ -223,10 +223,20 @@ const DEFAULT_SPONSOR_CHANNELS: SponsorChannel[] = [
   {
     id: "alipay",
     name: "支付宝",
-    // 站点里没有这张图，留空让组件跳过 —— 摆个不存在的地址只会显示破图
-    qr: "",
-    payUrl: "",
-    note: "内地支付宝：需要商户号，暂未接通",
+    /*
+     * 内地支付宝的收款码 / 付款链接。
+     *
+     * 没配就是空字符串 —— 组件会标「未配置」并禁止选择，
+     * 而不是摆个不存在的地址显示破图（以前正是这么干的，
+     * 扫码的人看到的「该二维码对应服务无法支持」就是它造成的）。
+     *
+     * 站长配好后设这两个环境变量即可，不用改代码：
+     *   NEXT_PUBLIC_ALIPAY_QR       码图地址（本地路径或外链）
+     *   NEXT_PUBLIC_ALIPAY_PAY_URL  支付宝体系的付款页链接
+     */
+    qr: process.env.NEXT_PUBLIC_ALIPAY_QR?.trim() || "",
+    payUrl: process.env.NEXT_PUBLIC_ALIPAY_PAY_URL?.trim() || "",
+    note: "内地用户：可直接打开付款页，或用支付宝 App 扫码",
   },
 ];
 
@@ -274,8 +284,20 @@ function resolveSponsorChannels(): SponsorChannel[] {
  * 结果付款页渲染出一个破图，扫码的人看到的正是「该二维码无法对应」。
  * 现在没东西可展示的渠道一律不进列表。
  */
+/**
+ * 单个渠道是否真的有东西可付 —— 有码图或支付链接之一就算。
+ *
+ * ⚠️ 付款页要用它来区分「可选」和「站长还没配」：
+ * 以前不配置的渠道被直接过滤掉，付款人就只看到 AlipayHK 一个，
+ * 根本不知道还有支付宝这条路（或者反过来以为站只支持一种）。
+ * 现在全部列出来，没配的标「未配置」并禁用。
+ */
+export function sponsorChannelReady(c: SponsorChannel | null | undefined): boolean {
+  return Boolean(c?.qr?.trim()) || Boolean(c?.payUrl?.trim());
+}
+
 export function usableSponsorChannels(): SponsorChannel[] {
-  return SPONSOR_CHANNELS.filter((c) => Boolean(c?.qr?.trim()) || Boolean(c?.payUrl?.trim()));
+  return SPONSOR_CHANNELS.filter(sponsorChannelReady);
 }
 
 export const SPONSOR_CHANNELS: SponsorChannel[] = resolveSponsorChannels();

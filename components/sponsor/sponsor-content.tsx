@@ -11,7 +11,8 @@ import {
   REPO_URL,
   SHOW_SOURCE_LINKS,
   SITE_NAME,
-  usableSponsorChannels,
+  SPONSOR_CHANNELS,
+  sponsorChannelReady,
 } from "@/lib/site";
 import {
   DEFAULT_TIER_ID,
@@ -57,8 +58,17 @@ export function SponsorContent() {
    * 默认 Pot Pay —— 它是唯一能即时到账的；线下渠道要等人工核销。
    */
   const router = useRouter();
+  /*
+   * AlipayHK 与支付宝分开判断 —— 配了哪个哪个才能选。
+   * 以前共用一个开关，配了 AlipayHK 就把内地支付宝也点亮，
+   * 选了却跳到一个没有码的付款页。
+   */
   const methods = React.useMemo(
-    () => payMethods({ hasManualChannel: usableSponsorChannels().length > 0 }),
+    () =>
+      payMethods({
+        alipayhkReady: sponsorChannelReady(SPONSOR_CHANNELS.find((c) => c.id === "alipayhk")),
+        alipayReady: sponsorChannelReady(SPONSOR_CHANNELS.find((c) => c.id === "alipay")),
+      }),
     [],
   );
   const [methodId, setMethodId] = React.useState<string>(DEFAULT_PAY_METHOD);
@@ -275,7 +285,12 @@ export function SponsorContent() {
             {t("sponsor.payByWallet", { amount: formatAmount(tier.amount) })}
           </button>
         ) : domainReady ? (
-          <SponsorPayAction tier={tier.id} domain={domainValue} onError={setTierErr} />
+          <SponsorPayAction
+            tier={tier.id}
+            domain={domainValue}
+            channel={method.id}
+            onError={setTierErr}
+          />
         ) : (
           <p className="py-8 text-center text-sm text-white/80">
             {t("tier.needDomain")}

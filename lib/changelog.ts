@@ -26,12 +26,33 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 export const CHANGELOG: ChangelogDay[] = [
   {
     date: "2026-10-29",
+    title: { zh: "付款方式可以选 AlipayHK 或支付宝", en: "Choose between AlipayHK and Alipay" },
+    entries: [
+      {
+        tag: "new",
+        zh: "付款页把 AlipayHK 与支付宝两个钱包都列出来，各自标清能不能用；站长没配的那个标「未配置」，不再让人对着一片空白猜",
+        en: "The payment page lists both AlipayHK and Alipay with their own availability. An unset-up wallet is marked as such instead of leaving a blank area",
+      },
+      {
+        tag: "fix",
+        zh: "赞助页以前共用一个开关，配了 AlipayHK 就把内地支付宝也点亮，选了却跳到一个没有码的付款页 —— 现在两个钱包各自判断",
+        en: "Both wallets used to share one flag, so setting up AlipayHK wrongly enabled mainland Alipay too, and picking it led to a page with no code. They are now evaluated separately",
+      },
+      {
+        tag: "improve",
+        zh: "在赞助页选好的钱包会带到付款页，不用再选一次；内地支付宝的码配好后设 NEXT_PUBLIC_ALIPAY_QR 与 NEXT_PUBLIC_ALIPAY_PAY_URL 即可，不用改代码",
+        en: "The wallet picked on the sponsor page carries over to the payment page, and a mainland Alipay code only needs the NEXT_PUBLIC_ALIPAY_QR and NEXT_PUBLIC_ALIPAY_PAY_URL env vars",
+      },
+    ],
+  },
+  {
+    date: "2026-10-29",
     title: { zh: "收款码改成真实支付链接", en: "Payment QR now points at the real payment page" },
     entries: [
       {
         tag: "fix",
         zh: "付款页以前取的是渠道列表第一项（支付宝），而那张图根本没放进站点，扫码的人看到的正是「该二维码对应服务无法支持」—— 现在只展示真正有码或有支付链接的渠道",
-        en: "The payment page used the first channel (Alipay), whose image was never uploaded — that is what caused "this QR code is not supported". Only channels with an actual code or link are shown now",
+        en: "The payment page used the first channel (Alipay), whose image was never uploaded — that is what caused the 'this QR code is not supported' error. Only channels with an actual code or link are shown now",
       },
       {
         tag: "new",

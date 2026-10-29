@@ -6,7 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Check, Copy, ExternalLink, Loader2, TriangleAlert } from "lucide-react";
 
 import { useI18n } from "@/components/i18n-provider";
-import { usableSponsorChannels, type SponsorChannel } from "@/lib/site";
+import { SPONSOR_CHANNELS, sponsorChannelReady, type SponsorChannel } from "@/lib/site";
+import { payMethods } from "@/lib/pay-methods";
 import { formatAmount, getTier, tierQr } from "@/lib/sponsor-tiers";
 
 /**
@@ -52,11 +53,34 @@ export function PayClient() {
   const [done, setDone] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
 
-  /* 渠道选择：只列真正有东西可展示的（有码图或支付链接） */
-  const channels = React.useMemo(() => usableSponsorChannels(), []);
-  const [channelId, setChannelId] = React.useState<string>(channels[0]?.id ?? "");
+  /*
+   * 付款方式：AlipayHK / 支付宝全都列出来，各自标清能不能用。
+   *
+   * ⚠️ 为什么不过滤掉没配的：
+   * 以前只列「有码或链接」的渠道，站长没配内地支付宝时付款人就
+   * 只看到 AlipayHK 一个，既不知道还有别的路，也不知道是没配还是不支持。
+   * 现在没配的照列、标「未配置」并禁止点击。
+   */
+  const channels = React.useMemo(() => SPONSOR_CHANNELS, []);
+  // 赞助页选了哪个渠道就默认选中哪个（?c=alipayhk 之类）
+  const wantChannel = (params.get("c") ?? "").trim();
+  const [channelId, setChannelId] = React.useState<string>(() => {
+    const picked = channels.find((c) => c.id === wantChannel && sponsorChannelReady(c));
+    return picked?.id ?? channels.find(sponsorChannelReady)?.id ?? channels[0]?.id ?? "";
+  });
   const channel: SponsorChannel | null =
-    channels.find((c) => c.id === channelId) ?? channels[0] ?? null;
+    channels.find((c) => c.id === channelId) ?? channels.find(sponsorChannelReady) ?? null;
+  const channelOk = sponsorChannelReady(channel);
+
+  /* 付款方式按钮：跟赞助页同一套口径（能不能用 = 站长有没有配对应的码） */
+  const manualMethods = React.useMemo(
+    () =>
+      payMethods({
+        alipayhkReady: sponsorChannelReady(channels.find((c) => c.id === "alipayhk")),
+        alipayReady: sponsorChannelReady(channels.find((c) => c.id === "alipay")),
+      }).filter((m) => m.kind === "manual"),
+    [channels],
+  );
 
   /* 用真实支付链接现生成二维码 —— 不依赖 public/ 里有没有那张图 */
   const [qrSvg, setQrSvg] = React.useState<{ path: string; size: number } | null>(null);
@@ -264,23 +288,40 @@ export function PayClient() {
             <span className="font-mono font-semibold">{order.domain}</span>
           </p>
         ) : null}
-        {/* 多个渠道时让付款人自己挑；只有一个就不显示选择器 */}
-        {channels.length > 1 ? (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {channels.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setChannelId(c.id)}
-                className={`rounded-[--radius-ctrl] border px-2.5 py-1 text-xs transition-[transition-duration:var(--motion-fast)] ${
-                  c.id === channel?.id
-                    ? "border-primary bg-primary/10 text-fg-primary"
-                    : "border-border text-fg-tertiary hover:bg-bg-subtle"
-                }`}
-              >
-                {c.name}
-              </button>
-            ))}
+        {/*
+          选付款方式：AlipayHK 还是支付宝。
+          两个体系各自独立，没配的那个标「未配置」并禁止点击 ——
+          不藏起来，付款人至少知道有这条路、也知道是没配而不是不支持。
+        */}
+        {manualMethods.length > 0 ? (
+          <div className="mt-3">
+            <p className="mb-1.5 text-xs text-fg-tertiary">{t("pay.pickMethod")}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {manualMethods.map((m) => {
+                const active = m.id === channel?.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    disabled={!m.enabled}
+                    onClick={() => setChannelId(m.id)}
+                    aria-pressed={active}
+                    className={`rounded-[--radius-ctrl] border px-2.5 py-1 text-xs transition-[transition-duration:var(--motion-fast)] disabled:cursor-not-allowed disabled:opacity-45 ${
+                      active
+                        ? "border-primary bg-primary/10 text-fg-primary"
+                        : "border-border text-fg-tertiary hover:bg-bg-subtle"
+                    }`}
+                  >
+                    {t(m.labelKey)}
+                    {m.enabled ? null : (
+                      <span className="ml-1 text-[10px] opacity-80">
+                        {t("pay.notConfigured")}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ) : null}
 
@@ -307,7 +348,16 @@ export function PayClient() {
             height={640}
             className="mx-auto mt-4 aspect-square w-full max-w-[260px] rounded-[--radius-ctrl] bg-white object-contain"
           />
-        ) : null}
+        ) : (
+          /*
+           * 站长没配这个渠道的码 —— 明确说出来。
+           * 以前这里什么都不渲染，付款人看到一片空白，
+           * 只会以为站坏了，不知道其实是没配置。
+           */
+          <p className="mx-auto mt-4 w-full max-w-[260px] rounded-[--radius-ctrl] border border-dashed border-border px-3 py-8 text-center text-xs leading-relaxed text-fg-tertiary">
+            {t("pay.channelNotReady", { name: channel?.name ?? "" })}
+          </p>
+        )}
 
         {/* ② 不用扫码的那条路：直接打开支付页 */}
         {payUrl ? (

@@ -22,12 +22,18 @@ import { useI18n } from "@/components/i18n-provider";
 export function SponsorPayAction({
   tier,
   domain,
+  channel,
   onError,
 }: {
   /** 当前选中的档位；不传按纯赞助档处理 */
   tier?: string;
   /** 代购档指定的域名 */
   domain?: string | null;
+  /**
+   * 在赞助页选好的付款方式（alipayhk / alipay）。
+   * 带到付款页，让它默认选中同一个 —— 否则付款人还得再选一次。
+   */
+  channel?: string;
   /** 建单失败时把原因告诉外层（比如域名没填） */
   onError?: (message: string | null) => void;
 }) {
@@ -58,7 +64,11 @@ export function SponsorPayAction({
         onErrorRef.current?.(data.error ?? t("pay.qrFailed"));
         return;
       }
-      router.push(data.path);
+      // 带上在赞助页选好的付款方式，付款页就不用再选一遍
+      const sep = data.path.includes("?") ? "&" : "?";
+      router.push(
+        channel ? `${data.path}${sep}c=${encodeURIComponent(channel)}` : data.path,
+      );
     } catch {
       onErrorRef.current?.(t("pay.qrFailed"));
     } finally {
