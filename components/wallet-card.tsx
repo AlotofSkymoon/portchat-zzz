@@ -107,11 +107,18 @@ export function WalletCard() {
         <div className="pr-3">
           <p className="flex items-center gap-1.5 text-sm font-medium">
             {t("wallet.title")}
-            <span className="rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-              {t("wallet.potpay")}
+            <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+              {t("pay.betaBadge")}
             </span>
           </p>
           <p className="text-xs text-muted-foreground">{t("wallet.desc")}</p>
+          {/*
+            Pot Pay 是站内自建的余额系统，没有支付牌照、也没有对账通道，
+            所以必须明说是测试版 —— 免得有人当成正式钱包大额充值。
+          */}
+          <p className="text-[11px] leading-relaxed text-amber-600/90 dark:text-amber-400/90">
+            {t("pay.betaHint")}
+          </p>
         </div>
         <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
       </div>

@@ -690,6 +690,8 @@ const DICT: Record<string, Entry> = {
   "pay.pickMethod": { "zh-CN": "用哪个钱包付", "zh-TW": "用哪個錢包付", en: "Pay with which wallet", fr: "Payer avec quel portefeuille" },
   "pay.notConfigured": { "zh-CN": "未配置", "zh-TW": "未設定", en: "Not set up", fr: "Non configuré" },
   "pay.channelNotReady": { "zh-CN": "站长还没配置 {name} 的收款码，请先换上面的另一种方式。", "zh-TW": "站長還沒設定 {name} 的收款碼，請先換上面的另一種方式。", en: "The owner hasn't set up a {name} code yet — please pick another method above.", fr: "Le propriétaire n'a pas encore configuré de code {name} — choisissez une autre méthode ci-dessus." },
+  "pay.betaBadge": { "zh-CN": "测试版", "zh-TW": "測試版", en: "Beta", fr: "Bêta" },
+  "pay.betaHint": { "zh-CN": "Pot Pay 仍在测试，余额规则与计费方式可能随时调整。", "zh-TW": "Pot Pay 仍在測試，餘額規則與計費方式可能隨時調整。", en: "Pot Pay is still in beta — balance rules and pricing may change at any time.", fr: "Pot Pay est encore en bêta — les règles de solde et la tarification peuvent changer à tout moment." },
 
   // ---- 支付方式 ----
   "sponsor.payMethod": { "zh-CN": "选择付款方式", "zh-TW": "選擇付款方式", en: "Choose a payment method", fr: "Choisissez un moyen de paiement" },

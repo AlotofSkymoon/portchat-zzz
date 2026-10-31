@@ -26,6 +26,14 @@ export interface PayMethod {
   kind: "manual" | "wallet";
   /** 是否真的可用。false 的会在界面上标「即将支持」并禁止选择 */
   enabled: boolean;
+  /**
+   * 是否处于测试阶段。true 的会在界面上标「测试版」。
+   *
+   * ⚠️ 跟 enabled 是两件事：enabled 问的是「这条路接没接通」，
+   * beta 问的是「接通了但还在试」。Pot Pay 属于后者 —— 能用，
+   * 但余额规则、计费方式随时可能改，得让付款人事先知道。
+   */
+  beta?: boolean;
   labelKey: string;
   descKey: string;
 }
@@ -83,6 +91,7 @@ export function payMethods(
       id: "potpay",
       kind: "wallet",
       enabled: true,
+      beta: true,
       labelKey: "payMethod.potpay",
       descKey: "payMethod.potpayDesc",
     },

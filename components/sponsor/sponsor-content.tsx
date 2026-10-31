@@ -252,11 +252,20 @@ export function SponsorContent() {
               >
                 <span className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium text-white">{t(m.labelKey)}</span>
-                  {m.enabled ? null : (
+                  {/*
+                    三种状态互斥，优先级：未接通 > 测试版 > 不标。
+                    beta 用琥珀色而不是白色 —— 深色卡片上白底徽标会跟
+                    「即将支持」混在一起，看不出哪個是能用但还在试。
+                  */}
+                  {!m.enabled ? (
                     <span className="shrink-0 rounded-full border border-white/30 px-1.5 py-0.5 text-[10px] text-white/80">
                       {t("sponsor.comingSoon")}
                     </span>
-                  )}
+                  ) : m.beta ? (
+                    <span className="shrink-0 rounded-full border border-amber-400/50 bg-amber-400/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-200">
+                      {t("pay.betaBadge")}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="mt-1 block text-xs leading-relaxed text-white/80">
                   {t(m.descKey)}
@@ -296,6 +305,11 @@ export function SponsorContent() {
             {t("tier.needDomain")}
           </p>
         )}
+        {method.kind === "wallet" ? (
+          <p className="mt-2 text-center text-[11px] leading-relaxed text-amber-200/90">
+            {t("pay.betaHint")}
+          </p>
+        ) : null}
         <p className="mt-3 text-center text-[11px] leading-relaxed text-white/70">
           {tier.requiresDomain
             ? t("tier.payHintDomain", { amount: formatAmount(tier.amount) })

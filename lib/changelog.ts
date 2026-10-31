@@ -25,6 +25,22 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 
 export const CHANGELOG: ChangelogDay[] = [
   {
+    date: "2026-10-31",
+    title: { zh: "Pot Pay 标为测试版", en: "Pot Pay is now marked as beta" },
+    entries: [
+      {
+        tag: "new",
+        zh: "Pot Pay 余额在赞助页、账号页钱包、充值付款页三处都挂上了琥珀色「测试版」标记，并写明余额规则与计费方式可能随时调整",
+        en: "The Pot Pay balance now carries an amber beta badge on the sponsor page, the wallet card and the top-up page, along with a note that balance rules and pricing may change",
+      },
+      {
+        tag: "improve",
+        zh: "测试版与「即将支持」是两件事：前者能用但还在试，后者根本没接通。两个标记现在互斥显示，不会再混成一个白底徽标看不出区别",
+        en: "Beta and coming soon are different states: the first works but is still being tested, the second is not connected at all. The two badges are now mutually exclusive so they no longer look alike",
+      },
+    ],
+  },
+  {
     date: "2026-10-29",
     title: { zh: "付款方式可以选 AlipayHK 或支付宝", en: "Choose between AlipayHK and Alipay" },
     entries: [

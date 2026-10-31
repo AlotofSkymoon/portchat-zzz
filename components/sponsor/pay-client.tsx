@@ -266,12 +266,22 @@ export function PayClient() {
       {/* ② 收款码 */}
       <section className="rounded-[--radius-card] border border-border bg-bg-surface p-5">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-sm font-medium text-fg-secondary">
+          <h2 className="flex items-center gap-1.5 text-sm font-medium text-fg-secondary">
             {isRecharge
               ? t("wallet.rechargeFor")
               : tier
                 ? t(tier.labelKey)
                 : t("pay.amountTitle")}
+            {/*
+              充值单就是 Pot Pay 的入口 —— 账记在站内余额里，
+              不是付给站长的赞助款，所以测试版标记要在这里也出现一次，
+              免得付款人以为自己在走一条成熟流程。
+            */}
+            {isRecharge ? (
+              <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                {t("pay.betaBadge")}
+              </span>
+            ) : null}
           </h2>
           <span className="text-lg font-semibold text-fg-primary">
             {formatAmount(order.amount)} {order.currency}
