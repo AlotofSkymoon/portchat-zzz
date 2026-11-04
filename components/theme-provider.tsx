@@ -150,171 +150,60 @@ export function detectStandalone(): boolean {
 }
 
 /**
- * 明暗切换的圆形揭示动画。
+ * 用 View Transitions 做圆形扩散切换。
  *
- * 这一版经历过两次推翻，两次都是被设备上的实测数据打脸：
- *
- * ① View Transitions + clip-path 展开：掉帧 11 次、最长帧 66.6ms。
- *    VT 要对整页做两次快照，每帧重绘整屏快照 —— 页面上有 backdrop-filter
- *    时开销被放大。
- *
- * ② 小圆 + transform: scale() 放大：桌面 0 掉帧，但 **iPad 上整屏变黑**。
- *    scale 会按放大后的最终尺寸光栅化。1024x1366 @DPR2 上要盖满屏幕
- *    需要半径 1651 → 渲染尺寸 3301x3301 CSS px = 6603x6603 物理像素，
- *    远超 GPU 纹理上限（通常 4096），iOS Safari 对超限图层直接渲染失败。
- *
- * ③ 当前：视口大小的实心层 + clip-path: circle() 半径动画。
- *    图层尺寸恒等于视口（iPad 竖屏 2048x2732 物理像素，安全），
- *    clip-path 只决定显示哪一块，不会让图层变大。
- *
- * 注意 ③ 与 ① 虽然都用 clip-path，但代价完全不同：① 重绘的是**整页快照**
- * （含内容与毛玻璃），③ 重绘的是一个**纯色实心 div**（无子元素、无毛玻璃）。
- *
- * 步骤：
- *   1) 铺一层视口大小的实心层，用 clip-path 把圆从点击处扩到盖满整屏
- *   2) 圆盖满之后才真正切换主题 —— React 全树重渲染发生在"被遮住"的时候
- *   3) 覆盖层 opacity 淡出，露出新主题
+ * 现代浏览器（Chrome 111+ / Safari 18+）支持时，从点击位置扩散出
+ * 一个新主题的圆，比整屏硬切自然得多。不支持时静默退回普通切换，
+ * 不会报错也不会卡顿 —— 所以可以无条件调用。
  */
-const REVEAL_GROW_MS = 240;
-const REVEAL_FADE_MS = 180;
-/** 动画异常时的兜底：超过这个时间就强制完成切换并移除覆盖层 */
-const REVEAL_SAFETY_MS = 900;
-
-/**
- * clip-path: circle() 是否可用。
- * 不支持时**不能**退化成「铺满全屏的实心层」—— 那会整屏糊住一块纯色。
- * 直接不画覆盖层，老老实实瞬间切换。
- */
-function supportsClipCircle(): boolean {
-  try {
-    if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return false;
-    return CSS.supports("clip-path", "circle(0px at 0px 0px)");
-  } catch {
-    return false;
-  }
-}
-
-/** 是否正在揭示中 —— 连续快点时不叠加第二层圆 */
-let revealing = false;
-/** 揭示期间又点了一次：记住新的意图，等圆盖满时以最后一次为准 */
-let latestApply: (() => void) | null = null;
-
-/** 系统是否要求减少动态效果 */
-function prefersReducedMotion(): boolean {
-  try {
-    return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * 取"切换之后"的页面底色。
- *
- * 覆盖层要在切换**之前**就画上目标主题的颜色，否则圆扩到一半会露出
- * 还没变的旧页面。做法是临时挂上 .dark 读出 --background 再还原 ——
- * 整个读写都在同一个任务里完成，浏览器还没到绘制阶段，不会闪。
- */
-function peekBackground(dark: boolean): string {
-  const root = document.documentElement;
-  const had = root.classList.contains("dark");
-  if (had !== dark) root.classList.toggle("dark", dark);
-  let raw = "";
-  try {
-    raw = getComputedStyle(root).getPropertyValue("--background").trim();
-  } catch {
-    raw = "";
-  }
-  if (had !== dark) root.classList.toggle("dark", had);
-  return raw ? `hsl(${raw})` : dark ? "#0c0c0e" : "#ffffff";
-}
-
-function applyWithReveal(
+function applyWithTransition(
   origin: { x: number; y: number } | undefined,
-  target: ResolvedTheme,
   apply: () => void,
 ): void {
-  const canAnimate =
-    typeof Element !== "undefined" && typeof Element.prototype.animate === "function";
+  const doc = document as Document & {
+    startViewTransition?: (cb: () => void) => { ready: Promise<void> };
+  };
 
-  // 没有点击位置（程序化切换）/ 用户要求减少动效 / 浏览器不支持 → 直接切
-  if (!origin || prefersReducedMotion() || !canAnimate) {
+  // 不支持 View Transitions，或没给点击位置 → 直接切换
+  if (!origin || typeof doc.startViewTransition !== "function") {
     apply();
     return;
   }
-  /**
-   * 已经有圆在扩散了：不再叠第二层，也不立刻切换 ——
-   * 否则"第二次点击先生效、第一次的回调又把它改回去"，最终停在错的那一侧。
-   * 这里只记下最新意图，等圆盖满时执行一次。
-   */
-  if (revealing) {
-    latestApply = apply;
-    return;
-  }
-
-  const radius = Math.hypot(
-    Math.max(origin.x, window.innerWidth - origin.x),
-    Math.max(origin.y, window.innerHeight - origin.y),
-  );
-  // 元素只有 240px，靠 scale 放大 —— 图层小、内存占用低，
-  // 而 Chrome 会按最终尺寸重新光栅化，边缘依然是平滑的圆（实测无锯齿）
-  const base = 120;
-
-  const el = document.createElement("div");
-  el.className = "theme-reveal";
-  el.setAttribute("aria-hidden", "true");
-  el.style.left = `${origin.x - base}px`;
-  el.style.top = `${origin.y - base}px`;
-  el.style.width = `${base * 2}px`;
-  el.style.height = `${base * 2}px`;
-  el.style.background = peekBackground(target === "dark");
-  document.body.appendChild(el);
-
-  revealing = true;
-  let applied = false;
-  let cleaned = false;
-
-  const runApply = () => {
-    if (applied) return;
-    applied = true;
-    (latestApply ?? apply)();
-    latestApply = null;
-  };
-  const cleanup = () => {
-    if (cleaned) return;
-    cleaned = true;
-    revealing = false;
-    latestApply = null;
-    el.remove();
-  };
 
   try {
-    const grow = el.animate(
-      [{ transform: "scale(0)" }, { transform: `scale(${radius / base})` }],
-      { duration: REVEAL_GROW_MS, easing: "cubic-bezier(0.2, 0, 0, 1)", fill: "forwards" },
-    );
-    grow.finished
-      .then(() => {
-        // 圆已经盖满整屏，此刻切主题：React 重渲染在遮罩下进行，看不见
-        runApply();
-        const fade = el.animate([{ opacity: 1 }, { opacity: 0 }], {
-          duration: REVEAL_FADE_MS,
-          easing: "ease-out",
-          fill: "forwards",
-        });
-        return fade.finished;
-      })
-      .then(cleanup, cleanup);
-  } catch {
-    runApply();
-    cleanup();
-  }
+    const transition = doc.startViewTransition(() => {
+      apply();
+    });
 
-  // 兜底：标签页切到后台时动画可能永不结束，主题也必须切掉
-  window.setTimeout(() => {
-    runApply();
-    cleanup();
-  }, REVEAL_SAFETY_MS);
+    transition.ready
+      .then(() => {
+        // 从点击点到最远角的距离，保证圆能覆盖整屏
+        const endRadius = Math.hypot(
+          Math.max(origin.x, window.innerWidth - origin.x),
+          Math.max(origin.y, window.innerHeight - origin.y),
+        );
+
+        document.documentElement.animate(
+          {
+            clipPath: [
+              `circle(0px at ${origin.x}px ${origin.y}px)`,
+              `circle(${endRadius}px at ${origin.x}px ${origin.y}px)`,
+            ],
+          },
+          {
+            duration: 420,
+            easing: "cubic-bezier(0.4, 0, 0.2, 1)",
+            // 作用在"新画面"上，让它从点击处展开盖住旧画面
+            pseudoElement: "::view-transition-new(root)",
+          },
+        );
+      })
+      .catch(() => {
+        /* 动画失败不影响切换结果 —— class 已经改完了 */
+      });
+  } catch {
+    apply();
+  }
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -374,6 +263,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
     if (forcedIos) unlocked = true;
     setIosUnlockedState(unlocked);
+    // 未解锁却存着 swiftui（换设备、清了标记等），回落到站点默认主题，
+    // 免得看到一个"应该锁着"的主题。
+    if (initialPreset === "swiftui" && !unlocked) {
+      initialPreset = SITE_THEME;
+      try {
+        localStorage.setItem(PRESET_KEY, initialPreset);
+      } catch {
+        /* 写不进就算了，下次还会再回落一次 */
+      }
+    }
 
     // 旧的存储值只有 "ios" / "web"，等价于手动锁定；"auto" 是新增的跟随态。
     const storedPref: VariantPref =
@@ -437,8 +336,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = React.useCallback(
     (next: Theme) => {
-      const resolved: ResolvedTheme = next === "system" ? readSystemTheme() : (next as ResolvedTheme);
-      applyWithReveal(undefined, resolved, () => commit(next));
+      applyWithTransition(undefined, () => commit(next));
     },
     [commit],
   );
@@ -447,8 +345,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = React.useCallback(
     (origin?: { x: number; y: number }) => {
       const isDark = document.documentElement.classList.contains("dark");
-      const next: Theme = isDark ? "light" : "dark";
-      applyWithReveal(origin, next as ResolvedTheme, () => commit(next));
+      applyWithTransition(origin, () => commit(isDark ? "light" : "dark"));
     },
     [commit],
   );
@@ -460,9 +357,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const current = (localStorage.getItem(STORAGE_KEY) as Theme) || "system";
       const idx = order.indexOf(current);
       const next = order[(idx + 1) % order.length];
-      const resolved: ResolvedTheme =
-        next === "system" ? readSystemTheme() : (next as ResolvedTheme);
-      applyWithReveal(origin, resolved, () => commit(next));
+      applyWithTransition(origin, () => commit(next));
     },
     [commit],
   );
@@ -555,6 +450,8 @@ var r=document.documentElement;
 if(d)r.classList.add('dark');else r.classList.remove('dark');
 var p=localStorage.getItem('${PRESET_KEY}');
 r.dataset.theme=${JSON.stringify(THEME_IDS)}.indexOf(p)>=0?p:'${SITE_THEME}';
+// SwiftUI 主题锁：未解锁（没在 iOS 主屏幕装过）就回落，避免首屏闪一下锁定主题
+if(r.dataset.theme==='swiftui'&&localStorage.getItem('${IOS_UNLOCK_KEY}')!=='1'){r.dataset.theme='${SITE_THEME}';}
 }catch(e){document.documentElement.classList.remove('dark');}})();`;
 
 /**

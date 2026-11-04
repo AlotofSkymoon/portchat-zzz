@@ -37,19 +37,40 @@ export const SITE_DESCRIPTION: string =
 
 /**
  * 主题预设。
+ * - fuwari：静态博客主题的观感 —— 极简、卡片、大留白，色相可调
+ * - violet-rose：紫粉渐变 + 白色圆角卡片（玫瑰点缀）
  * - anthropic：克制的暖色调 —— 米白底、赤陶橙点缀、细边框
  * - sidefolio：侧栏工作台 —— 中性灰阶、近黑深底、面板感（参考 Aceternity Sidefolio）
- * - material3：Material Design 3 baseline purple —— 表面容器分级、状态层、三级高度
+ * - minimalist：极简作品集 —— 暖白纸面、大留白、近直角发丝框
  */
-export type ThemePreset = "anthropic" | "sidefolio" | "material3";
+export type ThemePreset =
+  | "fuwari"
+  | "violet-rose"
+  | "anthropic"
+  | "sidefolio"
+  | "minimalist"
+  | "swiftui"
+  | "material3";
 
 export const THEME_PRESETS: { id: ThemePreset; label: string; desc: string }[] = [
   { id: "anthropic", label: "Anthropic", desc: "纸感排版 · 衬线思考 · Inter + Source Serif" },
+  { id: "fuwari", label: "Fuwari", desc: "极简卡片 · 大留白 · 单色相驱动" },
+  { id: "violet-rose", label: "Violet Rose", desc: "紫粉柔光 · 大圆角糖果 · 实心白卡" },
   { id: "sidefolio", label: "Sidefolio", desc: "侧栏工作台 · 中性灰阶 · 近黑深底" },
-  { id: "material3", label: "Material 3", desc: "MD3 baseline purple · 表面容器分级 · 状态层 · 三级高度" },
+  { id: "minimalist", label: "Minimalist", desc: "极简作品集 · 大留白 · 近直角发丝框" },
+  { id: "swiftui", label: "SwiftUI", desc: "iOS 26 观感 · SF 字体 · 系统色 · 发丝分隔线" },
+  { id: "material3", label: "Material 3", desc: "MD3 baseline purple · Roboto · 高度阴影" },
 ];
 
-export const THEME_IDS: ThemePreset[] = ["anthropic", "sidefolio", "material3"];
+export const THEME_IDS: ThemePreset[] = [
+  "anthropic",
+  "fuwari",
+  "violet-rose",
+  "sidefolio",
+  "minimalist",
+  "swiftui",
+  "material3",
+];
 
 const DEFAULT_THEME: ThemePreset = (() => {
   const t = process.env.NEXT_PUBLIC_THEME?.trim();
@@ -187,56 +208,23 @@ export const SPONSOR_NOTE: string =
 export interface SponsorChannel {
   id: string;
   name: string;
-  /** 图片地址：本地路径或外链。留空表示这个渠道没有码图 */
+  /** 图片地址：本地路径或外链 */
   qr: string;
-  /**
-   * 真实支付页链接 —— **不用扫码也能付**的那条路。
-   *
-   * ⚠️ 为什么必须有它：
-   * AlipayHK / 支付宝的扫码器只认自己体系的链接（qr.alipay.hk 之类），
-   * 扫一个普通网址会直接报「该二维码对应服务无法支持」。
-   * 所以付款页要能**点一下就跳到真正的支付页**，
-   * 二维码也必须以这个链接为内容（而不是本站的付款页地址）。
-   *
-   * 留空则只显示码图，没有「打开付款页」按钮。
-   */
-  payUrl: string;
   note: string;
 }
 
-/**
- * AlipayHK 收款链接（站长的码，10 HKD 那张）。
- *
- * 可被 NEXT_PUBLIC_ALIPAYHK_PAY_URL 覆盖 —— 换码时改环境变量即可，不用动代码。
- */
-const DEFAULT_ALIPAYHK_PAY_URL =
-  "https://render.alipay.com/p/yuyan/180020010001270667/landing/income.html?qrcode=https://qr.alipay.hk/281004010498YvOJ6IxMp1j0Eu2sOlH7QF5g";
-
 const DEFAULT_SPONSOR_CHANNELS: SponsorChannel[] = [
+  {
+    id: "alipay",
+    name: "支付宝",
+    qr: "/sponsor-alipay.png",
+    note: "内地用户：打开支付宝「扫一扫」",
+  },
   {
     id: "alipayhk",
     name: "AlipayHK",
     qr: "/sponsor-qr.png",
-    payUrl: process.env.NEXT_PUBLIC_ALIPAYHK_PAY_URL?.trim() || DEFAULT_ALIPAYHK_PAY_URL,
-    note: "香港用户：可直接打开付款页，或用 AlipayHK App 扫码",
-  },
-  {
-    id: "alipay",
-    name: "支付宝",
-    /*
-     * 内地支付宝的收款码 / 付款链接。
-     *
-     * 没配就是空字符串 —— 组件会标「未配置」并禁止选择，
-     * 而不是摆个不存在的地址显示破图（以前正是这么干的，
-     * 扫码的人看到的「该二维码对应服务无法支持」就是它造成的）。
-     *
-     * 站长配好后设这两个环境变量即可，不用改代码：
-     *   NEXT_PUBLIC_ALIPAY_QR       码图地址（本地路径或外链）
-     *   NEXT_PUBLIC_ALIPAY_PAY_URL  支付宝体系的付款页链接
-     */
-    qr: process.env.NEXT_PUBLIC_ALIPAY_QR?.trim() || "",
-    payUrl: process.env.NEXT_PUBLIC_ALIPAY_PAY_URL?.trim() || "",
-    note: "内地用户：可直接打开付款页，或用支付宝 App 扫码",
+    note: "香港用户：用 AlipayHK App 扫码",
   },
 ];
 
@@ -255,8 +243,7 @@ function resolveSponsorChannels(): SponsorChannel[] {
           .map((c, i) => ({
             id: String(c.id ?? `channel-${i}`),
             name: String(c.name ?? "收款码"),
-            qr: typeof c.qr === "string" ? c.qr : "",
-            payUrl: typeof c.payUrl === "string" ? c.payUrl : "",
+            qr: String(c.qr),
             note: String(c.note ?? ""),
           }));
         // JSON 写错或数组为空时退回默认，不至于让赞助页整个消失
@@ -270,34 +257,10 @@ function resolveSponsorChannels(): SponsorChannel[] {
   // 兼容旧的单码配置：只填了 NEXT_PUBLIC_SPONSOR_QR 时当成唯一渠道
   const legacy = process.env.NEXT_PUBLIC_SPONSOR_QR?.trim();
   if (legacy) {
-    return [{ id: "custom", name: SPONSOR_METHOD, qr: legacy, payUrl: "", note: SPONSOR_NOTE }];
+    return [{ id: "custom", name: SPONSOR_METHOD, qr: legacy, note: SPONSOR_NOTE }];
   }
 
   return DEFAULT_SPONSOR_CHANNELS;
-}
-
-/**
- * 真正能用的渠道：至少要有码图或支付链接之一。
- *
- * ⚠️ 为什么付款页必须走这个而不是 SPONSOR_CHANNELS[0]：
- * 以前直接取第一项，而第一项（支付宝）的图根本没放进 public/，
- * 结果付款页渲染出一个破图，扫码的人看到的正是「该二维码无法对应」。
- * 现在没东西可展示的渠道一律不进列表。
- */
-/**
- * 单个渠道是否真的有东西可付 —— 有码图或支付链接之一就算。
- *
- * ⚠️ 付款页要用它来区分「可选」和「站长还没配」：
- * 以前不配置的渠道被直接过滤掉，付款人就只看到 AlipayHK 一个，
- * 根本不知道还有支付宝这条路（或者反过来以为站只支持一种）。
- * 现在全部列出来，没配的标「未配置」并禁用。
- */
-export function sponsorChannelReady(c: SponsorChannel | null | undefined): boolean {
-  return Boolean(c?.qr?.trim()) || Boolean(c?.payUrl?.trim());
-}
-
-export function usableSponsorChannels(): SponsorChannel[] {
-  return SPONSOR_CHANNELS.filter(sponsorChannelReady);
 }
 
 export const SPONSOR_CHANNELS: SponsorChannel[] = resolveSponsorChannels();

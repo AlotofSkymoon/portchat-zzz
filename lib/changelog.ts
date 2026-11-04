@@ -25,159 +25,18 @@ export const CHANGELOG_START_DATE = "2026-10-09";
 
 export const CHANGELOG: ChangelogDay[] = [
   {
-    date: "2026-10-31",
-    title: { zh: "Pot Pay 标为测试版", en: "Pot Pay is now marked as beta" },
+    date: "2026-10-25",
+    title: { zh: "端砚模型更新，移除浦语", en: "InkStone models refreshed, InternLM removed" },
     entries: [
       {
         tag: "new",
-        zh: "Pot Pay 余额在赞助页、账号页钱包、充值付款页三处都挂上了琥珀色「测试版」标记，并写明余额规则与计费方式可能随时调整",
-        en: "The Pot Pay balance now carries an amber beta badge on the sponsor page, the wallet card and the top-up page, along with a note that balance rules and pricing may change",
+        zh: "书生·端砚模型清单更新：新增 Atria Dawn、Sage A1.5、书生 Decision 4B、DeepSeek V4.1 Flash（1017）",
+        en: "InkStone model list refreshed: added Atria Dawn, Sage A1.5, Intern Decision 4B and DeepSeek V4.1 Flash (1017)",
       },
       {
         tag: "improve",
-        zh: "测试版与「即将支持」是两件事：前者能用但还在试，后者根本没接通。两个标记现在互斥显示，不会再混成一个白底徽标看不出区别",
-        en: "Beta and coming soon are different states: the first works but is still being tested, the second is not connected at all. The two badges are now mutually exclusive so they no longer look alike",
-      },
-    ],
-  },
-  {
-    date: "2026-10-29",
-    title: { zh: "付款方式可以选 AlipayHK 或支付宝", en: "Choose between AlipayHK and Alipay" },
-    entries: [
-      {
-        tag: "new",
-        zh: "付款页把 AlipayHK 与支付宝两个钱包都列出来，各自标清能不能用；站长没配的那个标「未配置」，不再让人对着一片空白猜",
-        en: "The payment page lists both AlipayHK and Alipay with their own availability. An unset-up wallet is marked as such instead of leaving a blank area",
-      },
-      {
-        tag: "fix",
-        zh: "赞助页以前共用一个开关，配了 AlipayHK 就把内地支付宝也点亮，选了却跳到一个没有码的付款页 —— 现在两个钱包各自判断",
-        en: "Both wallets used to share one flag, so setting up AlipayHK wrongly enabled mainland Alipay too, and picking it led to a page with no code. They are now evaluated separately",
-      },
-      {
-        tag: "improve",
-        zh: "在赞助页选好的钱包会带到付款页，不用再选一次；内地支付宝的码配好后设 NEXT_PUBLIC_ALIPAY_QR 与 NEXT_PUBLIC_ALIPAY_PAY_URL 即可，不用改代码",
-        en: "The wallet picked on the sponsor page carries over to the payment page, and a mainland Alipay code only needs the NEXT_PUBLIC_ALIPAY_QR and NEXT_PUBLIC_ALIPAY_PAY_URL env vars",
-      },
-    ],
-  },
-  {
-    date: "2026-10-29",
-    title: { zh: "收款码改成真实支付链接", en: "Payment QR now points at the real payment page" },
-    entries: [
-      {
-        tag: "fix",
-        zh: "付款页以前取的是渠道列表第一项（支付宝），而那张图根本没放进站点，扫码的人看到的正是「该二维码对应服务无法支持」—— 现在只展示真正有码或有支付链接的渠道",
-        en: "The payment page used the first channel (Alipay), whose image was never uploaded — that is what caused the 'this QR code is not supported' error. Only channels with an actual code or link are shown now",
-      },
-      {
-        tag: "new",
-        zh: "不用扫码了：付款页加了「打开 AlipayHK 付款页」按钮，点了直接跳到真正的支付页，付完回来填交易号",
-        en: "No scanning needed: a button opens the real AlipayHK payment page directly — come back afterwards to enter the transaction number",
-      },
-      {
-        tag: "improve",
-        zh: "付款页的二维码改为用真实支付链接现场生成（不再依赖 public/ 里那张图），扫了直接进支付页；站内收款码也换成了最新那张",
-        en: "The payment QR is now generated live from the real payment URL instead of relying on an image file, and the stored code was replaced with the latest one",
-      },
-    ],
-  },
-  {
-    date: "2026-10-29",
-    title: { zh: "赞助分成赞助与代购档位", en: "Sponsorship split into sponsor and purchase tiers" },
-    entries: [
-      {
-        tag: "new",
-        zh: "赞助页新增五个档位：赞助站长 10 HKD、赞助 .xyz 域名 7 HKD、赞助 .top 域名 33 HKD、代购 .xyz 6.82 HKD、代购 .top 31.78 HKD —— 选完档位收款码会按该档金额重新生成",
-        en: "Five tiers on the sponsor page: sponsor the owner HKD 10, fund a .xyz domain HKD 7, fund a .top domain HKD 33, buy a .xyz HKD 6.82, buy a .top HKD 31.78 — the QR code regenerates for the selected amount",
-      },
-      {
-        tag: "new",
-        zh: "代购档要先填上想要的域名（如 123456.xyz）才会出码，后缀必须与档位一致；域名会显示在付款页和后台订单里，站长照着买",
-        en: "Purchase tiers require the domain you want (e.g. 123456.xyz) before the QR appears; the suffix must match the tier. The domain shows on the payment page and in the admin order",
-      },
-      {
-        tag: "improve",
-        zh: "AI 审核会连档位、金额和域名一起看：代购订单的域名不像样也会被标为可疑转人工",
-        en: "AI review now weighs the tier, amount and domain together — a purchase order with a bogus domain is flagged for manual review",
-      },
-      {
-        tag: "improve",
-        zh: "后台订单卡片标出每一笔的档位，代购单直接显示域名，不再只看金额猜这是赞助还是代购",
-        en: "Admin orders now show each tier, and purchase orders display the domain — no more guessing from the amount alone",
-      },
-      {
-        tag: "new",
-        zh: "付款页可以选择支付方式：AlipayHK、支付宝、Apple Pay、银行卡，或站内 Pot Pay 余额",
-        en: "The payment page now offers a choice: AlipayHK, Alipay, Apple Pay, bank card, or your in-site Pot Pay balance",
-      },
-      {
-        tag: "new",
-        zh: "新增 Pot Pay 钱包：在账号页充值后可用余额付费，流水可查；余额不足时会提示先充值",
-        en: "New Pot Pay wallet: top up from your account page and pay with the balance, with a running ledger. You'll be prompted to top up when the balance runs short",
-      },
-      {
-        tag: "fix",
-        zh: "修掉两处会让部署直接失败的问题：赞助分档的模块漏传，以及充值接口多导出一个常量被 Next 判为非法导出",
-        en: "Fixed two issues that broke deployment: a missing module for the sponsor tiers, and an extra export in the top-up endpoint that Next rejects",
-      },
-    ],
-  },
-  {
-    date: "2026-10-20",
-    title: { zh: "赞助改成订单号核销", en: "Sponsorship now runs on order numbers" },
-    entries: [
-      {
-        tag: "new",
-        zh: "赞助页的收款码改成服务端生成的订单码：扫下去先落到本站付款页，页面上有本笔订单的令牌，付款时填进备注就能对上账",
-        en: "The sponsor QR is now generated per order: scanning it opens a payment page showing that order's token, which goes in the payment note so payments can be matched",
-      },
-      {
-        tag: "new",
-        zh: "付款完成后可提交平台交易号，AI 先审一遍合理性，判可疑的转站长人工确认 —— 不会自动驳回，避免误杀真付款",
-        en: "After paying you can submit the transaction number. An AI pre-checks it; anything suspicious goes to manual review — it never auto-rejects, so real payments are never lost",
-      },
-      {
-        tag: "new",
-        zh: "管理员面板新增赞助订单卡片，待确认的排最前并标红，可一键确认、驳回或重新审核",
-        en: "The admin panel gained a sponsor orders card: orders awaiting review sort first and show a red badge, with one-click confirm, reject or re-review",
-      },
-      {
-        tag: "improve",
-        zh: "二维码链接里只有订单号、不含令牌，令牌只显示在付款页上由付款人手动抄写",
-        en: "The QR link carries only the order id, never the token — the token is shown on the payment page and copied by hand",
-      },
-      {
-        tag: "fix",
-        zh: "手机上扫不了自己这块屏幕，所以付款页地址也直接给成了可点的链接",
-        en: "You can't scan your own screen on a phone, so the payment link is also tappable directly",
-      },
-    ],
-  },
-  {
-    date: "2026-10-19",
-    title: { zh: "明暗切换不再卡顿", en: "Theme switching no longer stutters" },
-    entries: [
-      {
-        tag: "improve",
-        zh: "圆形扩散改用合成器动画（缩放 + 淡出），不再对整页做快照：实测掉帧从 11 次降到 0 次",
-        en: "The circular reveal now uses compositor-only animation (scale + fade) instead of snapshotting the whole page: dropped frames went from 11 to 0 in testing",
-      },
-      {
-        tag: "improve",
-        zh: "切换动作发生在新主题圆盖满屏幕之后，重渲染过程被遮住，不会再看到中间态",
-        en: "The swap happens after the circle covers the screen, so the re-render stays hidden",
-      },
-    ],
-  },
-  {
-    date: "2026-10-18",
-    title: { zh: "邮箱白名单加入 DNSHE 与 Henna", en: "DNSHE and Henna addresses are now accepted" },
-    entries: [
-      {
-        tag: "new",
-        zh: "注册与换绑现在接受 DNSHE 邮箱（@v.cd、@cn.mt）和 Henna 邮箱（@r0.us.ci）",
-        en: "DNSHE (@v.cd, @cn.mt) and Henna (@r0.us.ci) addresses are now accepted at sign-up and when changing email",
+        zh: "移除「书生·浦语」供应商，其模型已并入端砚，设置里不再出现该分组",
+        en: "Removed the InternLM (Atria) provider — its model is now part of InkStone and the group no longer appears in settings",
       },
     ],
   },
@@ -187,38 +46,8 @@ export const CHANGELOG: ChangelogDay[] = [
     entries: [
       {
         tag: "fix",
-        zh: "样式引擎换回 Tailwind CSS：UnoCSS 不认识的类名会静默不产出 CSS，换回后可预期性更好",
-        en: "Switched the style engine back to Tailwind CSS — UnoCSS drops unknown classes silently",
-      },
-      {
-        tag: "improve",
-        zh: "配色主题只保留 Anthropic、Sidefolio、Material 3 三套，其余移除",
-        en: "Only Anthropic, Sidefolio and Material 3 presets remain",
-      },
-      {
-        tag: "improve",
-        zh: "Material 3 主题重做：官方 baseline purple 色值、五级表面容器、状态层（8% / 12%）、三级高度阴影、M3 形状标度与 emphasized 曲线",
-        en: "Material 3 rebuilt: baseline purple tokens, five surface containers, 8%/12% state layers, three elevation levels, M3 shape scale and emphasized easing",
-      },
-      {
-        tag: "fix",
         zh: "圆角不再各走各的：顶栏、模型按钮、设置卡片用的是一套大圆角变量，而页面里绝大多数组件走的是 Tailwind 的 rounded-*，两者数值差了一倍多，所以同一个画面里顶栏很圆、下面的卡片却是方的。现在所有圆角都来自同一套量表，换主题时整站一起变",
         en: "Radius no longer comes from two competing scales: the top bar, model button and settings cards used one set of large radius variables while most of the page used Tailwind rounded-*, and the two differed by more than double — so the bar looked round while the cards below looked square. Every corner now comes from one scale that shifts together when you switch themes",
-      },
-      {
-        tag: "fix",
-        zh: "繁体中文不再一会儿昭源環方、一会儿系统字体：九个主题各写了一遍中文字体，摆的位置还不一样——iOS 主题把它排在系统字体之后，于是中文永远被系统字截胡；iOS 观感那一块压根没写中文；Material 3 末尾还混了个 Noto Sans。现在统一成一个 --font-tc 变量，中文字体来源唯一",
-        en: "Traditional Chinese no longer flips between Chiron Rounded and a system font: nine themes each declared the Chinese font in a different position — the iOS theme placed it after the system font so Chinese was always intercepted, the iOS variant block omitted it entirely, and Material 3 had a stray Noto Sans at the end. One --font-tc variable is now the single source for Chinese type",
-      },
-      {
-        tag: "fix",
-        zh: "中文标点跟着汉字走了：字体的 unicode-range 原先只覆盖汉字和中文标点区，漏了引号、省略号、破折号和间隔号，这些字符会掉到系统字体去——同一句话里汉字是昭源環方、旁边的「」却是另一种字体，看着就像字体在跳。现在补上了",
-        en: "Chinese punctuation now matches the characters: the font's unicode-range covered hanzi and the CJK punctuation block but omitted quotes, ellipsis, dashes and the interpunct, so those glyphs fell through to the system font — a sentence could render hanzi in Chiron while the adjacent 「」 used another face, which read as the font jumping. The ranges are filled in",
-      },
-      {
-        tag: "fix",
-        zh: "深色模式下发送按钮的箭头回来了：Material 3 深色主题把「四级文字」误写成了 outline-variant，而它的值和禁用按钮的底色 --muted 完全相同，于是灰底上的灰箭头对比度是 1:1，等于隐形。现在四级文字改回真正的文字色，并让禁用按钮的图标走 muted-foreground（它与底色是成对设计的），所有主题的对比度都回到 3.6:1 以上",
-        en: "The send arrow is back in dark mode: the Material 3 dark theme set the quaternary text token to the outline-variant value, which is byte-identical to --muted, the disabled button's background — a grey arrow on a grey circle at 1:1 contrast, effectively invisible. Quaternary is now a real text colour again, and the disabled button's icon uses muted-foreground (the token designed to pair with that background), bringing every theme above 3.6:1",
       },
     ],
   },
@@ -306,22 +135,6 @@ export const CHANGELOG: ChangelogDay[] = [
         tag: "fix",
         zh: "令牌粘贴容错：复制时带上的空格、换行，以及整条 /qr 链接都能正确解析；含非法字符或超长的输入会直接拒绝，不再送到存储层",
         en: "Pasted tokens are forgiving: stray spaces, line breaks and even a full /qr link parse correctly. Input with illegal characters or excessive length is rejected before reaching storage",
-      },
-    ],
-  },
-  {
-    date: "2026-10-25",
-    title: { zh: "端砚模型更新，移除浦语", en: "InkStone models refreshed, InternLM removed" },
-    entries: [
-      {
-        tag: "new",
-        zh: "书生·端砚模型清单更新：新增 Atria Dawn、Sage A1.5、书生 Decision 4B、DeepSeek V4.1 Flash（1017）",
-        en: "InkStone model list refreshed: added Atria Dawn, Sage A1.5, Intern Decision 4B and DeepSeek V4.1 Flash (1017)",
-      },
-      {
-        tag: "improve",
-        zh: "移除「书生·浦语」供应商，其模型已并入端砚，设置里不再出现该分组",
-        en: "Removed the InternLM (Atria) provider — its model is now part of InkStone and the group no longer appears in settings",
       },
     ],
   },
