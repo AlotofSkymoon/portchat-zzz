@@ -867,7 +867,7 @@ export function SettingsDialog({
     };
   }, [open]);
 
-  const { preset, setPreset, variantPref, setVariantPref, standalone, iosUnlocked } = useTheme();
+  const { preset, setPreset, variantPref, setVariantPref, standalone } = useTheme();
 
   /**
    * 权限分流：普通用户只能改「配色主题」和「自己的 API Key」。
@@ -1055,11 +1055,9 @@ export function SettingsDialog({
               <Palette className="h-4 w-4" />
               {t("settings.colorTheme")}
             </Label>
-            {/* 5 套风格用 2 列会剩一个空格，中等屏起给 3 列 */}
+            {/* 3 套风格，一列一行排开，名字不再被截断 */}
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
-              {THEME_PRESETS.filter(
-                (x) => x.id !== "swiftui" || iosUnlocked,
-              ).map((t) => (
+              {THEME_PRESETS.map((t) => (
                 <button
                   key={t.id}
                   type="button"

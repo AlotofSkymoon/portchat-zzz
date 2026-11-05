@@ -41,9 +41,30 @@ export const CHANGELOG: ChangelogDay[] = [
     ],
   },
   {
+    date: "2026-10-18",
+    title: { zh: "邮箱白名单加入 DNSHE 与 Henna", en: "DNSHE and Henna addresses are now accepted" },
+    entries: [
+      {
+        tag: "new",
+        zh: "注册与换绑现在接受 DNSHE 邮箱（@v.cd、@cn.mt）和 Henna 邮箱（@r0.us.ci）",
+        en: "DNSHE (@v.cd, @cn.mt) and Henna (@r0.us.ci) addresses are now accepted at sign-up and when changing email",
+      },
+    ],
+  },
+  {
     date: "2026-10-12",
     title: { zh: "全站圆角统一为一套量表", en: "One radius scale for the whole site" },
     entries: [
+      {
+        tag: "improve",
+        zh: "配色主题只保留 Anthropic、Sidefolio、Material 3 三套，其余移除",
+        en: "Only Anthropic, Sidefolio and Material 3 presets remain",
+      },
+      {
+        tag: "improve",
+        zh: "Material 3 主题重做：官方 baseline purple 色值、五级表面容器、状态层（8% / 12%）、三级高度阴影、M3 形状标度与 emphasized 曲线",
+        en: "Material 3 rebuilt: baseline purple tokens, five surface containers, 8%/12% state layers, three elevation levels, M3 shape scale and emphasized easing",
+      },
       {
         tag: "fix",
         zh: "圆角不再各走各的：顶栏、模型按钮、设置卡片用的是一套大圆角变量，而页面里绝大多数组件走的是 Tailwind 的 rounded-*，两者数值差了一倍多，所以同一个画面里顶栏很圆、下面的卡片却是方的。现在所有圆角都来自同一套量表，换主题时整站一起变",
